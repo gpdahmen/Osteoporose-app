@@ -1109,17 +1109,17 @@ function DvoChart({gender,answers}){
     10:"T-Score Gesamthüfte < −2,5 (manifeste Osteoporose) – 3-Jahres-Frakturrisikogrenze",
   };
 
-  // Cell display value = from active table, color = always highest threshold crossed (original DVO colors)
+  // Cell display value = from active table, color = based on cF value range (all cells colored like DVO original)
+  // cF ≤ 1.0            → rot   (Schwelle bereits ohne Zusatzrisiken überschritten)
+  // 1.0 < cF ≤ 2.0      → rosa  (wenige Risikofaktoren reichen)
+  // 2.0 < cF ≤ 4.0      → gelb  (mehrere Risikofaktoren nötig)
+  // cF > 4.0 oder null  → grün  (sehr niedriges Basisrisiko)
   const getCellInfo=(age,ci)=>{
-    const v=(THRESH[g][activePerc][age]||[])[ci];  // displayed value from active table
-    const v10=(THRESH[g][10][age]||[])[ci];
-    const v5=(THRESH[g][5][age]||[])[ci];
-    const v3=(THRESH[g][3][age]||[])[ci];
+    const v=(THRESH[g][activePerc][age]||[])[ci];
     if(v===null||v===undefined) return{v:null,cls:"c0"};
-    // Color = highest threshold where required cF ≤ 1.0 (already at risk without extra factors)
-    if(v10!==null&&v10!==undefined&&v10<=1.0) return{v,cls:"c-top"};
-    if(v5!==null&&v5!==undefined&&v5<=1.0)    return{v,cls:"c-high"};
-    if(v3!==null&&v3!==undefined&&v3<=1.0)    return{v,cls:"c-mod"};
+    if(v<=1.0)  return{v,cls:"c-top"};
+    if(v<=2.0)  return{v,cls:"c-high"};
+    if(v<=4.0)  return{v,cls:"c-mod"};
     return{v,cls:"c-low"};
   };
 
