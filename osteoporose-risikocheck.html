@@ -1544,6 +1544,166 @@ const SECTIONS = [{
     sym: "alkohol_ost",
     hint: "Alkohol hemmt Osteoblasten direkt, stört Vitamin D und ist mit Sturzrisiko assoziiert."
   }]
+}, {
+  id: "sek_genetisch",
+  icon: "🧬",
+  title: "Symptomcheck: Genetische & seltene Knochenerkrankungen",
+  sub: "Hinweise auf hereditäre oder angeborene Knochenerkrankungen – wichtig bei atypischen oder therapieresistenten Verläufen",
+  symcheck: true,
+  qs: [/* ── Osteogenesis imperfecta ── */
+  {
+    id: "sym_oi_fraktur",
+    t: "yn",
+    label: "Frakturen bereits im Kindes- oder Jugendalter, teils nach minimalen Stürzen oder spontan?",
+    sym: "oi",
+    hint: "Osteogenesis imperfecta (OI, 'Glasknochenkrankheit') führt durch Kollagen-Typ-I-Defekte zu multiplen Frakturen, oft schon bei Kleinkindern. Milde Formen (Typ I) bleiben bis ins Erwachsenenalter undiagnostiziert."
+  }, {
+    id: "sym_oi_skleren",
+    t: "yn",
+    label: "Bläuliche oder graue Verfärbung des Weißen der Augen (blaue Skleren)?",
+    sym: "oi",
+    hint: "Blaue Skleren sind ein charakteristisches, aber nicht immer vorhandenes Zeichen der OI – sichtbar durch das durchscheinende Choroid bei dünner Sklera."
+  }, {
+    id: "sym_oi_zaehne",
+    t: "yn",
+    label: "Auffällig brüchige, verfärbte oder transparente Zähne (Dentinogenesis imperfecta)?",
+    sym: "oi",
+    hint: "Dentinogenesis imperfecta tritt bei OI Typ III und IV auf – bernsteinfarbene, brüchige Zähne ohne erklärbaren Kariesbefall."
+  }, {
+    id: "sym_oi_hoer",
+    t: "yn",
+    label: "Hörverlust vor dem 50. Lebensjahr, besonders Schalleitungsschwerhörigkeit?",
+    sym: "oi",
+    hint: "Progressive Schwerhörigkeit durch Otosklerose oder Mittelohrveränderungen findet sich bei ca. 50% der OI-Typ-I-Patienten."
+  }, {
+    id: "sym_oi_familie",
+    t: "yn",
+    label: "Familienangehörige (Eltern, Geschwister) mit vielen Knochenbrüchen, kleiner Körpergröße oder ähnlichen Beschwerden?",
+    sym: "oi",
+    hint: "OI wird meist autosomal-dominant vererbt. Eine positive Familienanamnese erhöht die Wahrscheinlichkeit erheblich."
+  }, /* ── XLH / Hypophosphatämie ── */
+  {
+    id: "sym_xlh_rachitis",
+    t: "yn",
+    label: "Verbiegung der Beine (O- oder X-Beine) seit der Kindheit oder bekannte Rachitis?",
+    sym: "xlh",
+    hint: "XLH (X-linked Hypophosphatemia) ist die häufigste hereditäre Rachitis-Form. O-Beine, Kleinwuchs und Zahnabszesse im Kindesalter sind typische Erstzeichen."
+  }, {
+    id: "sym_xlh_phosphat",
+    t: "yn",
+    label: "Bekannt niedrige Phosphatwerte im Blut (Hypophosphatämie) oder erhöhtes FGF-23?",
+    sym: "xlh",
+    hint: "Renal-phosphatwastende Erkrankungen (XLH, ADHR, TIO) sind durch FGF-23-Überproduktion charakterisiert. Serumphosphat oft < 0,8 mmol/l."
+  }, {
+    id: "sym_xlh_entesio",
+    t: "yn",
+    label: "Knochenschmerzen, Enthesiopathien (Sehnenansatzbeschwerden) oder Pseudofrakturen im Erwachsenenalter?",
+    sym: "xlh",
+    hint: "Im Erwachsenenalter manifestiert sich XLH durch Enthesiopathien, Pseudofrakturen (Looser-Umbauzonen) und therapierefraktäre Osteomalazie."
+  }, {
+    id: "sym_xlh_zahnabsz",
+    t: "yn",
+    label: "Spontane Zahnabszesse ohne Karies in der Kindheit?",
+    sym: "xlh",
+    hint: "Dentale Abszesse ohne Karies durch defektes Dentin sind ein pathognomonisches Zeichen der XLH – auch wenn das Milchgebiss betroffen war."
+  }, /* ── Hypophosphatasie ── */
+  {
+    id: "sym_hpp_ap",
+    t: "yn",
+    label: "Bekannte dauerhaft sehr niedrige alkalische Phosphatase (AP) im Blutbild?",
+    sym: "hpp",
+    hint: "Hypophosphatasia (HPP) ist definiert durch persistierend erniedrigte AP-Aktivität. Die AP kann dabei 'normal' wirken, ist aber für das Alter zu niedrig."
+  }, {
+    id: "sym_hpp_zahn",
+    t: "yn",
+    label: "Verfrühter Zahnverlust (Milchzähne vor dem 5. Lebensjahr) oder Zahnverlust im Erwachsenenalter ohne Karies/Parodontose?",
+    sym: "hpp",
+    hint: "Vorzeitiger Milchzahnverlust (< 5 Jahre, mit Wurzel!) ist das früheste klinische Zeichen einer milden adulten HPP – oft jahrzehntelang unerkannt."
+  }, {
+    id: "sym_hpp_stress",
+    t: "yn",
+    label: "Metatarsale Stressfrakturen beider Füße, Schenkelhals-Stressfrakturen oder atypische Femurfrakturen?",
+    sym: "hpp",
+    hint: "Rezidivierende Metatarsalstressfrakturen bei Erwachsenen sind verdächtig für adulte HPP. Atypische Femurfrakturen können auf HPP statt Bisphosphonat-Therapie zurückzuführen sein – wichtig für die Therapieentscheidung!"
+  }, {
+    id: "sym_hpp_musku",
+    t: "yn",
+    label: "Chronische Muskelschwäche, Gehschwierigkeiten oder Schmerzen am Knochen- und Muskelapparat seit der Kindheit?",
+    sym: "hpp",
+    hint: "Adulte HPP zeigt sich oft durch unspezifische Myopathie und Knochen-/Gelenkschmerzen. Pyridoxin-abhängige Krampfanfälle kommen bei schweren Formen vor."
+  }, /* ── Oncogenic osteomalacia / TIO ── */
+  {
+    id: "sym_tio_tumor",
+    t: "yn",
+    label: "Therapieresistente Osteomalazie mit bekanntem oder vermutetem Tumor (oft klein, mesenchymal)?",
+    sym: "tio",
+    hint: "Tumorinduzierte Osteomalazie (TIO): Ein FGF-23-produzierender Tumor (oft sehr klein, gut versteckt) verursacht schwere Phosphaturie und Osteomalazie. Kann jeden Körperbereich betreffen."
+  }, {
+    id: "sym_tio_phosphat",
+    t: "yn",
+    label: "Extrem niedrige Phosphatwerte trotz Substitution, unerklärte Muskelschwäche und Knochenschmerzen?",
+    sym: "tio",
+    hint: "TIO gilt als ausgeschlossen erst wenn eine DOTATATE-PET/CT negativ ist – konventionelle Bildgebung reicht nicht."
+  }, /* ── Paget ── */
+  {
+    id: "sym_paget_ap",
+    t: "yn",
+    label: "Isoliert erhöhte alkalische Phosphatase (AP) bei normalem Leberstatus?",
+    sym: "paget",
+    hint: "Morbus Paget des Knochens kann jahrelang asymptomatisch durch zufällig erhöhte AP auffallen. Häufig Schädel, Becken, Wirbelsäule, Femur betroffen."
+  }, {
+    id: "sym_paget_schmerz",
+    t: "yn",
+    label: "Tiefer Knochenschmerz in Schädel, Becken, Wirbelsäule oder Oberschenkel, besonders in Ruhe nachts?",
+    sym: "paget",
+    hint: "Paget-Schmerz ist oft tief, bohrend und lageunabhängig – im Gegensatz zum mechanischen Osteoarthrose-Schmerz."
+  }, {
+    id: "sym_paget_deform",
+    t: "yn",
+    label: "Sichtbare Verformung eines Knochens (z. B. Schädel, Schienbein), Kopfumfang-Zunahme oder Hörminderung im Alter?",
+    sym: "paget",
+    hint: "Schädelvergrößerung, Säbelscheiden-Tibia und Hörminderung durch Einengung des N. VIII sind typische Paget-Spätsymptome."
+  }, /* ── Marfan / Ehlers-Danlos ── */
+  {
+    id: "sym_marfan",
+    t: "yn",
+    label: "Übermäßig lange Gliedmaßen, große Körpergröße, Aortendilatation, Linsenluxation oder Spontanpneumothorax?",
+    sym: "marfan",
+    hint: "Marfan-Syndrom (FBN1-Mutation) geht mit erniedrigter Knochendichte und Wirbelkörperfrakturen einher – häufig unterschätzt."
+  }, {
+    id: "sym_eds",
+    t: "yn",
+    label: "Überbeweglichkeit vieler Gelenke, sehr dehnbare oder leicht verletzliche Haut, häufige Verrenkungen?",
+    sym: "eds",
+    hint: "Hypermobiles Ehlers-Danlos-Syndrom (hEDS) und klassisches EDS sind mit niedrigerer Knochendichte und Frakturneigung assoziiert."
+  }, /* ── Weitere seltene ── */
+  {
+    id: "sym_gaucher",
+    t: "yn",
+    label: "Bekannte Gaucher-Erkrankung, oder: Milzvergrößerung + Knochen-/Gelenkschmerzen + Blutungsneigung?",
+    sym: "gaucher",
+    hint: "Morbus Gaucher Typ I: Glukozerebrosidasemangel führt zu Knocheninfarkt, Osteoporose und Frakturen. Oft lange Zeit nur als 'Rückenschmerzen' behandelt."
+  }, {
+    id: "sym_glycogen",
+    t: "yn",
+    label: "Bekannte Glykogenspeicherkrankheit (Pompe, GSD) oder mitochondriale Erkrankung?",
+    sym: "seltene_metabolisch",
+    hint: "Diverse Stoffwechselerkrankungen (Glykogenosen, mitochondriale Myopathien, Mukopolysaccharidosen) können Sekundärosteoporose verursachen."
+  }, {
+    id: "sym_turner",
+    t: "yn",
+    label: "(Frauen) Bekanntes Turner-Syndrom (45,X) oder andere Gonadendysgenesie?",
+    sym: "turner",
+    onlyFor: "f",
+    hint: "Turner-Syndrom führt durch primären Hypogonadismus zu schwerer Osteoporose – oft erst im Erwachsenenalter erkannt."
+  }, {
+    id: "sym_klinefelter_ost",
+    t: "yn",
+    label: "(Männer) Bekanntes Klinefelter-Syndrom (47,XXY) oder andere Chromosomenanomalien?",
+    sym: "klinefelter",
+    onlyFor: "m",
+    hint: "Klinefelter-Syndrom führt durch Hypogonadismus zu erhöhtem Osteoporoserisiko – DXA empfohlen ab Diagnosestellung."
+  }]
 }];
 
 /* ═══════════════════════════════════════════════ RISK CALC ═══ */
@@ -2655,6 +2815,275 @@ const SEK_PROFILE = {
     }, {
       name: "CDT (Carbohydrate-deficient transferrin, Marker chron. Alkohol)",
       icd: "F10.2"
+    }]
+  },
+  /* ── Genetische & seltene Knochenerkrankungen ── */
+  oi: {
+    label: "Osteogenesis imperfecta (OI, Glasknochenkrankheit)",
+    hinweis: "OI Typ I (mildeste Form) bleibt häufig bis ins Erwachsenenalter undiagnostiziert. Blaue Skleren, familiäre Häufung und Frakturen im Kindesalter sind Warnsignale. Bisphosphonate wirken bei OI, aber die Grundlage ist ein Kollagen-I-Defekt – keine klassische Osteoporose.",
+    untersuchungen: [{
+      name: "Kollagen-Typ-I-Genetik (COL1A1/COL1A2) – Sequenzierung",
+      icd: "Q78.0"
+    }, {
+      name: "DXA (oft stark erniedrigt)",
+      icd: "Q78.0"
+    }, {
+      name: "Knochen-Biomarker: P1NP, CTX, AP",
+      icd: "Q78.0"
+    }, {
+      name: "Spaltlampenuntersuchung (blaue Skleren)",
+      icd: "Q78.0"
+    }, {
+      name: "Röntgen Skelett-Survey (Deformitäten, alte Frakturen)",
+      icd: "Q78.0"
+    }, {
+      name: "Audiometrie (Schalleitungsschwerhörigkeit?)",
+      icd: "Q78.0"
+    }, {
+      name: "Überweisung Humangenetik / Zentrum für seltene Knochenerkrankungen",
+      icd: "Q78.0"
+    }]
+  },
+  xlh: {
+    label: "X-linked Hypophosphatemia (XLH) / hereditäre Hypophosphatämie",
+    hinweis: "XLH ist die häufigste Form hereditärer Rachitis (Prävalenz 1:20.000). Im Erwachsenenalter Enthesiopathien, Osteomalazie und Spontanfrakturen. Entscheidend: Burosumab (Anti-FGF23) ist seit 2018 zugelassen und hochwirksam – aber nur bei gesicherter Diagnose.",
+    untersuchungen: [{
+      name: "Phosphat im Serum nüchtern (Referenz 0,87–1,45 mmol/l)",
+      icd: "E83.3"
+    }, {
+      name: "Phosphat-Rückresorption im Urin (TmP/GFR)",
+      icd: "E83.3"
+    }, {
+      name: "FGF-23 (Fibroblast Growth Factor 23, intakt)",
+      icd: "E83.3"
+    }, {
+      name: "PHEX-Genanalyse (häufigste Mutation bei XLH)",
+      icd: "E83.3"
+    }, {
+      name: "Alkalische Phosphatase, Kalzium, PTH",
+      icd: "E83.3"
+    }, {
+      name: "25-OH-Vitamin D und 1,25-OH2-Vitamin D",
+      icd: "E83.3"
+    }, {
+      name: "Röntgen: Looser-Umbauzonen (Pseudofrakturen)?",
+      icd: "E83.3"
+    }, {
+      name: "Überweisung Endokrinologie / Phosphat-Spezialzentrum",
+      icd: "E83.3"
+    }]
+  },
+  hpp: {
+    label: "Hypophosphatasia (HPP)",
+    hinweis: "HPP ist unterdiagnostiziert. Milde Formen (adult HPP) zeigen dauerhaft erniedrigte AP, Stressfrakturen und frühen Zahnverlust. Wichtig: Bisphosphonate sind bei HPP kontraindiziert und können den Verlauf verschlimmern – daher Diagnosesicherung vor Therapiebeginn essenziell. Enzymersatztherapie mit Asfotase alfa verfügbar.",
+    untersuchungen: [{
+      name: "Alkalische Phosphatase (AP) – alters- und geschlechtsspezifische Norm beachten",
+      icd: "E83.3"
+    }, {
+      name: "Pyridoxal-5-Phosphat (PLP) im Plasma (↑ bei HPP)",
+      icd: "E83.3"
+    }, {
+      name: "Phosphoethanolamin im Urin (↑ bei HPP)",
+      icd: "E83.3"
+    }, {
+      name: "Anorganisches Pyrophosphat (PPi) im Plasma",
+      icd: "E83.3"
+    }, {
+      name: "ALPL-Genanalyse (Alkalische-Phosphatase-Gen)",
+      icd: "E83.3"
+    }, {
+      name: "Röntgen: Metatarsale Stressfrakturen, Chondrokalzinose?",
+      icd: "E83.3"
+    }, {
+      name: "Kalzium, Phosphat, PTH, Vitamin D",
+      icd: "E83.3"
+    }, {
+      name: "Überweisung HPP-Zentrum (vor Bisphosphonat-Beginn!)",
+      icd: "E83.3"
+    }]
+  },
+  tio: {
+    label: "Tumorinduzierte Osteomalazie (TIO / Oncogenic Osteomalacia)",
+    hinweis: "TIO ist selten aber potenziell kurativ durch Tumorentfernung. Der ursächliche Tumor ist meist winzig (< 2 cm), mesenchymal, und versteckt sich in Weichteilen oder Knochen. Konventionelle Bildgebung reicht nicht – DOTATATE-PET/CT oder DOTATOC-Szintigraphie nötig.",
+    untersuchungen: [{
+      name: "FGF-23 (intakt, im Plasma) – oft massiv erhöht",
+      icd: "M83.8"
+    }, {
+      name: "Phosphat nüchtern, TmP/GFR",
+      icd: "M83.8"
+    }, {
+      name: "1,25-OH2-Vitamin D (bei TIO oft ↓ trotz normaler 25-OH-D)",
+      icd: "M83.8"
+    }, {
+      name: "DOTATATE-PET/CT (Ganzkörper – Somatostatin-Rezeptor-Szintigraphie)",
+      icd: "M83.8"
+    }, {
+      name: "MRT Ganzkörper ergänzend",
+      icd: "M83.8"
+    }, {
+      name: "Gallium-68-DOTATOC-PET/CT alternativ",
+      icd: "M83.8"
+    }, {
+      name: "Überweisung Endokrinologie/Nuklearmedizin-Zentrum",
+      icd: "M83.8"
+    }]
+  },
+  paget: {
+    label: "Morbus Paget des Knochens",
+    hinweis: "Paget ist im Frühstadium asymptomatisch und wird häufig als Zufallsbefund durch erhöhte AP entdeckt. Komplikationen: Frakturen, Arthrosen, seltene maligne Entartung (Osteosarkom). Bisphosphonate (v. a. Zoledronsäure) sind hochwirksam.",
+    untersuchungen: [{
+      name: "Alkalische Phosphatase gesamt + Knochen-spezifische AP",
+      icd: "M88.9"
+    }, {
+      name: "Kalzium, Phosphat, PTH",
+      icd: "M88.9"
+    }, {
+      name: "Knochenumbaumarker: P1NP, β-CTX",
+      icd: "M88.9"
+    }, {
+      name: "Röntgen der betroffenen Region(en)",
+      icd: "M88.9"
+    }, {
+      name: "Skelettszintigraphie (Tc-99m – Verteilungsmuster?)",
+      icd: "M88.9"
+    }, {
+      name: "MRT bei Kompression nervaler Strukturen",
+      icd: "M88.9"
+    }]
+  },
+  marfan: {
+    label: "Marfan-Syndrom",
+    hinweis: "Marfan-Syndrom (FBN1) geht mit erniedrigter Knochendichte und erhöhtem Wirbelkörperfrakturrisiko einher. Hauptgefahr sind Aortendissektion und Linsenluxation – Knochenbeteiligung wird oft übersehen.",
+    untersuchungen: [{
+      name: "FBN1-Genanalyse (Fibrillin-1)",
+      icd: "Q87.4"
+    }, {
+      name: "Echokardiographie (Aortenwurzel-Durchmesser!)",
+      icd: "Q87.4"
+    }, {
+      name: "Spaltlampenuntersuchung (Linsenluxation?)",
+      icd: "Q87.4"
+    }, {
+      name: "DXA (Wirbelkörper, Hüfte)",
+      icd: "Q87.4"
+    }, {
+      name: "Röntgen/MRT Wirbelsäule (Skoliose, Duralektasie?)",
+      icd: "Q87.4"
+    }, {
+      name: "Überweisung Humangenetik + Kardiologie",
+      icd: "Q87.4"
+    }]
+  },
+  eds: {
+    label: "Ehlers-Danlos-Syndrom (EDS)",
+    hinweis: "Hypermobiles EDS ist die häufigste EDS-Form (keine Genmutation bekannt). Klassisches EDS und vaskuläres EDS durch COL5A1/COL3A1-Mutationen. Niedrigere Knochendichte und Frakturneigung, besonders bei klassischem EDS.",
+    untersuchungen: [{
+      name: "Klinische Diagnose nach Brighton/Beighton-Score (hEDS)",
+      icd: "Q79.6"
+    }, {
+      name: "Kollagen-Panel (COL5A1, COL3A1 für klass./vasc. EDS)",
+      icd: "Q79.6"
+    }, {
+      name: "DXA Wirbelsäule und Hüfte",
+      icd: "Q79.6"
+    }, {
+      name: "Echokardiographie (vaskuläres EDS: Aortenbeteiligung?)",
+      icd: "Q79.6"
+    }, {
+      name: "Überweisung Humangenetik",
+      icd: "Q79.6"
+    }]
+  },
+  gaucher: {
+    label: "Morbus Gaucher (Glukozerebrosidasemangel)",
+    hinweis: "Gaucher Typ I ist die häufigste lysosomale Speicherkrankheit. Knochenbeteiligung (Knocheninfarkte, Osteonekrose, Osteoporose) ist die häufigste Ursache bleibender Behinderung. Enzymersatztherapie (Imiglucerase) ist kurativ für die Knochenmanifestation.",
+    untersuchungen: [{
+      name: "Glukozerebrosidase-Aktivität in Leukozyten",
+      icd: "E75.2"
+    }, {
+      name: "GBA1-Genanalyse",
+      icd: "E75.2"
+    }, {
+      name: "Chitotriosidase im Serum (Aktivitätsmarker)",
+      icd: "E75.2"
+    }, {
+      name: "Ferritin, ACE (oft erhöht)",
+      icd: "E75.2"
+    }, {
+      name: "MRT Oberschenkelknochen (Ermark-Infiltration, Nekrose?)",
+      icd: "E75.2"
+    }, {
+      name: "DXA",
+      icd: "E75.2"
+    }, {
+      name: "Überweisung Hämato-Onkologie / Stoffwechselzentrum",
+      icd: "E75.2"
+    }]
+  },
+  turner: {
+    label: "Turner-Syndrom (45,X und Varianten)",
+    hinweis: "Beim Turner-Syndrom führt primärer Hypogonadismus zu schwerem Östrogenmangel und frühzeitiger Osteoporose. DXA schon ab Diagnosestellung; Hormonersatztherapie bis zur natürlichen Menopause essenziell.",
+    untersuchungen: [{
+      name: "Chromosomenanalyse (Karyotyp 45,X oder Mosaikform)",
+      icd: "Q96.0"
+    }, {
+      name: "FSH, LH, Östradiol",
+      icd: "Q96.0"
+    }, {
+      name: "DXA Wirbelsäule und Hüfte",
+      icd: "Q96.0"
+    }, {
+      name: "Schilddrüsen-AK (erhöhtes Hashimoto-Risiko bei Turner)",
+      icd: "Q96.0"
+    }, {
+      name: "Echokardiographie (Aortenstenose, bikuspide Aortenklappe?)",
+      icd: "Q96.0"
+    }, {
+      name: "Überweisung Endokrinologie / gynäkologische Endokrinologie",
+      icd: "Q96.0"
+    }]
+  },
+  klinefelter: {
+    label: "Klinefelter-Syndrom (47,XXY und Varianten)",
+    hinweis: "Klinefelter führt durch primären Hypogonadismus zu niedrigem Testosteron und erhöhtem Osteoporoserisiko. DXA empfohlen ab Diagnosestellung; Testosteronersatz schützt den Knochen.",
+    untersuchungen: [{
+      name: "Chromosomenanalyse (Karyotyp 47,XXY)",
+      icd: "Q98.0"
+    }, {
+      name: "Testosteron gesamt + SHBG, LH, FSH",
+      icd: "Q98.0"
+    }, {
+      name: "DXA Wirbelsäule und Hüfte",
+      icd: "Q98.0"
+    }, {
+      name: "Spermiogramm (Infertilität?)",
+      icd: "Q98.0"
+    }, {
+      name: "Überweisung Andrologie/Endokrinologie",
+      icd: "Q98.0"
+    }]
+  },
+  seltene_metabolisch: {
+    label: "Seltene Stoffwechselerkrankungen mit Knochenbeteiligung",
+    hinweis: "Glykogenosen, mitochondriale Myopathien und Mukopolysaccharidosen können Sekundärosteoporose verursachen – meist im Kontext bekannter Grunderkrankung. Individuelle Abklärung mit Spezialzentrum empfohlen.",
+    untersuchungen: [{
+      name: "Laktat, Pyruvat (mitochondrial?)",
+      icd: "E74.0"
+    }, {
+      name: "Tandem-MS: organische Säuren, Aminosäuren",
+      icd: "E74.0"
+    }, {
+      name: "Lykosaminoglykane im Urin (MPS-Screening)",
+      icd: "E76.0"
+    }, {
+      name: "Muskelbiopsie / genetisches Panel bei klinischem Verdacht",
+      icd: "E74.0"
+    }, {
+      name: "DXA, Kalzium, Phosphat, Vitamin D",
+      icd: "E74.0"
+    }, {
+      name: "Überweisung Humangenetik / Stoffwechselzentrum",
+      icd: "E74.0"
     }]
   }
 };
