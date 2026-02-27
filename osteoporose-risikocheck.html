@@ -1,14 +1,7 @@
 <!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Osteoporose-Risikocheck – DVO 2023</title>
-</head>
-<body>
-  <div id="root"></div>
-  <script>
-/* React 18.2.0 */
+<html lang="de"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Osteoporose-Risikocheck – DVO 2023</title></head>
+<body><div id="root"></div><script>
 /**
  * @license React
  * react.production.min.js
@@ -41,7 +34,6 @@ b)};c.useId=function(){return g.current.useId()};c.useImperativeHandle=function(
 c.useSyncExternalStore=function(a,b,c){return g.current.useSyncExternalStore(a,b,c)};c.useTransition=function(){return g.current.useTransition()};c.version="18.2.0"});
 })();
 
-/* ReactDOM 18.2.0 */
 /**
  * @license React
  * react-dom.production.min.js
@@ -310,7 +302,6 @@ var d=null!=c&&c.hydratedSources||null,e=!1,f="",g=bj;null!==c&&void 0!==c&&(!0=
 function(a,b,c){if(!Vd(b))throw Error(n(200));return Wd(null,a,b,!1,c)};Q.unmountComponentAtNode=function(a){if(!Vd(a))throw Error(n(40));return a._reactRootContainer?(zb(function(){Wd(null,null,a,!1,function(){a._reactRootContainer=null;a[Ja]=null})}),!0):!1};Q.unstable_batchedUpdates=Tf;Q.unstable_renderSubtreeIntoContainer=function(a,b,c,d){if(!Vd(c))throw Error(n(200));if(null==a||void 0===a._reactInternals)throw Error(n(38));return Wd(a,b,c,!1,d)};Q.version="18.2.0-next-9e3b772b8-20220608"});
 })();
 
-/* App */
 const {
   useState,
   useEffect,
@@ -1870,14 +1861,9 @@ function MedInput({
   autoOpen
 }) {
   const [open, setOpen] = useState(false);
-  const prevAutoOpen = React.useRef(false);
-  if (autoOpen && !prevAutoOpen.current) {
-    prevAutoOpen.current = true;
-    if (!open) setTimeout(() => setOpen(true), 50);
-  }
-  if (!autoOpen && prevAutoOpen.current) {
-    prevAutoOpen.current = false;
-  }
+  React.useEffect(() => {
+    if (autoOpen) setOpen(true);
+  }, [autoOpen]);
   const [text, setText] = useState("");
   if (!meds) return null;
   const tags = rxValue || [];
@@ -3822,6 +3808,4 @@ function App() {
   }))));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
-  </script>
-</body>
-</html>
+</script></body></html>

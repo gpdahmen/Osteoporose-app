@@ -851,9 +851,7 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb){
 /* ═══════════════════════════════════════════════ COMPONENTS ═══ */
 function MedInput({qid,meds,rxValue,onRx,autoOpen}){
   const[open,setOpen]=useState(false);
-  const prevAutoOpen=React.useRef(false);
-  if(autoOpen&&!prevAutoOpen.current){prevAutoOpen.current=true;if(!open)setTimeout(()=>setOpen(true),50);}
-  if(!autoOpen&&prevAutoOpen.current){prevAutoOpen.current=false;}
+  React.useEffect(()=>{if(autoOpen)setOpen(true);},[autoOpen]);
   const[text,setText]=useState("");
   if(!meds)return null;
   const tags=rxValue||[];
