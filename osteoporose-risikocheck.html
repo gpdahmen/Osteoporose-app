@@ -620,7 +620,7 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 .viewer-txt{flex:1;margin:0;padding:20px 24px;font-family:'Courier New',monospace;font-size:12.5px;line-height:1.7;white-space:pre;color:#1a1208;background:#f5f0e8;border:none;resize:none;outline:none;width:100%;box-sizing:border-box}
 .viewer-iframe{flex:1;border:none;background:white}
 .admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:flex;align-items:center;justify-content:center}
-.admin-panel{background:white;border-radius:10px;width:min(900px,95vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 12px 50px rgba(0,0,0,.3);overflow:hidden}
+.admin-panel{background:white;border-radius:10px;width:min(860px,97vw);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 12px 50px rgba(0,0,0,.3);overflow:hidden}
 .admin-head{background:#1a1208;color:#e8ddd0;padding:14px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
 .admin-head-title{flex:1;font-family:'Playfair Display',serif;font-size:16px;font-weight:700}
 .admin-pin-wrap{display:flex;align-items:center;gap:10px;padding:20px;border-bottom:1px solid #ece5d8;background:#fdf9f4}
@@ -629,26 +629,28 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 .admin-pin-btn{background:var(--D);color:#e8ddd0;border:none;padding:9px 18px;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Source Sans 3',sans-serif}
 .admin-pin-btn:hover{background:#4a3420}
 .admin-pin-err{color:#c0392b;font-size:12px;font-weight:600}
-.admin-table-wrap{flex:1;overflow:auto;padding:0}
-.admin-table{width:100%;border-collapse:collapse;font-size:12.5px}
-.admin-table th{background:#2c1f0e;color:#e8ddd0;padding:10px 12px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;position:sticky;top:0;z-index:1}
-.admin-table tr:nth-child(even){background:#fdf9f4}
-.admin-table tr:hover{background:#fef3e6}
-.admin-table td{padding:8px 12px;border-bottom:1px solid #ece5d8;vertical-align:middle}
-.admin-td-id{font-family:monospace;font-size:11px;color:#8b7a68;white-space:nowrap}
-.admin-input{width:100%;padding:6px 9px;border:1px solid #d4c4a8;border-radius:4px;font-size:13px;font-family:'Source Sans 3',sans-serif;background:white;box-sizing:border-box}
+/* ── New card-based admin layout ── */
+.admin-scroll{flex:1;overflow-y:auto;padding:10px 14px;background:#f8f4ef}
+.admin-card{background:white;border:1px solid #e0d4bc;border-radius:8px;margin-bottom:8px;overflow:hidden}
+.admin-card-header{padding:8px 12px;background:#f5f0e6;border-bottom:1px solid #e8ddd0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.admin-card-id{font-family:monospace;font-size:10.5px;color:#8b6a3a;background:#efe8d8;padding:2px 7px;border-radius:3px;white-space:nowrap;flex-shrink:0}
+.admin-card-label{font-size:11.5px;color:#4a3a20;line-height:1.4;flex:1}
+.admin-card-body{padding:8px 12px 10px}
+.admin-diag-row{display:grid;grid-template-columns:1fr 160px auto;gap:6px;align-items:center;margin-bottom:5px}
+.admin-diag-row:last-of-type{margin-bottom:0}
+.admin-input{width:100%;padding:6px 9px;border:1px solid #d4c4a8;border-radius:4px;font-size:12.5px;font-family:'Source Sans 3',sans-serif;background:white;box-sizing:border-box}
 .admin-input:focus{outline:none;border-color:var(--L);background:#fffbf5}
-.admin-icd-input{width:100%;min-width:90px;padding:6px 9px;border:1px solid #d4c4a8;border-radius:4px;font-size:13px;font-family:monospace;background:white;box-sizing:border-box;text-transform:uppercase}
+.admin-icd-input{width:100%;padding:6px 9px;border:1px solid #d4c4a8;border-radius:4px;font-size:12.5px;font-family:monospace;background:white;box-sizing:border-box;text-transform:uppercase}
 .admin-icd-input:focus{outline:none;border-color:var(--L)}
 .admin-icd-input.invalid{border-color:#c0392b;background:#fff0f0}
-@media(max-width:700px){
-  .admin-table thead{display:none}
-  .admin-table tr{display:block;border:1px solid #ddd;margin-bottom:10px;border-radius:6px;overflow:hidden}
-  .admin-table td{display:block;padding:6px 12px;border-bottom:1px solid #f0e8dc}
-  .admin-table td:first-child{background:#f5f0e8;font-weight:700;font-size:11px}
-  .admin-table td:nth-child(2){color:#7a6a58;font-size:12px}
-  .admin-table td:before{content:attr(data-label);display:block;font-size:10px;font-weight:700;color:#a09080;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px}
-}
+.admin-del-btn{background:none;border:1px solid #e0c8c8;color:#c0392b;border-radius:4px;width:26px;height:26px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0}
+.admin-del-btn:hover{background:#fee2e2}
+.admin-del-btn:disabled{opacity:.3;cursor:not-allowed}
+.admin-add-btn{margin-top:6px;background:none;border:1px dashed #b09060;color:#8b6030;border-radius:4px;padding:4px 12px;font-size:11.5px;cursor:pointer;font-family:'Source Sans 3',sans-serif;display:flex;align-items:center;gap:4px}
+.admin-add-btn:hover{background:#fef6e8;border-color:var(--L)}
+.admin-gender-hint{font-size:10px;color:#8b7a68;margin-top:4px;line-height:1.5;padding:4px 6px;background:#fafaf5;border-radius:3px;border-left:2px solid #d4c4a8}
+.admin-diag-labels{display:grid;grid-template-columns:1fr 160px auto;gap:6px;margin-bottom:3px}
+.admin-diag-col-label{font-size:10px;font-weight:700;color:#a09080;text-transform:uppercase;letter-spacing:.6px}
 .admin-footer{padding:14px 20px;background:#fdf9f4;border-top:1px solid #ece5d8;display:flex;gap:10px;justify-content:flex-end;flex-shrink:0}
 .admin-save-btn{background:var(--L);color:white;border:none;padding:10px 22px;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Source Sans 3',sans-serif}
 .admin-save-btn:hover{background:#b07540}
@@ -2000,7 +2002,15 @@ async function saveDiagDb(db) {
     for (const id of Object.keys(db)) {
       const def = DIAG_DB_DEFAULTS[id];
       const cur = db[id];
-      if (!def || cur.diagnose !== def.diagnose || cur.icd5 !== def.icd5 || cur.icd5_f_meno !== def.icd5_f_meno || cur.icd5_m !== def.icd5_m) {
+      if (!def) {
+        overrides[id] = cur;
+        continue;
+      }
+      // Compare entries array vs defaults
+      const defEntries = normEntries(def);
+      const curEntries = normEntries(cur);
+      const entriesChanged = JSON.stringify(curEntries) !== JSON.stringify(defEntries);
+      if (entriesChanged || cur.diagnose !== def.diagnose || cur.icd5 !== def.icd5 || cur.icd5_f_meno !== def.icd5_f_meno || cur.icd5_m !== def.icd5_m) {
         overrides[id] = cur;
       }
     }
@@ -3121,9 +3131,34 @@ function getIcdCodes(entry, gender, answers) {
   if (gender === "m" && entry.icd5_m) return entry.icd5_m;
   return entry.icd5 || "";
 }
-// Returns display-friendly array of codes
+// Returns all ICD codes from all entries (entries array + gender codes)
+function getAllIcdCodes(entry, gender, answers) {
+  if (!entry) return [];
+  const isPostMeno = gender === "f" && answers?.menopause_aktuell === "nein";
+  // Gender-specific override takes precedence
+  if (isPostMeno && entry.icd5_f_meno) {
+    return entry.icd5_f_meno.split(",").map(s => s.trim()).filter(Boolean);
+  }
+  if (gender === "m" && entry.icd5_m) {
+    return entry.icd5_m.split(",").map(s => s.trim()).filter(Boolean);
+  }
+  // Collect from entries array
+  if (Array.isArray(entry.entries) && entry.entries.length > 0) {
+    return entry.entries.flatMap(e => (e.icd5 || "").split(",").map(s => s.trim())).filter(Boolean);
+  }
+  return (entry.icd5 || "").split(",").map(s => s.trim()).filter(Boolean);
+}
+// Returns all diagnose texts from all entries
+function getAllDiagnoses(entry, fallbackLabel) {
+  if (!entry) return [fallbackLabel || ""];
+  if (Array.isArray(entry.entries) && entry.entries.length > 0) {
+    return entry.entries.map(e => e.diagnose || fallbackLabel || "").filter(Boolean);
+  }
+  return [entry.diagnose || fallbackLabel || ""];
+}
+// Returns display-friendly array of codes (legacy, uses first entry)
 function getIcdArray(entry, gender, answers) {
-  return getIcdCodes(entry, gender, answers).split(",").map(s => s.trim()).filter(Boolean);
+  return getAllIcdCodes(entry, gender, answers);
 }
 
 /* ═══════════════════════════════════════════════ TEXT EXPORT ═══ */
@@ -3226,10 +3261,18 @@ function buildTextExport(patient, gender, answers, risk, diff, lh, diagDb) {
   }
   for (const f of risk.factors) {
     const diag = db[f.id] || {};
-    const text = diag.diagnose || f.label;
-    const icds = getIcdArray(diag, gender, answers);
-    const icdStr = icds.join(", ");
-    lines.push(icdStr ? text + " {" + icdStr + "};" : text + ";");
+    const diagTexts = getAllDiagnoses(diag, f.label);
+    const allIcds = getAllIcdCodes(diag, gender, answers);
+    if (diagTexts.length === 1) {
+      const icdStr = allIcds.join(", ");
+      lines.push(icdStr ? diagTexts[0] + " {" + icdStr + "};" : diagTexts[0] + ";");
+    } else {
+      // Multiple entries: first line with codes, rest below
+      diagTexts.forEach((text, i) => {
+        const icd = allIcds[i] || "";
+        lines.push(icd ? text + " {" + icd + "};" : text + ";");
+      });
+    }
   }
   // Menopause since
   if (isPostMeno && answers?.menopause_seit) {
@@ -4688,47 +4731,128 @@ function GebDatInput({
 }
 
 /* ═══════════════════════════════════════════ ADMIN PANEL ═══ */
+// Helper: normalize a DB entry to entries-array format
+function normEntries(entry) {
+  if (!entry) return [{
+    diagnose: "",
+    icd5: ""
+  }];
+  // Already has entries array
+  if (Array.isArray(entry.entries) && entry.entries.length > 0) return entry.entries.map(e => ({
+    ...e
+  }));
+  // Legacy single-entry format
+  return [{
+    diagnose: entry.diagnose || "",
+    icd5: entry.icd5 || ""
+  }];
+}
+// Helper: flatten entries array back to DB entry format
+function flattenEntries(id, entries, original) {
+  const def = DIAG_DB_DEFAULTS[id] || {};
+  const result = {
+    ...original,
+    entries: entries.map(e => ({
+      ...e
+    })),
+    // Keep first entry in legacy fields for backward compatibility
+    diagnose: entries[0]?.diagnose || "",
+    icd5: entries[0]?.icd5 || ""
+  };
+  return result;
+}
 function AdminPanel({
   diagDb,
   onSave,
   onClose
 }) {
-  // Accepts comma-separated ICD codes, each optionally ending in G or X+G
   const ICD5_RE = /^[A-Z]\d{2}\.[\d]{2}[XG]?G?$/;
-  const validateIcds = s => (s || "").split(",").map(x => x.trim()).filter(Boolean).every(code => ICD5_RE.test(code));
+  const validateIcd = s => (s || "").trim() === "" || ICD5_RE.test((s || "").trim());
   const allIds = Object.keys(DIAG_DB_DEFAULTS);
+
+  // draft: { [id]: { entries:[{diagnose,icd5},...], icd5_f_meno, icd5_m } }
   const [draft, setDraft] = useState(() => {
     const d = {};
-    for (const id of allIds) d[id] = {
-      ...DIAG_DB_DEFAULTS[id],
-      ...(diagDb[id] || {})
-    };
+    for (const id of allIds) {
+      const merged = {
+        ...DIAG_DB_DEFAULTS[id],
+        ...(diagDb[id] || {})
+      };
+      d[id] = {
+        ...merged,
+        entries: normEntries(merged)
+      };
+    }
     return d;
   });
   const [pinInput, setPinInput] = useState("");
   const [pinErr, setPinErr] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
-  const update = (id, field, val) => {
-    setDraft(d => ({
-      ...d,
-      [id]: {
-        ...d[id],
+  const [search, setSearch] = useState("");
+
+  // Entry CRUD
+  const updateEntry = (id, idx, field, val) => {
+    setDraft(d => {
+      const entries = [...normEntries(d[id])];
+      entries[idx] = {
+        ...entries[idx],
         [field]: val
+      };
+      return {
+        ...d,
+        [id]: flattenEntries(id, entries, d[id])
+      };
+    });
+  };
+  const addEntry = id => {
+    setDraft(d => {
+      const entries = [...normEntries(d[id]), {
+        diagnose: "",
+        icd5: ""
+      }];
+      return {
+        ...d,
+        [id]: flattenEntries(id, entries, d[id])
+      };
+    });
+  };
+  const removeEntry = (id, idx) => {
+    setDraft(d => {
+      let entries = [...normEntries(d[id])];
+      if (entries.length <= 1) {
+        entries = [{
+          diagnose: "",
+          icd5: ""
+        }];
+      } else {
+        entries = entries.filter((_, i) => i !== idx);
       }
-    }));
+      return {
+        ...d,
+        [id]: flattenEntries(id, entries, d[id])
+      };
+    });
   };
   const handleSave = () => {
     onSave(draft);
     onClose();
   };
   const handleReset = () => {
-    if (window.confirm("Alle Diagnosen auf Standardwerte zurücksetzen?")) setDraft(() => {
-      const d = {};
-      for (const id of allIds) d[id] = {
-        ...DIAG_DB_DEFAULTS[id]
-      };
-      return d;
-    });
+    if (window.confirm("Alle Diagnosen auf Standardwerte zurücksetzen?")) {
+      setDraft(() => {
+        const d = {};
+        for (const id of allIds) {
+          const def = {
+            ...DIAG_DB_DEFAULTS[id]
+          };
+          d[id] = {
+            ...def,
+            entries: normEntries(def)
+          };
+        }
+        return d;
+      });
+    }
   };
   const tryPin = () => {
     if (pinInput === "1234") {
@@ -4739,13 +4863,19 @@ function AdminPanel({
     }
   };
 
-  // Label lookup from SECTIONS
+  // Label lookup
   const labelMap = {};
   for (const sec of SECTIONS) {
     for (const q of sec.qs) labelMap[q.id] = q.label;
   }
   labelMap["bmi"] = "BMI (berechnet)";
   labelMap["tbs"] = "TBS (DXA Texturanalyse)";
+  const filteredIds = search.trim() ? allIds.filter(id => {
+    const q = search.toLowerCase();
+    const label = (labelMap[id] || id).toLowerCase();
+    const entries = normEntries(draft[id]);
+    return id.includes(q) || label.includes(q) || entries.some(e => (e.diagnose || "").toLowerCase().includes(q) || (e.icd5 || "").toLowerCase().includes(q));
+  }) : allIds;
   return /*#__PURE__*/React.createElement("div", {
     className: "admin-overlay",
     onClick: onClose
@@ -4756,7 +4886,7 @@ function AdminPanel({
     className: "admin-head"
   }, /*#__PURE__*/React.createElement("span", {
     className: "admin-head-title"
-  }, "\u2699\uFE0F Admin \u2013 Diagnose-Tabelle"), /*#__PURE__*/React.createElement("button", {
+  }, "\u2699\uFE0F Admin \u2013 Diagnose-Datenbank"), /*#__PURE__*/React.createElement("button", {
     className: "viewer-close",
     onClick: onClose
   }, "\xD7")), !unlocked ? /*#__PURE__*/React.createElement("div", {
@@ -4783,77 +4913,92 @@ function AdminPanel({
     className: "admin-pin-err"
   }, "Falscher PIN")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
-      padding: "8px 16px",
+      padding: "8px 14px",
       background: "#fef9f4",
       borderBottom: "1px solid #ece5d8",
-      fontSize: 11.5,
+      display: "flex",
+      gap: 10,
+      alignItems: "center",
+      flexWrap: "wrap",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "\uD83D\uDD0D Suche nach Kennung, Frage oder Diagnose\u2026",
+    style: {
+      flex: 1,
+      minWidth: 180,
+      padding: "6px 10px",
+      border: "1.5px solid #d4c4a8",
+      borderRadius: 5,
+      fontSize: 12.5,
+      fontFamily: "inherit",
+      outline: "none"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#a09080",
+      whiteSpace: "nowrap"
+    }
+  }, filteredIds.length, " / ", allIds.length, " Eintr\xE4ge"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
       color: "#7a6a58"
     }
-  }, "ICD-10 Format: 1 Buchstabe + 2 Ziffern + Punkt + 2 Ziffern\xA0\xA0(z. B. ", /*#__PURE__*/React.createElement("strong", null, "M80.05"), ")\xA0\xA0\xB7\xA0\xA0Rote Felder = ung\xFCltiges Format"), /*#__PURE__*/React.createElement("div", {
-    className: "admin-table-wrap"
-  }, /*#__PURE__*/React.createElement("table", {
-    className: "admin-table"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
-    style: {
-      width: 80,
-      whiteSpace: "nowrap"
-    }
-  }, "Kennung"), /*#__PURE__*/React.createElement("th", {
-    style: {
-      width: "22%"
-    }
-  }, "Frage (Kurzform)"), /*#__PURE__*/React.createElement("th", {
-    style: {
-      width: "auto"
-    }
-  }, "Klarschrift-Diagnose"), /*#__PURE__*/React.createElement("th", {
-    style: {
-      width: 180,
-      whiteSpace: "nowrap"
-    }
-  }, "ICD-10 (kommagetrennt, mit G)"))), /*#__PURE__*/React.createElement("tbody", null, allIds.map(id => {
+  }, "ICD-10: Buchstabe + 2 Ziffern + Punkt + 2 Ziffern + G\xA0\xA0\xB7\xA0\xA0Rote Felder = ung\xFCltiges Format")), /*#__PURE__*/React.createElement("div", {
+    className: "admin-scroll"
+  }, filteredIds.map(id => {
     const row = draft[id] || {};
-    const icdOk = validateIcds(row.icd5);
-    const shortLabel = (labelMap[id] || id).replace(/\?$/, "").slice(0, 60) + (labelMap[id] && labelMap[id].length > 60 ? "…" : "");
+    const entries = normEntries(row);
     const def = DIAG_DB_DEFAULTS[id] || {};
-    return /*#__PURE__*/React.createElement("tr", {
-      key: id
-    }, /*#__PURE__*/React.createElement("td", {
-      className: "admin-td-id",
-      "data-label": "Kennung"
-    }, id), /*#__PURE__*/React.createElement("td", {
-      "data-label": "Frage",
-      style: {
-        fontSize: 11,
-        color: "#5a4a3a",
-        lineHeight: 1.4
-      }
-    }, shortLabel), /*#__PURE__*/React.createElement("td", {
-      "data-label": "Klarschrift-Diagnose"
-    }, /*#__PURE__*/React.createElement("input", {
-      className: "admin-input",
-      value: row.diagnose || "",
-      onChange: e => update(id, "diagnose", e.target.value)
-    })), /*#__PURE__*/React.createElement("td", {
-      "data-label": "ICD-10 (kommagetrennt)"
-    }, /*#__PURE__*/React.createElement("input", {
-      className: "admin-icd-input" + (icdOk ? "" : " invalid"),
-      value: row.icd5 || "",
-      placeholder: "z. B. M80.05G, T93.1G",
-      onChange: e => update(id, "icd5", e.target.value.toUpperCase())
-    }), def.icd5_f_meno && /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 10,
-        color: "#8b7a68",
-        marginTop: 2
-      }
-    }, "\u2640 postmeno: ", row.icd5_f_meno || def.icd5_f_meno), def.icd5_m && /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 10,
-        color: "#8b7a68"
-      }
-    }, "\u2642: ", row.icd5_m || def.icd5_m)));
-  })))), /*#__PURE__*/React.createElement("div", {
+    const label = labelMap[id] || id;
+    return /*#__PURE__*/React.createElement("div", {
+      key: id,
+      className: "admin-card"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "admin-card-header"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "admin-card-id"
+    }, id), /*#__PURE__*/React.createElement("span", {
+      className: "admin-card-label"
+    }, label)), /*#__PURE__*/React.createElement("div", {
+      className: "admin-card-body"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "admin-diag-labels"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "admin-diag-col-label"
+    }, "Klarschrift-Diagnose"), /*#__PURE__*/React.createElement("span", {
+      className: "admin-diag-col-label"
+    }, "ICD-10-GM (mit G)"), /*#__PURE__*/React.createElement("span", null)), entries.map((entry, idx) => {
+      const icdOk = validateIcd(entry.icd5);
+      return /*#__PURE__*/React.createElement("div", {
+        key: idx,
+        className: "admin-diag-row"
+      }, /*#__PURE__*/React.createElement("input", {
+        className: "admin-input",
+        value: entry.diagnose || "",
+        placeholder: "Klarschrift-Diagnose\u2026",
+        onChange: e => updateEntry(id, idx, "diagnose", e.target.value)
+      }), /*#__PURE__*/React.createElement("input", {
+        className: "admin-icd-input" + (icdOk ? "" : " invalid"),
+        value: entry.icd5 || "",
+        placeholder: "z. B. M80.05G",
+        onChange: e => updateEntry(id, idx, "icd5", e.target.value.toUpperCase())
+      }), /*#__PURE__*/React.createElement("button", {
+        className: "admin-del-btn",
+        title: "Zeile l\xF6schen",
+        disabled: entries.length === 1 && !entry.diagnose && !entry.icd5,
+        onClick: () => removeEntry(id, idx)
+      }, "\u2715"));
+    }), /*#__PURE__*/React.createElement("button", {
+      className: "admin-add-btn",
+      onClick: () => addEntry(id)
+    }, "\uFF0B Diagnose-Zeile hinzuf\xFCgen"), (def.icd5_f_meno || def.icd5_m) && /*#__PURE__*/React.createElement("div", {
+      className: "admin-gender-hint"
+    }, def.icd5_f_meno && /*#__PURE__*/React.createElement("span", null, "\u2640 postmenopausal: ", /*#__PURE__*/React.createElement("strong", null, row.icd5_f_meno || def.icd5_f_meno), "\u2003"), def.icd5_m && /*#__PURE__*/React.createElement("span", null, "\u2642 Mann: ", /*#__PURE__*/React.createElement("strong", null, row.icd5_m || def.icd5_m)))));
+  })), /*#__PURE__*/React.createElement("div", {
     className: "admin-footer"
   }, /*#__PURE__*/React.createElement("button", {
     className: "admin-reset-btn",
