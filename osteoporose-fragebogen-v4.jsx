@@ -216,6 +216,13 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 .sek-unt-item::before{content:"🔬";font-size:11px;flex-shrink:0;margin-top:1px}
 .sek-unt-icd{font-family:monospace;font-size:10px;color:#a08060;margin-left:auto;white-space:nowrap}
 .sek-none{padding:20px;text-align:center;color:#8b7a68;font-style:italic;font-size:13px}
+.sek-triggers{background:#f8f2e8;border:1px solid #e8d8b8;border-radius:6px;padding:8px 12px;margin-bottom:10px}
+.sek-triggers-title{font-size:10px;font-weight:700;color:#8b6a3a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.sek-trigger-row{display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid #ede0c8;font-size:12px}
+.sek-trigger-row:last-child{border-bottom:none;padding-bottom:0}
+.sek-trigger-check{color:#16a34a;font-size:13px;flex-shrink:0;margin-top:1px}
+.sek-trigger-q{color:#4a3a20;flex:1;line-height:1.45}
+.sek-trigger-sec{font-size:10px;color:#a08060;white-space:nowrap;margin-top:2px}
 .hist-panel{background:white;border:1px solid var(--CM);border-radius:8px;padding:18px;margin-top:14px;box-shadow:var(--sh)}
 .hist-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--D)}
 .hist-search{flex:1;min-width:160px;padding:6px 10px;border:1.5px solid var(--CM);border-radius:5px;font-size:12.5px;font-family:'Source Sans 3',sans-serif;outline:none;color:var(--D)}
@@ -1490,23 +1497,27 @@ const SEK_PROFILE = {
 // Compute secondary osteoporosis flags from answers
 function computeSecondary(answers){
   if(!answers) return [];
-  const symMap = {};  // sym-key → count of positive answers
-  const allQs = [];
+  // symMap: sym-key → array of {label, sectionTitle, answer}
+  const symMap = {};
   for(const sec of SECTIONS){
-    if(sec.symcheck) allQs.push(...(sec.qs||[]));
-  }
-  for(const q of allQs){
-    const v = answers[q.id];
-    if(v==="ja" && q.sym){
-      if(!symMap[q.sym]) symMap[q.sym]=0;
-      symMap[q.sym]++;
+    if(!sec.symcheck) continue;
+    for(const q of (sec.qs||[])){
+      const v = answers[q.id];
+      if(v==="ja" && q.sym){
+        if(!symMap[q.sym]) symMap[q.sym]=[];
+        symMap[q.sym].push({
+          label: q.label,
+          sectionTitle: sec.title,
+          qid: q.id,
+        });
+      }
     }
   }
-  // Return array of {sym, count, profile} sorted by count desc
+  // Return array sorted by hit-count descending
   return Object.entries(symMap)
     .filter(([sym])=>SEK_PROFILE[sym])
-    .sort((a,b)=>b[1]-a[1])
-    .map(([sym,count])=>({sym,count,profile:SEK_PROFILE[sym]}));
+    .sort((a,b)=>b[1].length-a[1].length)
+    .map(([sym,hits])=>({sym, count:hits.length, hits, profile:SEK_PROFILE[sym]}));
 }
 
 /* ═══════════════════════ ICD-CODE HELPER ═══ */
@@ -1981,6 +1992,28 @@ function SecondaryPanel({answers}){
                 {count} Hinweis{count>1?"e":""}
               </span>
             </div>
+
+            {/* Auslösende Fragen / Antworten */}
+            <div className="sek-triggers">
+              <div className="sek-triggers-title">
+                ✅ Folgende Angaben haben diesen Hinweis ausgelöst:
+              </div>
+              {hits.map((hit,i)=>(
+                <div key={i} className="sek-trigger-row">
+                  <span className="sek-trigger-check">✓</span>
+                  <div style={{flex:1}}>
+                    <div className="sek-trigger-q">{hit.label}</div>
+                    <div className="sek-trigger-sec">{hit.sectionTitle}</div>
+                  </div>
+                  <span style={{fontSize:11,color:"#16a34a",fontWeight:700,
+                    background:"#dcfce7",padding:"1px 7px",borderRadius:10,
+                    whiteSpace:"nowrap",alignSelf:"flex-start",marginTop:2}}>
+                    Ja
+                  </span>
+                </div>
+              ))}
+            </div>
+
             <div className="sek-hinweis">
               <strong>Klinischer Hinweis:</strong> {profile.hinweis}
             </div>

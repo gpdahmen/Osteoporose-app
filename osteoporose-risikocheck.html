@@ -525,6 +525,13 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 .sek-unt-item::before{content:"🔬";font-size:11px;flex-shrink:0;margin-top:1px}
 .sek-unt-icd{font-family:monospace;font-size:10px;color:#a08060;margin-left:auto;white-space:nowrap}
 .sek-none{padding:20px;text-align:center;color:#8b7a68;font-style:italic;font-size:13px}
+.sek-triggers{background:#f8f2e8;border:1px solid #e8d8b8;border-radius:6px;padding:8px 12px;margin-bottom:10px}
+.sek-triggers-title{font-size:10px;font-weight:700;color:#8b6a3a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.sek-trigger-row{display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid #ede0c8;font-size:12px}
+.sek-trigger-row:last-child{border-bottom:none;padding-bottom:0}
+.sek-trigger-check{color:#16a34a;font-size:13px;flex-shrink:0;margin-top:1px}
+.sek-trigger-q{color:#4a3a20;flex:1;line-height:1.45}
+.sek-trigger-sec{font-size:10px;color:#a08060;white-space:nowrap;margin-top:2px}
 .hist-panel{background:white;border:1px solid var(--CM);border-radius:8px;padding:18px;margin-top:14px;box-shadow:var(--sh)}
 .hist-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--D)}
 .hist-search{flex:1;min-width:160px;padding:6px 10px;border:1.5px solid var(--CM);border-radius:5px;font-size:12.5px;font-family:'Source Sans 3',sans-serif;outline:none;color:var(--D)}
@@ -3101,22 +3108,27 @@ const SEK_PROFILE = {
 // Compute secondary osteoporosis flags from answers
 function computeSecondary(answers) {
   if (!answers) return [];
-  const symMap = {}; // sym-key → count of positive answers
-  const allQs = [];
+  // symMap: sym-key → array of {label, sectionTitle, answer}
+  const symMap = {};
   for (const sec of SECTIONS) {
-    if (sec.symcheck) allQs.push(...(sec.qs || []));
-  }
-  for (const q of allQs) {
-    const v = answers[q.id];
-    if (v === "ja" && q.sym) {
-      if (!symMap[q.sym]) symMap[q.sym] = 0;
-      symMap[q.sym]++;
+    if (!sec.symcheck) continue;
+    for (const q of sec.qs || []) {
+      const v = answers[q.id];
+      if (v === "ja" && q.sym) {
+        if (!symMap[q.sym]) symMap[q.sym] = [];
+        symMap[q.sym].push({
+          label: q.label,
+          sectionTitle: sec.title,
+          qid: q.id
+        });
+      }
     }
   }
-  // Return array of {sym, count, profile} sorted by count desc
-  return Object.entries(symMap).filter(([sym]) => SEK_PROFILE[sym]).sort((a, b) => b[1] - a[1]).map(([sym, count]) => ({
+  // Return array sorted by hit-count descending
+  return Object.entries(symMap).filter(([sym]) => SEK_PROFILE[sym]).sort((a, b) => b[1].length - a[1].length).map(([sym, hits]) => ({
     sym,
-    count,
+    count: hits.length,
+    hits,
     profile: SEK_PROFILE[sym]
   }));
 }
@@ -3807,6 +3819,35 @@ function SecondaryPanel({
   }, profile.label), /*#__PURE__*/React.createElement("span", {
     className: "sek-item-count" + (count >= 2 ? " strong" : "")
   }, count, " Hinweis", count > 1 ? "e" : "")), /*#__PURE__*/React.createElement("div", {
+    className: "sek-triggers"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sek-triggers-title"
+  }, "\u2705 Folgende Angaben haben diesen Hinweis ausgel\xF6st:"), hits.map((hit, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: "sek-trigger-row"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "sek-trigger-check"
+  }, "\u2713"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sek-trigger-q"
+  }, hit.label), /*#__PURE__*/React.createElement("div", {
+    className: "sek-trigger-sec"
+  }, hit.sectionTitle)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#16a34a",
+      fontWeight: 700,
+      background: "#dcfce7",
+      padding: "1px 7px",
+      borderRadius: 10,
+      whiteSpace: "nowrap",
+      alignSelf: "flex-start",
+      marginTop: 2
+    }
+  }, "Ja")))), /*#__PURE__*/React.createElement("div", {
     className: "sek-hinweis"
   }, /*#__PURE__*/React.createElement("strong", null, "Klinischer Hinweis:"), " ", profile.hinweis), /*#__PURE__*/React.createElement("div", {
     className: "sek-unt-title"
