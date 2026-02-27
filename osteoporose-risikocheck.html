@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="de"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Osteoporose-Risikocheck – DVO 2023</title></head>
+<title>Osteoporose-Dokumentationshilfe und Risikocheck – DVO 2023</title></head>
 <body><div id="root"></div><script>
 /**
  * @license React
@@ -388,6 +388,10 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 /* ─── SECTION ─── */
 .sec{background:white;border-radius:8px;border:1px solid var(--CM);margin-bottom:13px;overflow:hidden;box-shadow:var(--sh)}
 .sec-hdr{padding:14px 20px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;user-select:none;transition:background .15s}
+.sec-hdr-sym{background:linear-gradient(135deg,#2a1a0a,#3d2a10)!important}
+.sec-hdr-sym .sec-title{color:#f0d890!important}
+.sec-hdr-sym .sec-sub{color:#c8a870!important}
+.sec-hdr-sym.open{background:linear-gradient(135deg,#1a0a00,#2d1a05)!important}
 .sec-hdr:hover{background:var(--CL)}
 .sec-hdr.open{background:#d4edda;border-left:4px solid #4cae6b}
 .sec-icon{width:32px;height:32px;border-radius:50%;background:var(--CR);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
@@ -502,6 +506,25 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 .rb-na{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
 
 /* ─── HISTORY PANEL ─── */
+.sek-panel{margin-top:20px;border-radius:10px;overflow:hidden;border:2px solid #e0c88a;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.sek-panel-header{background:linear-gradient(135deg,#7c5c2a,#a07840);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:10px}
+.sek-panel-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:700}
+.sek-panel-sub{font-size:12px;opacity:.85;margin-top:2px}
+.sek-panel-body{background:#fffdf8;padding:0}
+.sek-item{border-bottom:1px solid #f0e8d8;padding:16px 20px}
+.sek-item:last-child{border-bottom:none}
+.sek-item-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.sek-item-icon{font-size:18px;flex-shrink:0}
+.sek-item-label{font-size:14px;font-weight:700;color:#5a3a10}
+.sek-item-count{background:#f59e0b;color:#fff;border-radius:12px;padding:2px 9px;font-size:11px;font-weight:700;margin-left:auto;white-space:nowrap}
+.sek-item-count.strong{background:#dc2626}
+.sek-hinweis{background:#fffbf0;border-left:3px solid #f59e0b;padding:8px 12px;font-size:12.5px;color:#5a4020;margin-bottom:10px;border-radius:0 5px 5px 0}
+.sek-unt-title{font-size:11px;font-weight:700;color:#8b6a3a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.sek-unt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:5px}
+.sek-unt-item{display:flex;align-items:flex-start;gap:6px;padding:5px 8px;background:white;border:1px solid #e8dfc8;border-radius:5px;font-size:12px}
+.sek-unt-item::before{content:"🔬";font-size:11px;flex-shrink:0;margin-top:1px}
+.sek-unt-icd{font-family:monospace;font-size:10px;color:#a08060;margin-left:auto;white-space:nowrap}
+.sek-none{padding:20px;text-align:center;color:#8b7a68;font-style:italic;font-size:13px}
 .hist-panel{background:white;border:1px solid var(--CM);border-radius:8px;padding:18px;margin-top:14px;box-shadow:var(--sh)}
 .hist-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--D)}
 .hist-search{flex:1;min-width:160px;padding:6px 10px;border:1.5px solid var(--CM);border-radius:5px;font-size:12.5px;font-family:'Source Sans 3',sans-serif;outline:none;color:var(--D)}
@@ -1278,6 +1301,249 @@ const SECTIONS = [{
     placeholder: "z. B. 1.20",
     hint: "TBS < 1,4 = Risikofaktor. Richtwerte: < 1,0 → ×1,8 | 1,0–1,1 → ×1,6 | 1,1–1,2 → ×1,4 | 1,2–1,4 → ×1,3"
   }]
+}, /* ───────────────────────────── SEKUNDÄRE OSTEOPOROSE – SYMPTOMCHECK ──────────── */
+{
+  id: "sek_endokrin",
+  icon: "⚗️",
+  title: "Symptomcheck: Hormonelle Erkrankungen",
+  sub: "Hinweise auf endokrine Ursachen einer sekundären Osteoporose",
+  symcheck: true,
+  qs: [{
+    id: "sym_hpth_nierenstein",
+    t: "yn",
+    label: "Bekannte Nierensteine, wiederholt oder jünger als 50 Jahre?",
+    sym: "hpth",
+    hint: "Rezidivierende Kalzium-Nierensteine sind ein klassischer Hinweis auf primären Hyperparathyreoidismus (pHPT)."
+  }, {
+    id: "sym_hpth_hypercalc",
+    t: "yn",
+    label: "Bekannte erhöhte Kalziumwerte im Blut (Hyperkalzämie)?",
+    sym: "hpth",
+    hint: "Hyperkalzämie ist das häufigste biochemische Zeichen des pHPT."
+  }, {
+    id: "sym_hpth_osteitis",
+    t: "yn",
+    label: "Knochenschmerzen ohne erklärbaren Grund, Muskelschwäche oder auffällige Müdigkeit?",
+    sym: "hpth",
+    hint: "Klassische Trias des pHPT: Bones, Stones, Groans (Knochen, Nieren, Abdomen)."
+  }, {
+    id: "sym_cushing_gewicht",
+    t: "yn",
+    label: "Stammfettsucht (dicker Bauch bei dünnen Armen/Beinen), Vollmondgesicht oder Büffelnacken?",
+    sym: "cushing",
+    hint: "Charakteristisches Körperfettmuster beim Cushing-Syndrom durch Kortison-Überproduktion."
+  }, {
+    id: "sym_cushing_striae",
+    t: "yn",
+    label: "Breite rötlich-violette Dehnungsstreifen an Bauch, Oberschenkeln oder Achselhöhlen?",
+    sym: "cushing",
+    hint: "Breite (> 1 cm), dunkelrote Striae distensae sind typisch für Cushing, im Gegensatz zu normalen hellen Schwangerschaftsstreifen."
+  }, {
+    id: "sym_cushing_haut",
+    t: "yn",
+    label: "Sehr dünne Haut mit leichten blauen Flecken, schlecht heilende Wunden?",
+    sym: "cushing"
+  }, {
+    id: "sym_hypo_mann",
+    t: "yn",
+    label: "(Männer) Libidoverlust, Erektionsstörungen, Hodenschrumpfung oder auffällig wenig Bartwuchs?",
+    sym: "hypogonadismus",
+    onlyFor: "m",
+    hint: "Hinweise auf Hypogonadismus beim Mann; oft durch Hypophysenerkrankung oder Klinefelter-Syndrom verursacht."
+  }, {
+    id: "sym_hypo_zykl",
+    t: "yn",
+    label: "(Frauen) Ausbleiben der Regelblutung ohne Menopause (Amenorrhoe)?",
+    sym: "hypogonadismus_f",
+    onlyFor: "f",
+    hint: "Amenorrhoe durch Sport, Essstörung, Hyperprolaktinämie oder Hypophysenerkrankung führt zu Östrogenmangel und raschem Knochenverlust."
+  }, {
+    id: "sym_hyper_schild",
+    t: "yn",
+    label: "Herzrasen, Zittern, Gewichtsverlust, Wärmeunverträglichkeit oder erhöhter Blutdruck?",
+    sym: "hyperthyreose",
+    hint: "Klinische Zeichen einer Hyperthyreose oder überdosierten Schilddrüsenhormontherapie."
+  }, {
+    id: "sym_akro_groesse",
+    t: "yn",
+    label: "Veränderung der Schuh- oder Ringgröße im Erwachsenenalter, Vergröberung der Gesichtszüge?",
+    sym: "akromegalie",
+    hint: "Akromegalie durch Wachstumshormon-produzierenden Hypophysentumor kann trotz erhöhter Knochenmasse die Knochenqualität verschlechtern."
+  }, {
+    id: "sym_prolakt",
+    t: "yn",
+    label: "(Frauen) Milchaustritt aus der Brust ohne Schwangerschaft/Stillzeit (Galaktorrhoe)?",
+    sym: "prolaktinom",
+    onlyFor: "f",
+    hint: "Galaktorrhoe kombiniert mit Amenorrhoe ist typisch für ein Prolaktinom (Hypophysenadenom)."
+  }]
+}, {
+  id: "sek_gastro",
+  icon: "🫁",
+  title: "Symptomcheck: Magen-Darm & Absorption",
+  sub: "Hinweise auf Malabsorptionssyndrome und Erkrankungen des Gastrointestinaltrakts",
+  symcheck: true,
+  qs: [{
+    id: "sym_zoeliakie_bauch",
+    t: "yn",
+    label: "Chronischer Blähbauch, Durchfall oder Verstopfung – besonders nach Weizen, Roggen oder Gerste?",
+    sym: "zoeliakie",
+    hint: "Zöliakie kann jahrelang mit unspezifischen Bauchbeschwerden verlaufen. Glutenhaltige Getreidearten lösen die Autoimmunreaktion aus."
+  }, {
+    id: "sym_zoeliakie_mangel",
+    t: "yn",
+    label: "Bekannte Anämie, Eisenmangel oder Folsäuremangel ohne erklärbare Ursache?",
+    sym: "zoeliakie",
+    hint: "Malabsorption bei Zöliakie führt häufig zu Mikronährstoffmangeln, besonders Eisen, Folsäure und fettlöslichen Vitaminen."
+  }, {
+    id: "sym_ced_bauch",
+    t: "yn",
+    label: "Wiederkehrende Bauchschmerzen und Durchfall, evtl. mit Blut- oder Schleimbeimengungen?",
+    sym: "ced",
+    hint: "Chronisch-entzündliche Darmerkrankungen (Morbus Crohn, Colitis ulcerosa) beeinträchtigen die Kalziumabsorption und fördern den Knochenverlust."
+  }, {
+    id: "sym_vitd_mangel",
+    t: "yn",
+    label: "Muskelschwäche besonders an Oberschenkeln und Oberarmen, diffuse Knochenschmerzen?",
+    sym: "vit_d",
+    hint: "Vitamin-D-Mangel und Osteomalazie zeigen sich oft durch proximale Muskelschwäche und diffusen Knochenschmerz (besonders Brustbein, Tibia)."
+  }, {
+    id: "sym_malabs_allg",
+    t: "yn",
+    label: "Fettstühle (glänzend, schwimmend, schwer abzuspülen), Gewichtsabnahme trotz normalem Appetit?",
+    sym: "malabsorption",
+    hint: "Steatorrhoe ist ein direktes Zeichen der Fettmalabsorption und geht immer mit schlechter Absorption fettlöslicher Vitamine (A, D, E, K) einher."
+  }, {
+    id: "sym_leber",
+    t: "yn",
+    label: "Bekannte Lebererkrankung (Leberzirrhose, primär biliäre Cholangitis, Hämochromatose)?",
+    sym: "lebererkrankung",
+    hint: "Chronische Lebererkrankungen vermindern die Vitamin-D-Aktivierung und erhöhen das Osteoporose-Risiko deutlich."
+  }]
+}, {
+  id: "sek_niere",
+  icon: "🫘",
+  title: "Symptomcheck: Nieren & Elektrolyte",
+  sub: "Hinweise auf renale Ursachen und Elektrolytstörungen",
+  symcheck: true,
+  qs: [{
+    id: "sym_niere_gfr",
+    t: "yn",
+    label: "Bekannte eingeschränkte Nierenfunktion (GFR < 45 ml/min / CKD Stad. 3b)?",
+    sym: "nieren",
+    hint: "Ab CKD Stadium 3b ist der Vitamin-D-Aktivierungsweg gestört; renale Osteodystrophie kann die Folge sein."
+  }, {
+    id: "sym_niere_phosphat",
+    t: "yn",
+    label: "Bekannt erhöhter Phosphatspiegel im Blut (Hyperphosphatämie)?",
+    sym: "nieren",
+    hint: "Hyperphosphatämie bei CKD fördert den sekundären Hyperparathyreoidismus und damit den Knochenabbau."
+  }, {
+    id: "sym_hypokali",
+    t: "yn",
+    label: "Wiederholt niedrige Kaliumwerte, Muskelschwäche oder Muskelkrämpfe?",
+    sym: "rta_bartter",
+    hint: "Chronische Hypokaliämie kann auf renale tubuläre Azidose (RTA) oder Bartter/Gitelman-Syndrom hinweisen – beides mit Knochendemineralisation verbunden."
+  }, {
+    id: "sym_hypercalciurie",
+    t: "yn",
+    label: "Schäumender Urin oder bekannte Kalziumausscheidung im Urin erhöht?",
+    sym: "hypercalciurie",
+    hint: "Idiopathische Hyperkalziurie ist eine häufig übersehene Ursache der Osteoporose, besonders bei Männern."
+  }]
+}, {
+  id: "sek_haema",
+  icon: "🩸",
+  title: "Symptomcheck: Blut & Blutbildung",
+  sub: "Hinweise auf hämatologische Ursachen einer sekundären Osteoporose",
+  symcheck: true,
+  qs: [{
+    id: "sym_myelom_ruecken",
+    t: "yn",
+    label: "Anhaltende Rückenschmerzen besonders nachts oder in Ruhe, kombiniert mit Abgeschlagenheit?",
+    sym: "myelom",
+    hint: "Multiples Myelom verursacht typischerweise belastungsunabhängige Knochenschmerzen und pathologische Frakturen."
+  }, {
+    id: "sym_myelom_blut",
+    t: "yn",
+    label: "Bekannte BSG-Erhöhung, erhöhtes Gesamteiweiß oder Paraprotein im Blut?",
+    sym: "myelom",
+    hint: "Paraproteinämie, stark erhöhte BSG und Anämie sind hämatologische Hinweise auf Myelom oder MGUS."
+  }, {
+    id: "sym_masto",
+    t: "yn",
+    label: "Chronische Nesselsucht (Urtikaria), Juckreiz beim Waschen/Reiben, oder anaphylaxieartige Episoden?",
+    sym: "mastozytose",
+    hint: "Systemische Mastozytose ist eine seltene aber wichtige Ursache junger Osteoporose; Hautveränderungen (Urticaria pigmentosa) sind oft das erste Zeichen."
+  }, {
+    id: "sym_masto_haut",
+    t: "yn",
+    label: "Bräunlich-rötliche Flecken auf der Haut die bei Reiben Quaddeln bilden (Darier-Zeichen)?",
+    sym: "mastozytose",
+    hint: "Urticaria pigmentosa mit positivem Darier-Zeichen ist pathognomonisch für kutane Mastozytose und kann auf systemische Form hinweisen."
+  }, {
+    id: "sym_haemo",
+    t: "yn",
+    label: "Bekannte Hämochromatose (Eisenspeicherkrankheit) oder stark erhöhte Ferritinwerte?",
+    sym: "haemochromatose",
+    hint: "Hämochromatose schädigt Leber, Pankreas und Hypophyse – alle drei Organe beeinflussen den Knochenstoffwechsel."
+  }]
+}, {
+  id: "sek_immun",
+  icon: "🛡️",
+  title: "Symptomcheck: Immunsystem & Entzündung",
+  sub: "Hinweise auf Autoimmunerkrankungen mit Knocheneinfluss",
+  symcheck: true,
+  qs: [{
+    id: "sym_sarkoid",
+    t: "yn",
+    label: "Bekannte Sarkoidose oder unerklärte Lymphknotenvergrößerungen?",
+    sym: "sarkoidose",
+    hint: "Sarkoidose-Granulome produzieren unkontrolliert aktives Vitamin D3, was zu Hyperkalzämie und Osteoporose führt."
+  }, {
+    id: "sym_psa",
+    t: "yn",
+    label: "Schuppenflechte (Psoriasis) an Haut oder Nägeln, kombiniert mit Gelenkentzündungen?",
+    sym: "psa",
+    hint: "Psoriasis-Arthritis ist mit erhöhtem Osteoporoserisiko verbunden, besonders bei systemischer Entzündungsaktivität."
+  }, {
+    id: "sym_vaskulitis",
+    t: "yn",
+    label: "Bekannte Vaskulitis oder systemische Entzündungserkrankung außer den bereits genannten?",
+    sym: "vaskulitis",
+    hint: "Systemische Vaskulitiden (Riesenzell, ANCA) erfordern oft hochdosierte Kortisongaben – hohes Osteoporoserisiko."
+  }, {
+    id: "sym_aids",
+    t: "yn",
+    label: "HIV-Infektion oder antiretrovirale Therapie?",
+    sym: "hiv_ost",
+    hint: "HIV selbst und besonders tenofovir-haltige antiretrovirale Therapien erhöhen das Osteoporoserisiko erheblich."
+  }]
+}, {
+  id: "sek_neuro",
+  icon: "🧠",
+  title: "Symptomcheck: Neurologie & Mobilität",
+  sub: "Hinweise auf neurologische Ursachen verminderter Knochendichte",
+  symcheck: true,
+  qs: [{
+    id: "sym_immo_neuro",
+    t: "yn",
+    label: "Lähmungen, ausgeprägte Spastik oder vollständige Bettlägerigkeit (> 3 Monate)?",
+    sym: "immo_neuro",
+    hint: "Vollständige Immobilisation (z. B. nach Querschnitt) führt innerhalb von Wochen zu raschem Knochenverlust."
+  }, {
+    id: "sym_essst",
+    t: "yn",
+    label: "Stark eingeschränkte Nahrungsaufnahme, Untergewicht (BMI < 17,5) oder bekannte Essstörung?",
+    sym: "essstoerung",
+    hint: "Anorexia nervosa führt durch Östrogenmangel und Mangelernährung zu schwerem, oft irreversiblem Knochenverlust."
+  }, {
+    id: "sym_alkohol_2",
+    t: "yn",
+    label: "Täglicher Alkoholkonsum > 3 Einheiten oder bekannte Lebererkrankung durch Alkohol?",
+    sym: "alkohol_ost",
+    hint: "Alkohol hemmt Osteoblasten direkt, stört Vitamin D und ist mit Sturzrisiko assoziiert."
+  }]
 }];
 
 /* ═══════════════════════════════════════════════ RISK CALC ═══ */
@@ -1906,6 +2172,516 @@ async function idbExportJSON() {
   URL.revokeObjectURL(url);
 }
 
+/* ═════════════════════════ SEKUNDÄRE OSTEOPOROSE – AUSWERTUNG ═══ */
+// symptom → {label, untersuchungen: [{name, icd}], hinweis}
+const SEK_PROFILE = {
+  hpth: {
+    label: "Primärer Hyperparathyreoidismus (pHPT)",
+    hinweis: "Erhöhtes Kalzium, Nierensteine und Knochenschmerzen sind die klassische Trias. Häufigste endokrine Ursache der sekundären Osteoporose.",
+    untersuchungen: [{
+      name: "Serumkalzium (Gesamt + ionisiert)",
+      icd: "E21.0"
+    }, {
+      name: "Parathormon (PTH intakt)",
+      icd: "E21.0"
+    }, {
+      name: "Phosphat, Magnesium",
+      icd: "E21.0"
+    }, {
+      name: "24h-Kalzium im Urin",
+      icd: "E21.0"
+    }, {
+      name: "Vitamin D (25-OH-D3)",
+      icd: "E55.9"
+    }, {
+      name: "Alkalische Phosphatase (AP)",
+      icd: "E21.0"
+    }, {
+      name: "Nierensonographie (Steine?)",
+      icd: "N20.0"
+    }, {
+      name: "Halsonsonographie (Epithelkörperchen?)",
+      icd: "E21.0"
+    }]
+  },
+  cushing: {
+    label: "Cushing-Syndrom (endogener Hyperkortisolismus)",
+    hinweis: "Das Cushing-Syndrom ist die schwerste sekundäre Osteoporoseform durch Kortisol. Klinische Zeichen können sehr subtil sein.",
+    untersuchungen: [{
+      name: "Cortisol im 24h-Urin",
+      icd: "E24.9"
+    }, {
+      name: "Cortisol morgens/abends (zirkadianer Rhythmus)",
+      icd: "E24.9"
+    }, {
+      name: "1-mg-Dexamethason-Hemmtest (Overnight)",
+      icd: "E24.9"
+    }, {
+      name: "ACTH basal (zentral vs. adrenal)",
+      icd: "E24.9"
+    }, {
+      name: "MRT Hypophyse (Adenom?)",
+      icd: "D35.2"
+    }, {
+      name: "CT Nebennieren",
+      icd: "D35.0"
+    }]
+  },
+  hypogonadismus: {
+    label: "Hypogonadismus (Mann)",
+    hinweis: "Testosteronmangel beim Mann ist die häufigste sekundäre Osteoporoseursache bei jüngeren Männern. Auch an Hypophysenerkrankung denken.",
+    untersuchungen: [{
+      name: "Testosteron gesamt + SHBG (freies Testosteron berechnet)",
+      icd: "E29.1"
+    }, {
+      name: "LH, FSH",
+      icd: "E29.1"
+    }, {
+      name: "Prolaktin",
+      icd: "E22.1"
+    }, {
+      name: "MRT Hypophyse bei Prolaktin ↑ oder LH/FSH ↓",
+      icd: "D35.2"
+    }, {
+      name: "Chromosomenanalyse bei Verdacht Klinefelter",
+      icd: "Q98.0"
+    }]
+  },
+  hypogonadismus_f: {
+    label: "Hypogonadismus / Amenorrhoe (Frau, prämenopausal)",
+    hinweis: "Jede länger anhaltende Amenorrhoe (> 6 Monate) außerhalb von Schwangerschaft/Menopause führt zu Östrogenmangel und Knochenverlust.",
+    untersuchungen: [{
+      name: "FSH, LH, Östradiol",
+      icd: "N91.2"
+    }, {
+      name: "Prolaktin",
+      icd: "E22.1"
+    }, {
+      name: "TSH",
+      icd: "E03.9"
+    }, {
+      name: "Testosteron, DHEAS (Ausschluss Androgen-Überschuss)",
+      icd: "E28.1"
+    }, {
+      name: "MRT Hypophyse bei Prolaktin ↑",
+      icd: "D35.2"
+    }]
+  },
+  hyperthyreose: {
+    label: "Hyperthyreose / Überdosierung Schilddrüsenhormon",
+    hinweis: "Subklinische Hyperthyreose (TSH < 0,1 mU/l) ist ein signifikanter Risikofaktor für Osteoporose, besonders postmenopausal.",
+    untersuchungen: [{
+      name: "TSH basal, fT3, fT4",
+      icd: "E05.9"
+    }, {
+      name: "Anti-TPO, Anti-TSHR (Immunthyreopathie?)",
+      icd: "E05.0"
+    }, {
+      name: "Schilddrüsensonographie",
+      icd: "E05.9"
+    }, {
+      name: "Szintigraphie bei Autonomie",
+      icd: "E05.2"
+    }]
+  },
+  akromegalie: {
+    label: "Akromegalie (Wachstumshormon-Exzess)",
+    hinweis: "Akromegalie erhöht trotz zunächst erhöhter Knochenmasse durch IGF-1 das Frakturrisiko durch veränderte Knochenqualität.",
+    untersuchungen: [{
+      name: "IGF-1 (alters- und geschlechtsnormiert)",
+      icd: "E22.0"
+    }, {
+      name: "Wachstumshormon (GH) nüchtern",
+      icd: "E22.0"
+    }, {
+      name: "Oraler Glukosetoleranztest mit GH-Messung",
+      icd: "E22.0"
+    }, {
+      name: "MRT Hypophyse",
+      icd: "D35.2"
+    }]
+  },
+  prolaktinom: {
+    label: "Prolaktinom / Hyperprolaktinämie",
+    hinweis: "Hyperprolaktinämie supprimiert die GnRH-Sekretion und führt so zu Hypogonadismus und Knochenverlust – bei Männern und Frauen.",
+    untersuchungen: [{
+      name: "Prolaktin nüchtern (mind. 2× messen)",
+      icd: "E22.1"
+    }, {
+      name: "MRT Hypophyse",
+      icd: "D35.2"
+    }, {
+      name: "FSH, LH, Östradiol / Testosteron",
+      icd: "E22.1"
+    }]
+  },
+  zoeliakie: {
+    label: "Zöliakie (glutensensitive Enteropathie)",
+    hinweis: "Unerkannte Zöliakie ist eine der häufigsten und oft übersehenen Ursachen der sekundären Osteoporose, besonders bei Frauen < 50 Jahren.",
+    untersuchungen: [{
+      name: "Anti-Transglutaminase-IgA (tTG-IgA)",
+      icd: "K90.0"
+    }, {
+      name: "Gesamt-IgA (IgA-Mangel ausschließen)",
+      icd: "K90.0"
+    }, {
+      name: "Anti-Endomysium-Antikörper (EMA)",
+      icd: "K90.0"
+    }, {
+      name: "Gastroskopie mit Dünndarmbiopsie (Goldstandard)",
+      icd: "K90.0"
+    }, {
+      name: "Ferritin, Folsäure, Vitamin B12",
+      icd: "K90.0"
+    }, {
+      name: "25-OH-Vitamin D, Kalzium, AP",
+      icd: "K90.0"
+    }]
+  },
+  ced: {
+    label: "Chronisch-entzündliche Darmerkrankung (Morbus Crohn / Colitis ulcerosa)",
+    hinweis: "Bei CED wirken entzündliche Zytokine, Malabsorption und Kortisongaben zusammen und erhöhen das Frakturrisiko deutlich.",
+    untersuchungen: [{
+      name: "Calprotectin im Stuhl",
+      icd: "K50.9"
+    }, {
+      name: "CRP, BSG, Blutbild",
+      icd: "K50.9"
+    }, {
+      name: "Vitamin D, Kalzium, Magnesium, Zink",
+      icd: "K50.9"
+    }, {
+      name: "Koloskopie mit Biopsie",
+      icd: "K50.9"
+    }]
+  },
+  vit_d: {
+    label: "Vitamin-D-Mangel / Osteomalazie",
+    hinweis: "Schwerer Vitamin-D-Mangel (< 12 ng/ml) führt zur Osteomalazie – weiche, nicht-mineralisierte Knochen. Klinisch oft mit Osteoporose verwechselt.",
+    untersuchungen: [{
+      name: "25-OH-Vitamin D3",
+      icd: "E55.9"
+    }, {
+      name: "Kalzium, Phosphat, Magnesium",
+      icd: "E55.9"
+    }, {
+      name: "PTH intakt",
+      icd: "E55.9"
+    }, {
+      name: "Alkalische Phosphatase (bei Osteomalazie oft ↑)",
+      icd: "E55.9"
+    }, {
+      name: "Kreatinin, GFR (renale Vitamin-D-Aktivierung?)",
+      icd: "E55.9"
+    }]
+  },
+  malabsorption: {
+    label: "Allgemeines Malabsorptionssyndrom",
+    hinweis: "Fettstühle sind ein zuverlässiges Zeichen schwerer Malabsorption. Ursachen: exokrine Pankreasinsuffizienz, Kurzdarmsyndrom, bakterielle Fehlbesiedlung.",
+    untersuchungen: [{
+      name: "Stuhlgewicht, Stuhlfett (Elastase-1 im Stuhl)",
+      icd: "K90.9"
+    }, {
+      name: "25-OH-Vitamin D, Vitamin E, A, K",
+      icd: "K90.9"
+    }, {
+      name: "Kalzium, Phosphat, Magnesium, Zink",
+      icd: "K90.9"
+    }, {
+      name: "Albumin, Präalbumin, Transferrin",
+      icd: "K90.9"
+    }, {
+      name: "H2-Atemtest (bakterielle Fehlbesiedlung)",
+      icd: "K90.9"
+    }]
+  },
+  lebererkrankung: {
+    label: "Hepatische Osteodystrophie / Lebererkrankung",
+    hinweis: "Die Leber aktiviert Vitamin D und synthetisiert Bindungsproteine. Bei schwerer Lebererkrankung ist der Knochenstoffwechsel immer mitbetroffen.",
+    untersuchungen: [{
+      name: "GOT, GPT, GGT, AP, Bilirubin",
+      icd: "K74.6"
+    }, {
+      name: "Quick/INR, Albumin, Cholinesterase",
+      icd: "K74.6"
+    }, {
+      name: "ANA, AMA (primäre biliäre Cholangitis?)",
+      icd: "K74.3"
+    }, {
+      name: "25-OH-Vitamin D3",
+      icd: "K74.6"
+    }, {
+      name: "Leberbiopsie / Fibroscan bei Bedarf",
+      icd: "K74.6"
+    }]
+  },
+  nieren: {
+    label: "Renale Osteodystrophie / CKD-MBD",
+    hinweis: "Ab GFR < 45 entsteht eine komplexe Störung aus sekundärem HPT, Vitamin-D-Mangel und Phosphatstau (CKD-MBD: mineral and bone disorder).",
+    untersuchungen: [{
+      name: "Kreatinin, GFR (CKD-EPI)",
+      icd: "N18.3"
+    }, {
+      name: "PTH intakt, Kalzium, Phosphat",
+      icd: "N25.8"
+    }, {
+      name: "25-OH-Vitamin D, 1,25-OH2-Vitamin D",
+      icd: "N25.8"
+    }, {
+      name: "Alkalische Phosphatase, Knochenspezifische AP",
+      icd: "N25.8"
+    }, {
+      name: "FGF-23 bei Verdacht auf Hyperphosphatonismus",
+      icd: "N25.8"
+    }]
+  },
+  rta_bartter: {
+    label: "Renale tubuläre Azidose (RTA) / Bartter/Gitelman-Syndrom",
+    hinweis: "Chronische metabolische Azidose bei RTA führt zur Pufferung durch Kalzium aus dem Knochen – eine selten erkannte Ursache.",
+    untersuchungen: [{
+      name: "Blutgasanalyse (metabolische Azidose?)",
+      icd: "N25.8"
+    }, {
+      name: "Kalium, Natrium, Chlorid",
+      icd: "N25.8"
+    }, {
+      name: "Urin-pH, Urin-Ammonium",
+      icd: "N25.8"
+    }, {
+      name: "Kalzium und Phosphat im 24h-Urin",
+      icd: "N25.8"
+    }]
+  },
+  hypercalciurie: {
+    label: "Idiopathische Hyperkalziurie",
+    hinweis: "Kalziurie > 300 mg/d (♂) oder > 250 mg/d (♀) bei normalem Serum-Kalzium – häufig bei Männern mit Osteoporose und Nierensteinen.",
+    untersuchungen: [{
+      name: "Kalzium im 24h-Urin (Referenz: < 7,5 mmol/d)",
+      icd: "E83.5"
+    }, {
+      name: "Kreatinin-Clearance im 24h-Urin",
+      icd: "E83.5"
+    }, {
+      name: "Serumkalzium, PTH",
+      icd: "E83.5"
+    }, {
+      name: "Vitamin D (25-OH-D3)",
+      icd: "E83.5"
+    }]
+  },
+  myelom: {
+    label: "Multiples Myelom / Plasmozytom",
+    hinweis: "Bei ungeklärter Osteoporose, besonders mit Rückenschmerz und Anämie, muss ein multiples Myelom ausgeschlossen werden.",
+    untersuchungen: [{
+      name: "Serumelektrophorese + Immunfixation",
+      icd: "C90.0"
+    }, {
+      name: "Freie Leichtketten (kappa/lambda) im Serum",
+      icd: "C90.0"
+    }, {
+      name: "Serum-IgG, IgA, IgM",
+      icd: "C90.0"
+    }, {
+      name: "Bence-Jones-Protein im 24h-Urin",
+      icd: "C90.0"
+    }, {
+      name: "Blutbild, Differenzialblutbild",
+      icd: "C90.0"
+    }, {
+      name: "BSG (oft massiv erhöht)",
+      icd: "C90.0"
+    }, {
+      name: "LDH, β2-Mikroglobulin",
+      icd: "C90.0"
+    }, {
+      name: "Ganzkörper-MRT oder PET-CT bei Verdacht",
+      icd: "C90.0"
+    }]
+  },
+  mastozytose: {
+    label: "Systemische Mastozytose",
+    hinweis: "Systemische Mastozytose ist selten, aber eine klassische Ursache junger Osteoporose – oft lange nicht erkannt. An Urticaria pigmentosa denken.",
+    untersuchungen: [{
+      name: "Tryptase im Serum (Screening)",
+      icd: "D47.0"
+    }, {
+      name: "Knochenmarkbiopsie (Goldstandard)",
+      icd: "D47.0"
+    }, {
+      name: "cKIT-Mutation (D816V) im Blut/Knochenmark",
+      icd: "D47.0"
+    }, {
+      name: "Urin-Methylhistamin im 24h-Urin",
+      icd: "D47.0"
+    }, {
+      name: "Ganzkörper-CT (Organbefall?)",
+      icd: "D47.0"
+    }]
+  },
+  haemochromatose: {
+    label: "Hereditäre Hämochromatose",
+    hinweis: "Eisenablagerungen in Leber, Pankreas und Hypophyse führen zu multiplen Stoffwechselstörungen mit Sekundärosteoporose.",
+    untersuchungen: [{
+      name: "Ferritin, Transferrinsättigung (> 45% auffällig)",
+      icd: "E83.1"
+    }, {
+      name: "HFE-Genotypisierung (C282Y, H63D)",
+      icd: "E83.1"
+    }, {
+      name: "Leberwerte, Lebersonographie",
+      icd: "E83.1"
+    }, {
+      name: "Testosteron, LH, FSH (Hypophysenbefall?)",
+      icd: "E83.1"
+    }, {
+      name: "Nüchternblutzucker, HbA1c (Pankreas?)",
+      icd: "E83.1"
+    }]
+  },
+  sarkoidose: {
+    label: "Sarkoidose",
+    hinweis: "Sarkoidose-Granulome aktivieren unkontrolliert Vitamin D3, was zu Hyperkalzämie, Hyperkalziurie und Osteoporose führt.",
+    untersuchungen: [{
+      name: "ACE (Angiotensin-Converting-Enzyme)",
+      icd: "D86.9"
+    }, {
+      name: "Serumkalzium, 1,25-OH2-Vitamin D3",
+      icd: "D86.9"
+    }, {
+      name: "Kalzium im 24h-Urin",
+      icd: "D86.9"
+    }, {
+      name: "Röntgen-Thorax / CT-Thorax (Lymphome?)",
+      icd: "D86.0"
+    }, {
+      name: "Bronchoalveoläre Lavage, ggf. Biopsie",
+      icd: "D86.0"
+    }]
+  },
+  psa: {
+    label: "Psoriasis-Arthritis / Psoriasis",
+    hinweis: "Chronische systemische Entzündung bei Psoriasis-Arthritis erhöht das Frakturrisiko – besonders bei Kortisoneinsatz.",
+    untersuchungen: [{
+      name: "CRP, BSG, Blutbild",
+      icd: "M07.3"
+    }, {
+      name: "Röntgen Hände/Füße, Sakroiliakalgelenke",
+      icd: "M07.3"
+    }, {
+      name: "HLA-B27 (axiale Beteiligung?)",
+      icd: "M07.3"
+    }]
+  },
+  vaskulitis: {
+    label: "Systemische Vaskulitis",
+    hinweis: "Vaskulitiden (Riesenzell, ANCA-assoziiert) erfordern häufig hochdosierte Kortisongaben – sofortiges Osteoporoseprophylaxe-Konzept nötig.",
+    untersuchungen: [{
+      name: "ANCA (p-ANCA, c-ANCA)",
+      icd: "M31.9"
+    }, {
+      name: "ANA, Anti-dsDNA",
+      icd: "M32.9"
+    }, {
+      name: "CRP, BSG, Komplement (C3, C4)",
+      icd: "M31.9"
+    }, {
+      name: "Urinstatus, Protein im 24h-Urin (renale Beteiligung?)",
+      icd: "M31.9"
+    }]
+  },
+  hiv_ost: {
+    label: "HIV-assoziierte Osteoporose",
+    hinweis: "HIV-Patienten haben ein 3-fach erhöhtes Osteoporoserisiko – durch das Virus selbst, Entzündung und tenofovir-haltige Regime.",
+    untersuchungen: [{
+      name: "DXA frühzeitig ab Diagnosestellung",
+      icd: "B24"
+    }, {
+      name: "Vitamin D, Kalzium, Phosphat",
+      icd: "B24"
+    }, {
+      name: "Nüchtertes PTH, AP",
+      icd: "B24"
+    }, {
+      name: "Antiretroviales Regime prüfen (TDF vs. TAF?)",
+      icd: "B24"
+    }]
+  },
+  immo_neuro: {
+    label: "Neurogene Osteoporose / Immobilisationsosteoporose",
+    hinweis: "Vollständige Immobilisation führt zu sehr raschem Knochenverlust (bis 40% in einem Jahr bei Querschnitt). Prophylaxe sofort einleiten.",
+    untersuchungen: [{
+      name: "DXA möglichst früh",
+      icd: "M81.8"
+    }, {
+      name: "Kalzium, Phosphat, AP",
+      icd: "M81.8"
+    }, {
+      name: "Vitamin D, PTH",
+      icd: "M81.8"
+    }]
+  },
+  essstoerung: {
+    label: "Essstörung / Anorexia nervosa",
+    hinweis: "Anorexia nervosa führt zum schwerwiegendsten Knochenverlust in der Psychiatrie – oft irreversibel. DXA und Behandlung dringend.",
+    untersuchungen: [{
+      name: "DXA dringend",
+      icd: "F50.0"
+    }, {
+      name: "Östradiol, LH, FSH (hypothalamische Amenorrhoe?)",
+      icd: "F50.0"
+    }, {
+      name: "IGF-1, Wachstumshormon",
+      icd: "F50.0"
+    }, {
+      name: "Elektrolyte (Hypokaliämie bei Purging?)",
+      icd: "F50.0"
+    }, {
+      name: "Albumin, Präalbumin, Vitamin D, Zink",
+      icd: "F50.0"
+    }]
+  },
+  alkohol_ost: {
+    label: "Alkohol-assoziierte Osteoporose",
+    hinweis: "Alkohol hemmt Osteoblasten direkt. Lebererkrankung und schlechte Ernährung verstärken den Effekt. Sturzrisiko erhöht.",
+    untersuchungen: [{
+      name: "GGT, GOT, GPT, Bilirubin (Leberschaden?)",
+      icd: "F10.2"
+    }, {
+      name: "Vitamin D, Kalzium, Magnesium, Phosphat",
+      icd: "F10.2"
+    }, {
+      name: "Folsäure, Vitamin B1 (Thiamin)",
+      icd: "F10.2"
+    }, {
+      name: "CDT (Carbohydrate-deficient transferrin, Marker chron. Alkohol)",
+      icd: "F10.2"
+    }]
+  }
+};
+
+// Compute secondary osteoporosis flags from answers
+function computeSecondary(answers) {
+  if (!answers) return [];
+  const symMap = {}; // sym-key → count of positive answers
+  const allQs = [];
+  for (const sec of SECTIONS) {
+    if (sec.symcheck) allQs.push(...(sec.qs || []));
+  }
+  for (const q of allQs) {
+    const v = answers[q.id];
+    if (v === "ja" && q.sym) {
+      if (!symMap[q.sym]) symMap[q.sym] = 0;
+      symMap[q.sym]++;
+    }
+  }
+  // Return array of {sym, count, profile} sorted by count desc
+  return Object.entries(symMap).filter(([sym]) => SEK_PROFILE[sym]).sort((a, b) => b[1] - a[1]).map(([sym, count]) => ({
+    sym,
+    count,
+    profile: SEK_PROFILE[sym]
+  }));
+}
+
 /* ═══════════════════════ ICD-CODE HELPER ═══ */
 // Returns the correct ICD-10 codes as string for a given DIAG_DB entry,
 // considering gender and menopause status.
@@ -2434,7 +3210,7 @@ function ResultCard({
     className: "result"
   }, /*#__PURE__*/React.createElement("div", {
     className: "result-title"
-  }, "\uD83D\uDCCA Auswertung Osteoporose-Risikocheck"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCCA Auswertung \u2013 Osteoporose-Dokumentationshilfe"), /*#__PURE__*/React.createElement("div", {
     className: "thresh-row"
   }, /*#__PURE__*/React.createElement(ThreshPill, {
     label: "3%-Schwelle (3 J.)",
@@ -2522,6 +3298,66 @@ function ResultCard({
   }), /*#__PURE__*/React.createElement("div", {
     className: "result-note"
   }, /*#__PURE__*/React.createElement("strong", null, "Wichtiger Hinweis:"), " Diese Auswertung ist eine Demonstrations- und Schulungshilfe auf Basis der DVO-Leitlinie 2023 und ersetzt keine \xE4rztliche Diagnose. Sie ist kein Medizinprodukt und darf daher nicht im medizinischen Umfeld zu Diagnose- oder Therapieentscheidungszwecken eingesetzt werden. Eine osteologische Therapieentscheidung erfordert unter anderem eine vollst\xE4ndige und gr\xFCndliche Anamnese, klinische Untersuchung, ggf. Labordiagnostik und ggf. DXA-Knochendichtemessung."));
+}
+
+/* ─── SECONDARY OSTEOPOROSIS PANEL ─── */
+function SecondaryPanel({
+  answers
+}) {
+  const sek = computeSecondary(answers);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "sek-panel"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sek-panel-header"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 22
+    }
+  }, "\uD83D\uDD0E"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "sek-panel-title"
+  }, "Abkl\xE4rung sekund\xE4rer Osteoporoseformen"), /*#__PURE__*/React.createElement("div", {
+    className: "sek-panel-sub"
+  }, sek.length > 0 ? `${sek.length} klinischer Hinweis${sek.length > 1 ? "e" : ""} – bei Bestätigung weiterführende Diagnostik empfohlen` : "Keine spezifischen Symptomhinweise auf sekundäre Osteoporose angegeben"))), /*#__PURE__*/React.createElement("div", {
+    className: "sek-panel-body"
+  }, sek.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "sek-none"
+  }, "Bei den angegebenen Symptomen ergeben sich aktuell keine konkreten Hinweise auf eine abkl\xE4rungsbed\xFCrftige sekund\xE4re Osteoporoseform.", /*#__PURE__*/React.createElement("br", null), "Falls klinisch ein Verdacht besteht, bitte die entsprechenden Symptome oben eintragen.") : sek.map(({
+    sym,
+    count,
+    profile
+  }) => /*#__PURE__*/React.createElement("div", {
+    key: sym,
+    className: "sek-item"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sek-item-header"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sek-item-label"
+  }, profile.label), /*#__PURE__*/React.createElement("span", {
+    className: "sek-item-count" + (count >= 2 ? " strong" : "")
+  }, count, " Hinweis", count > 1 ? "e" : "")), /*#__PURE__*/React.createElement("div", {
+    className: "sek-hinweis"
+  }, /*#__PURE__*/React.createElement("strong", null, "Klinischer Hinweis:"), " ", profile.hinweis), /*#__PURE__*/React.createElement("div", {
+    className: "sek-unt-title"
+  }, "Bei klinischem Verdacht k\xF6nnten folgende Befunde interessant sein:"), /*#__PURE__*/React.createElement("div", {
+    className: "sek-unt-grid"
+  }, profile.untersuchungen.map((u, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: "sek-unt-item"
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, u.name), u.icd && /*#__PURE__*/React.createElement("span", {
+    className: "sek-unt-icd"
+  }, u.icd)))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 20px 12px",
+      fontSize: 10.5,
+      color: "#a09080",
+      borderTop: "1px solid #f0e8d8",
+      lineHeight: 1.5
+    }
+  }, "\u26A0 Diese Empfehlungen sind Orientierungshilfen und ersetzen keine \xE4rztliche Diagnose. Die Indikation zur weiteren Diagnostik liegt beim behandelnden Arzt.")));
 }
 
 /* ─── LETTERHEAD EDITOR ─── */
@@ -3847,9 +4683,9 @@ function App() {
     onSave: handleSaveLh
   }), /*#__PURE__*/React.createElement("div", {
     className: "hdr"
-  }, /*#__PURE__*/React.createElement("h1", null, "Osteoporose-Risikocheck"), /*#__PURE__*/React.createElement("p", {
+  }, /*#__PURE__*/React.createElement("h1", null, "Osteoporose-Dokumentationshilfe und Risikocheck"), /*#__PURE__*/React.createElement("p", {
     className: "hdr-sub"
-  }, "Systematische Erfassung von Risikofaktoren f\xFCr Osteoporose und Knochenbr\xFCche \u2013 mit automatischer Berechnung der DVO-Therapieschwellen."), /*#__PURE__*/React.createElement("div", {
+  }, "Systematische Erfassung von Risikofaktoren und Symptomen sekund\xE4rer Osteoporoseformen \u2013 mit automatischer Berechnung der DVO-Therapieschwellen und Abkl\xE4rungsempfehlungen."), /*#__PURE__*/React.createElement("div", {
     className: "badge"
   }, "In Anlehnung an die DVO-Leitlinie 2023 \xB7 S3-Leitlinie AWMF 183-001 \xB7 Version 2.1")), gender && /*#__PURE__*/React.createElement("div", {
     className: `save-ind ${saveStatus} no-print`
@@ -4073,6 +4909,8 @@ function App() {
     answers: answers,
     patient: patient,
     diff: diff
+  }), showResult && gender && /*#__PURE__*/React.createElement(SecondaryPanel, {
+    answers: answers
   }), /*#__PURE__*/React.createElement("div", {
     className: "disclaimer",
     style: {
