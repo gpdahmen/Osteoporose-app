@@ -299,11 +299,19 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 .admin-table tr:hover{background:#fef3e6}
 .admin-table td{padding:8px 12px;border-bottom:1px solid #ece5d8;vertical-align:middle}
 .admin-td-id{font-family:monospace;font-size:11px;color:#8b7a68;white-space:nowrap}
-.admin-input{width:100%;padding:5px 8px;border:1px solid #d4c4a8;border-radius:4px;font-size:12px;font-family:'Source Sans 3',sans-serif;background:white;box-sizing:border-box}
+.admin-input{width:100%;padding:6px 9px;border:1px solid #d4c4a8;border-radius:4px;font-size:13px;font-family:'Source Sans 3',sans-serif;background:white;box-sizing:border-box}
 .admin-input:focus{outline:none;border-color:var(--L);background:#fffbf5}
-.admin-icd-input{width:90px;padding:5px 8px;border:1px solid #d4c4a8;border-radius:4px;font-size:12px;font-family:monospace;background:white;box-sizing:border-box;text-transform:uppercase}
+.admin-icd-input{width:100%;min-width:90px;padding:6px 9px;border:1px solid #d4c4a8;border-radius:4px;font-size:13px;font-family:monospace;background:white;box-sizing:border-box;text-transform:uppercase}
 .admin-icd-input:focus{outline:none;border-color:var(--L)}
 .admin-icd-input.invalid{border-color:#c0392b;background:#fff0f0}
+@media(max-width:700px){
+  .admin-table thead{display:none}
+  .admin-table tr{display:block;border:1px solid #ddd;margin-bottom:10px;border-radius:6px;overflow:hidden}
+  .admin-table td{display:block;padding:6px 12px;border-bottom:1px solid #f0e8dc}
+  .admin-table td:first-child{background:#f5f0e8;font-weight:700;font-size:11px}
+  .admin-table td:nth-child(2){color:#7a6a58;font-size:12px}
+  .admin-table td:before{content:attr(data-label);display:block;font-size:10px;font-weight:700;color:#a09080;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px}
+}
 .admin-footer{padding:14px 20px;background:#fdf9f4;border-top:1px solid #ece5d8;display:flex;gap:10px;justify-content:flex-end;flex-shrink:0}
 .admin-save-btn{background:var(--L);color:white;border:none;padding:10px 22px;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Source Sans 3',sans-serif}
 .admin-save-btn:hover{background:#b07540}
@@ -1727,10 +1735,10 @@ function AdminPanel({diagDb,onSave,onClose}){
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th style={{width:110}}>Kennung</th>
-                    <th style={{width:200}}>Frage (Kurzform)</th>
-                    <th>Klarschrift-Diagnose</th>
-                    <th style={{width:100}}>ICD-10 (5-stellig)</th>
+                    <th style={{width:80,whiteSpace:"nowrap"}}>Kennung</th>
+                    <th style={{width:"22%"}}>Frage (Kurzform)</th>
+                    <th style={{width:"auto"}}>Klarschrift-Diagnose</th>
+                    <th style={{width:110,whiteSpace:"nowrap"}}>ICD-10 (5-stellig)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1740,12 +1748,12 @@ function AdminPanel({diagDb,onSave,onClose}){
                     const shortLabel=(labelMap[id]||id).replace(/\?$/,"").slice(0,60)+(labelMap[id]&&labelMap[id].length>60?"…":"");
                     return(
                       <tr key={id}>
-                        <td className="admin-td-id">{id}</td>
-                        <td style={{fontSize:11,color:"#5a4a3a",lineHeight:1.4}}>{shortLabel}</td>
-                        <td>
+                        <td className="admin-td-id" data-label="Kennung">{id}</td>
+                        <td data-label="Frage" style={{fontSize:11,color:"#5a4a3a",lineHeight:1.4}}>{shortLabel}</td>
+                        <td data-label="Klarschrift-Diagnose">
                           <input className="admin-input" value={row.diagnose||""} onChange={e=>update(id,"diagnose",e.target.value)}/>
                         </td>
-                        <td>
+                        <td data-label="ICD-10 (5-stellig)">
                           <input className={"admin-icd-input"+(icdOk?"":" invalid")}
                             value={row.icd5||""} maxLength={7}
                             onChange={e=>update(id,"icd5",e.target.value.toUpperCase())}/>
