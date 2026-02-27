@@ -194,11 +194,16 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 
 /* ─── HISTORY PANEL ─── */
 .hist-panel{background:white;border:1px solid var(--CM);border-radius:8px;padding:18px;margin-top:14px;box-shadow:var(--sh)}
-.hist-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--D);margin-bottom:12px}
-.hist-item{padding:10px 12px;border:1px solid var(--CM);border-radius:6px;margin-bottom:7px;font-size:12.5px;cursor:pointer;transition:background .15s;display:flex;align-items:center;gap:10px}
+.hist-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--D)}
+.hist-search{flex:1;min-width:160px;padding:6px 10px;border:1.5px solid var(--CM);border-radius:5px;font-size:12.5px;font-family:'Source Sans 3',sans-serif;outline:none;color:var(--D)}
+.hist-search:focus{border-color:var(--L)}
+.hist-select{padding:6px 8px;border:1.5px solid var(--CM);border-radius:5px;font-size:12px;background:white;color:var(--D);font-family:'Source Sans 3',sans-serif;cursor:pointer}
+.hist-export-btn{background:#f0fdf4;color:#166534;border:1.5px solid #86efac;padding:5px 12px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Source Sans 3',sans-serif}
+.hist-export-btn:hover{background:#dcfce7}
+.hist-item{padding:10px 12px;border:1px solid var(--CM);border-radius:6px;margin-bottom:7px;font-size:12.5px;transition:background .15s;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .hist-item:hover{background:var(--CL)}
 .hist-date{font-weight:700;color:var(--D);white-space:nowrap;font-size:12px}
-.hist-pat{color:var(--M);flex:1;font-size:12px}
+.hist-pat{color:var(--M);flex:1;font-size:12px;min-width:120px}
 .hist-risk{flex-shrink:0}
 .hist-del{background:none;border:none;color:#dc2626;cursor:pointer;padding:3px 6px;border-radius:3px;font-size:13px}
 .hist-del:hover{background:#fee2e2}
@@ -777,9 +782,9 @@ function computeDiff(curr,prev,currGender){
 /* ═══════════════════════════════════════════════ STORAGE ═══ */
 const STORE_LH="osteo-letterhead";
 const STORE_DRAFT="osteo-draft";
-const STORE_SESSIONS="osteo-sessions";
 const DEFAULT_LH={name:"Dr. med. Georg P. Dahmen",title:"Facharzt für Orthopädie",strasse:"Tangstedter Landstraße 77",plz_ort:"22415 Hamburg",telefon:"",fax:"",email:""};
 
+/* ═══════════════════════════════════════════════ LOCALSTORAGE (Einstellungen) ═══ */
 async function storageGet(key,fallback=null){
   try{const v=localStorage.getItem(key);return v!==null?JSON.parse(v):fallback;}
   catch{return fallback;}
@@ -787,6 +792,82 @@ async function storageGet(key,fallback=null){
 async function storageSet(key,val){
   try{localStorage.setItem(key,JSON.stringify(val));return true;}
   catch{return false;}
+}
+
+/* ═══════════════════════════════════════════════ INDEXEDDB (Befund-Datenbank) ═══
+   DB-Schema (für späteren SQLite-Export identisch):
+   Store "befunde":  id, fillDate, geaendert, status, gender,
+                     patient {name, geburtsdatum},
+                     answers (JSON), riskSnapshot (JSON)
+   Store "settings": key/value (Draft, Briefkopf etc.)
+*/
+const IDB_NAME   = "osteo_db";
+const IDB_VER    = 1;
+let _idb = null;
+
+function openIDB(){
+  if(_idb) return Promise.resolve(_idb);
+  return new Promise((res,rej)=>{
+    const req = indexedDB.open(IDB_NAME, IDB_VER);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains("befunde")){
+        const s = db.createObjectStore("befunde",{keyPath:"id"});
+        s.createIndex("patName",  "patName",  {unique:false});
+        s.createIndex("fillDate", "fillDate", {unique:false});
+        s.createIndex("gender",   "gender",   {unique:false});
+        s.createIndex("status",   "status",   {unique:false});
+      }
+    };
+    req.onsuccess = e => { _idb = e.target.result; res(_idb); };
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+
+// Hilfsfunktion: IDB-Request als Promise
+function idbReq(fn){
+  return openIDB().then(db=>new Promise((res,rej)=>{
+    const r=fn(db); r.onsuccess=e=>res(e.target.result); r.onerror=e=>rej(e.target.error);
+  }));
+}
+function idbTx(store,mode,fn){
+  return openIDB().then(db=>new Promise((res,rej)=>{
+    const tx=db.transaction(store,mode);
+    const s=tx.objectStore(store);
+    const r=fn(s);
+    tx.oncomplete=()=>res(r?.result??true);
+    tx.onerror=e=>rej(e.target.error);
+  }));
+}
+
+// Befunde CRUD
+async function idbSaveBefund(session){
+  const rec={
+    ...session,
+    patName: (session.patient?.name||"").toLowerCase(),
+    geaendert: new Date().toISOString(),
+    status: session.status||"offen"
+  };
+  return idbTx("befunde","readwrite", s=>s.put(rec));
+}
+async function idbLoadAll(){
+  return openIDB().then(db=>new Promise((res,rej)=>{
+    const tx=db.transaction("befunde","readonly");
+    const req=tx.objectStore("befunde").getAll();
+    req.onsuccess=e=>res(e.target.result||[]);
+    req.onerror=e=>rej(e.target.error);
+  }));
+}
+async function idbDelete(id){
+  return idbTx("befunde","readwrite", s=>s.delete(id));
+}
+async function idbExportJSON(){
+  const all = await idbLoadAll();
+  const blob = new Blob([JSON.stringify(all,null,2)],{type:"application/json"});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href=url; a.download="osteo_befunde_"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); URL.revokeObjectURL(url);
 }
 
 /* ═══════════════════════════════════════════════ TEXT EXPORT ═══ */
@@ -1386,22 +1467,83 @@ function LetterheadEditor({lh,onSave}){
 
 /* ─── HISTORY PANEL ─── */
 function HistoryPanel({sessions,onLoad,onDelete,onClose,gender}){
-  const patSessions=sessions.filter(s=>s.gender===gender||!gender);
+  const[search,setSearch]=useState("");
+  const[sortBy,setSortBy]=useState("datum");  // "datum"|"name"|"risiko"
+  const[filterGender,setFilterGender]=useState(gender||"alle");
+
+  const filtered=sessions
+    .filter(s=>{
+      if(filterGender!=="alle"&&s.gender!==filterGender)return false;
+      if(!search.trim())return true;
+      const q=search.toLowerCase();
+      return(s.patient?.name||"").toLowerCase().includes(q)||
+             (s.fillDate||"").includes(q)||
+             (s.patient?.geburtsdatum||"").includes(q);
+    })
+    .sort((a,b)=>{
+      if(sortBy==="name")return(a.patient?.name||"").localeCompare(b.patient?.name||"");
+      if(sortBy==="risiko")return(b.riskSnapshot?.cF||0)-(a.riskSnapshot?.cF||0);
+      return b.id.localeCompare(a.id); // neueste zuerst
+    });
+
   return(
     <div className="hist-panel">
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div className="hist-title">📂 Gespeicherte Befunde ({patSessions.length})</div>
-        <button className="lh-cancel" onClick={onClose}>Schließen</button>
+      {/* Header */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <div className="hist-title">📂 Befund-Datenbank ({sessions.length})</div>
+        <div style={{display:"flex",gap:6}}>
+          <button className="hist-export-btn no-print" onClick={idbExportJSON} title="Alle Befunde als JSON exportieren">
+            ⬇ JSON-Export
+          </button>
+          <button className="lh-cancel" onClick={onClose}>Schließen</button>
+        </div>
       </div>
-      {patSessions.length===0?(
-        <div className="hist-empty">Noch keine Befunde gespeichert.</div>
-      ):patSessions.slice().reverse().map(s=>(
+
+      {/* Suche & Filter */}
+      <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
+        <input
+          className="hist-search"
+          placeholder="🔍 Name, Datum, Geburtsdatum…"
+          value={search} onChange={e=>setSearch(e.target.value)}
+        />
+        <select className="hist-select" value={filterGender} onChange={e=>setFilterGender(e.target.value)}>
+          <option value="alle">Alle</option>
+          <option value="f">Frauen</option>
+          <option value="m">Männer</option>
+        </select>
+        <select className="hist-select" value={sortBy} onChange={e=>setSortBy(e.target.value)}>
+          <option value="datum">↓ Datum</option>
+          <option value="name">A–Z Name</option>
+          <option value="risiko">↓ Risiko</option>
+        </select>
+      </div>
+
+      {/* Ergebniszeile */}
+      <div style={{fontSize:11,color:"#8b7a68",marginBottom:8}}>
+        {filtered.length} von {sessions.length} Befund{sessions.length!==1?"en":""}
+        {search&&` · Suche: "${search}"`}
+      </div>
+
+      {/* Liste */}
+      {filtered.length===0?(
+        <div className="hist-empty">
+          {sessions.length===0?"Noch keine Befunde gespeichert.":"Keine Treffer für diese Suche."}
+        </div>
+      ):filtered.map(s=>(
         <div key={s.id} className="hist-item">
-          <div className="hist-date">{s.fillDate}</div>
+          <div className="hist-date">
+            {s.fillDate}
+            {s.geaendert&&<span style={{fontSize:10,color:"#aaa",marginLeft:6}}>
+              (geändert {new Date(s.geaendert).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})})
+            </span>}
+          </div>
           <div className="hist-pat">
-            {s.patient?.name||"(kein Name)"} &nbsp;·&nbsp; {s.gender==="f"?"Frau":"Mann"}
-            {s.patient?.geburtsdatum&&` · *${s.patient.geburtsdatum}`}
-            <span style={{color:"#8b7a68",fontSize:11,marginLeft:8}}>Risikofaktor ×{s.riskSnapshot?.cF?.toFixed(2)||"–"}</span>
+            <strong>{s.patient?.name||"(kein Name)"}</strong>
+            &nbsp;·&nbsp;{s.gender==="f"?"Frau ♀":"Mann ♂"}
+            {s.patient?.geburtsdatum&&<span style={{color:"#5a4a3a"}}> · *{s.patient.geburtsdatum}</span>}
+            <span style={{color:"#8b7a68",fontSize:11,marginLeft:8}}>
+              cF ×{s.riskSnapshot?.cF?.toFixed(2)||"–"}
+            </span>
           </div>
           <div className="hist-risk"><RiskBadge cat={s.riskSnapshot?.cat}/></div>
           <button className="hist-load-btn no-print" onClick={()=>onLoad(s)}>Laden</button>
@@ -1836,9 +1978,9 @@ function App(){
         if(draft.answers)setAnswers(draft.answers);
         if(draft.patient)setPatient(p=>({...p,...draft.patient,fillDate:today}));
       }
-      const sess=await storageGet(STORE_SESSIONS,[]);
       const savedDb=await loadDiagDbAsync();setDiagDb(savedDb);
-      setSessions(sess);
+      const sess=await idbLoadAll();
+      setSessions(sess.sort((a,b)=>b.id.localeCompare(a.id)));
     })();
   },[]);
 
@@ -1885,9 +2027,9 @@ function App(){
       answers:{...answers},
       riskSnapshot:{cat:snap.cat,cF:snap.cF,r3:snap.r3,r5:snap.r5,r10:snap.r10}
     };
-    const updated=[...sessions,session].slice(-50);
-    setSessions(updated);
-    await storageSet(STORE_SESSIONS,updated);
+    await idbSaveBefund(session);
+    const updated=await idbLoadAll();
+    setSessions(updated.sort((a,b)=>b.id.localeCompare(a.id)));
     return session;
   };
 
@@ -1943,8 +2085,8 @@ function App(){
   };
 
   const handleDeleteSession=async(id)=>{
-    const updated=sessions.filter(s=>s.id!==id);
-    setSessions(updated);await storageSet(STORE_SESSIONS,updated);
+    await idbDelete(id);
+    setSessions(prev=>prev.filter(s=>s.id!==id));
   };
 
   const openAllSections=()=>{
