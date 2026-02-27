@@ -635,16 +635,39 @@ const DIAG_DB_DEFAULTS = {
   rauchen:          {diagnose:"Nikotinkonsum (aktiv, > 10 Zigaretten/Tag)",                       icd5:"F17.20"},
   alkohol:          {diagnose:"Chronischer Alkoholmissbrauch (> 50 g/Tag)",                        icd5:"F10.10"},
 };
-const DIAG_DB_KEY = "osteo_diagdb_v4";
+// Stabiler Schlüssel – nie versionieren, damit Nutzeränderungen alle Updates überleben
+const DIAG_DB_OVERRIDES_KEY = "osteo_diagdb_overrides_v1";
+
 function loadDiagDb(){
-  // Sync fallback - returns defaults; async load happens in useEffect
   return{...DIAG_DB_DEFAULTS};
 }
+
+// Nur abweichende Einträge speichern (Delta).
+// Neue Standard-Einträge in künftigen Versionen erscheinen automatisch;
+// eigene Anpassungen bleiben immer erhalten.
 async function saveDiagDb(db){
-  try{localStorage.setItem(DIAG_DB_KEY,JSON.stringify(db));}catch(e){}
+  try{
+    const overrides={};
+    for(const id of Object.keys(db)){
+      const def=DIAG_DB_DEFAULTS[id];
+      const cur=db[id];
+      if(!def||(cur.diagnose!==def.diagnose||cur.icd5!==def.icd5)){
+        overrides[id]=cur;
+      }
+    }
+    localStorage.setItem(DIAG_DB_OVERRIDES_KEY,JSON.stringify(overrides));
+  }catch(e){}
 }
+
 async function loadDiagDbAsync(){
-  try{const v=localStorage.getItem(DIAG_DB_KEY);if(v)return{...DIAG_DB_DEFAULTS,...JSON.parse(v)};}catch(e){}
+  try{
+    const v=localStorage.getItem(DIAG_DB_OVERRIDES_KEY);
+    if(v){
+      const overrides=JSON.parse(v);
+      // Merge: alle aktuellen Defaults (inkl. neuer Einträge) + eigene Überschreibungen
+      return{...DIAG_DB_DEFAULTS,...overrides};
+    }
+  }catch(e){}
   return{...DIAG_DB_DEFAULTS};
 }
 
