@@ -236,15 +236,16 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 .dvo-chart-title{font-family:'Playfair Display',serif;font-size:13px;font-weight:700}
 .dvo-chart-sub{font-size:10.5px;color:#c8b89a}
 .dvo-chart-body{padding:12px 14px;overflow-x:auto}
-.dvo-grid{border-collapse:collapse;font-size:11px;min-width:520px;width:100%}
-.dvo-grid th{background:var(--D);color:#e8ddd0;padding:5px 7px;text-align:center;font-size:10px;letter-spacing:.5px;font-weight:600;border:1px solid #4a3420}
-.dvo-grid td{padding:5px 7px;text-align:center;border:1px solid #e8dfd4;font-size:11px;font-weight:600;color:#2c1f0e}
-.dvo-grid td.c0{background:#f0ede8;color:#c8b89a;font-weight:400}
-.dvo-grid td.c-low{background:#92d050;color:#1a3a00;font-weight:700}
-.dvo-grid td.c-mod{background:#ffff00;color:#5a4a00;font-weight:700}
-.dvo-grid td.c-high{background:#ff9999;color:#6b0000;font-weight:700}
-.dvo-grid td.c-top{background:#ff0000;color:#fff;font-weight:700}
-.dvo-grid td.current{box-shadow:inset 0 0 0 3px #c8a070;font-size:12.5px}
+.dvo-grid{border-collapse:collapse;font-size:12px;min-width:580px;width:100%;background:white}
+.dvo-grid th{background:#f2f2f2;color:#1a1a1a;padding:7px 8px;text-align:center;font-size:11px;font-weight:700;border:1.5px solid #aaa;line-height:1.3}
+.dvo-grid th.age-hdr{background:#e8e8e8;text-align:left;font-size:11px;font-weight:700;padding:7px 10px;min-width:90px}
+.dvo-grid td{padding:6px 8px;text-align:center;border:1.5px solid #aaa;font-size:12px;font-weight:600;color:#222;background:white}
+.dvo-grid td.age-cell{background:#f2f2f2;font-weight:700;text-align:center;color:#111;border:1.5px solid #aaa}
+.dvo-grid td.c0{background:#e8e8e8;color:#888;font-weight:400}
+.dvo-grid td.c-low{background:#FFD966;color:#5a3a00;font-weight:700}
+.dvo-grid td.c-high{background:#F4A030;color:#4a1a00;font-weight:700}
+.dvo-grid td.c-top{background:#D42020;color:#fff;font-weight:700}
+.dvo-grid td.current{outline:3px solid #c8a070;outline-offset:-2px;font-size:13px}
 .dvo-legend{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px;background:var(--CL);border-top:1px solid var(--CM)}
 .dvo-legend-item{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--M)}
 .dvo-legend-dot{width:12px;height:12px;border-radius:2px;flex-shrink:0}
@@ -401,7 +402,7 @@ const THRESH={
   m:{
     3:{50:[12,10,7,5,3.4,2.3,1.6,1.1,null,null],55:[9,8,5,3.7,2.5,1.7,1.2,null,null,null],60:[6,6,4,2.8,1.9,1.3,null,null,null,null],65:[5,5,3,2.2,1.5,null,null,null,null,null],70:[3,4,2.5,1.7,1.1,null,null,null,null,null],75:[2.4,3,2,1.4,null,null,null,null,null,null],80:[1.6,2.4,1.6,1.1,null,null,null,null,null,null],85:[null,2,1.3,null,null,null,null,null,null,null],90:[null,1.4,1,null,null,null,null,null,null,null]},
     5:{50:[19,17,12,8,6,4,2.6,1.8,null,null],55:[14,13,9,6,4,2.9,2,null,null,null],60:[11,10,7,5,3.2,2.2,1.5,null,null,null],65:[8,8,5,3.6,2.4,1.6,null,null,null,null],70:[6,6,4,2.8,1.9,1.3,null,null,null,null],75:[4,5,3.4,2.3,1.5,null,null,null,null,null],80:[2.7,4,2.7,1.8,1.2,null,null,null,null,null],85:[1.6,3.3,2.1,1.4,null,null,null,null,null,null],90:[null,2.4,1.5,null,null,null,null,null,null,null]},
-    10:{50:[39,33,23,16,11,8,5,3.6,2.5,1.7],55:[29,26,18,12,8,6,4,2.6,1.8,null],60:[21,20,14,9,6,4,3,1.9,null,null],65:[15,16,11,7,5,3,2.2,1.5,null,null],70:[11,12,8,6,4,2.5,1.7,null,null,null],75:[8,10,7,4.5,3,2.0,1.3,null,null,null],80:[5,8,5,3.6,2.4,1.6,null,null,null,null],85:[3.2,7,4,2.8,1.8,1.2,null,null,null,null],90:[1.6,5,3,2,1.3,null,null,null,null,null]}
+    10:{50:[39,33,23,16,11,8,5,3.6,2.5,null],55:[29,26,18,12,8,6,4,2.6,1.8,null],60:[21,20,14,9,6,4,3,1.9,null,null],65:[15,16,11,7,5,3,2.2,null,null,null],70:[11,12,8,6,4,2.5,1.7,null,null,null],75:[8,10,7,4.5,3,2.0,1.3,null,null,null],80:[5,8,5,3.6,2.4,1.6,null,null,null,null],85:[3.2,7,4,2.8,1.8,1.2,null,null,null,null],90:[1.6,5,3,2,1.3,null,null,null,null,null]}
   }
 };
 function tCol(t){if(!t&&t!==0)return 0;const v=parseFloat(t);if(isNaN(v))return 0;if(v>=0)return 1;if(v>=-0.5)return 2;if(v>=-1.0)return 3;if(v>=-1.5)return 4;if(v>=-2.0)return 5;if(v>=-2.5)return 6;if(v>=-3.0)return 7;if(v>=-3.5)return 8;return 9;}
@@ -1131,13 +1132,15 @@ function ResultCard({gender,answers,patient,diff}){
 function DvoChart({gender,answers}){
   const g=gender||"f";
   const ages=[50,55,60,65,70,75,80,85,90];
-  const tscoreCols=["≥0","−0,5","−1,0","−1,5","−2,0","−2,5","−3,0","−3,5","<−3,5"];
+  // Columns match image: "Ohne BMD" = index 0, then T 0.0 = index 1 … T −4.0 = index 9
+  const tscoreCols=["Ohne BMD","T 0,0","T −0,5","T −1,0","T −1,5","T −2,0","T −2,5","T −3,0","T −3,5","T −4,0"];
 
   // Patient position — ONLY total hip (DVO 2023: no LWS evidence)
   const patAge=parseInt(answers.alter)||null;
   const patRow=patAge?ageRow(patAge):null;
   const hipVal=answers.dxa_hip!==undefined&&answers.dxa_hip!==""?parseFloat(answers.dxa_hip):null;
-  const patColIdx=(hipVal!==null&&!isNaN(hipVal))?tCol(hipVal)-1:null;
+  // tCol returns 1-based (1=≥0 … 9=≤-3.5), +1 offset for "Ohne BMD" column at index 0
+  const patColIdx=(hipVal!==null&&!isNaN(hipVal))?tCol(hipVal):null;
   const hasDxa=hipVal!==null&&!isNaN(hipVal);
 
   // Patient's combined risk factor
@@ -1166,20 +1169,21 @@ function DvoChart({gender,answers}){
     10:"T-Score Gesamthüfte < −2,5 (manifeste Osteoporose) – 3-Jahres-Frakturrisikogrenze",
   };
 
-  // THRESH-Arrays: Index 0 = kein DXA, Index 1 = T-Score>=0, Index 2 = -0.5 usw.
-  // Spalte ci=0 (">=0") → Array-Index 1 → immer [ci+1] lesen (Off-by-one-Fix)
-  // Farbe: höchste Therapieschwelle die mit cF<=2.0 (typisch 1-2 Risikofaktoren) erreichbar ist
+  // ci=0 → "Ohne BMD" = array index 0, ci=1 → T 0.0 etc.
+  // null = cF < 1.0, i.e. threshold already exceeded without additional factors
+  // Color priority: 10% (red) > 5% (orange) > 3% (yellow) > white
   const getCellInfo=(age,ci)=>{
-    const idx=ci+1;
-    const v=(THRESH[g][activePerc][age]||[])[idx];
-    const v10=(THRESH[g][10][age]||[])[idx];
-    const v5=(THRESH[g][5][age]||[])[idx];
-    const v3=(THRESH[g][3][age]||[])[idx];
-    if(v===null||v===undefined) return{v:null,cls:"c0"};
-    if(v10!==null&&v10!==undefined&&v10<=2.0) return{v,cls:"c-top"};
-    if(v5!==null&&v5!==undefined&&v5<=2.0)   return{v,cls:"c-high"};
-    if(v3!==null&&v3!==undefined&&v3<=2.0)   return{v,cls:"c-mod"};
-    return{v,cls:"c-low"};
+    const v=(THRESH[g][activePerc][age]||[])[ci];
+    const v10=(THRESH[g][10][age]||[])[ci];
+    const v5=(THRESH[g][5][age]||[])[ci];
+    const v3=(THRESH[g][3][age]||[])[ci];
+    const ex10=v10===null||(v10!==undefined&&v10<=1.0);
+    const ex5 =v5===null ||(v5!==undefined &&v5<=1.0);
+    const ex3 =v3===null ||(v3!==undefined &&v3<=1.0);
+    // Determine color from highest exceeded threshold
+    const cls=ex10?"c-top":ex5?"c-high":ex3?"c-low":"";
+    // Displayed value: from active table (null = no number shown)
+    return{v:(v===undefined?null:v),cls};
   };
 
   // Patient cell: color by their actual cF vs ALL thresholds (highest reached)
@@ -1187,8 +1191,8 @@ function DvoChart({gender,answers}){
     if(!hasDxa||!patAge) return null;
     if(r10) return"c-top";
     if(r5)  return"c-high";
-    if(r3)  return"c-mod";
-    if(r3===false) return"c-low";
+    if(r3)  return"c-low";
+    if(r3===false) return"";
     return null;
   };
   const patCellCls=getPatCellCls();
@@ -1243,11 +1247,11 @@ function DvoChart({gender,answers}){
           </span>}
           {hasDxa&&patRow&&patCellCls&&(
             <span style={{background:
-              patCellCls==="c-top"?"#ff0000":
-              patCellCls==="c-high"?"#ff9999":
-              patCellCls==="c-mod"?"#cccc00":"#92d050",
+              patCellCls==="c-top"?"#D42020":
+              patCellCls==="c-high"?"#F4A030":
+              patCellCls==="c-low"?"#FFD966":"#4ade80",
               color:"white",padding:"3px 10px",borderRadius:4,fontWeight:700}}>
-              {patCellCls==="c-top"||patCellCls==="c-high"||patCellCls==="c-mod"?
+              {patCellCls==="c-top"||patCellCls==="c-high"||patCellCls==="c-low"?
                 `⚠ ${activePerc}%-Schwelle überschritten`:"✓ Unter Schwelle"}
               {" "}(cF ×{cF.toFixed(2)} / benötigt ×{activePerc===10?t10:activePerc===5?t5:t3})
             </span>
@@ -1259,9 +1263,9 @@ function DvoChart({gender,answers}){
         <table className="dvo-grid">
           <thead>
             <tr>
-              <th style={{textAlign:"left",minWidth:52}}>Alter</th>
+              <th className="age-hdr">Alter</th>
               {tscoreCols.map((col,i)=>(
-                <th key={i} style={patColIdx===i?{background:"#c8a070",color:"#2c1f0e"}:{}}>{col}</th>
+                <th key={i} style={patColIdx===i?{background:"#c8a070",color:"#2c1f0e",fontWeight:800}:{}}>{col}</th>
               ))}
             </tr>
           </thead>
@@ -1270,15 +1274,13 @@ function DvoChart({gender,answers}){
               const isPatRow=patRow===age;
               return(
                 <tr key={age} style={isPatRow?{outline:"2px solid #c8a070",outlineOffset:-1}:{}}>
-                  <td style={{background:isPatRow?"#c8a070":"var(--CL)",fontWeight:700,
-                    color:isPatRow?"#2c1f0e":"var(--D)",textAlign:"left",paddingLeft:9,
-                    borderRight:"2px solid var(--P)",whiteSpace:"nowrap"}}>
-                    {age}J.{isPatRow?" 👤":""}
+                  <td className="age-cell" style={isPatRow?{background:"#c8a070",color:"#2c1f0e"}:{}}>
+                    {age}{isPatRow?" 👤":""}
                   </td>
                   {tscoreCols.map((_,ci)=>{
                     const{v,cls}=getCellInfo(age,ci);
                     const isPatCell=isPatRow&&patColIdx===ci;
-                    const cellCls=isPatCell?(patCellCls||cls):cls;
+                    const cellCls=isPatCell?(patCellCls||cls||""):cls;
                     return(
                       <td key={ci} className={cellCls+(isPatCell?" current":"")}>
                         {v!==null?v:"–"}
@@ -1293,11 +1295,11 @@ function DvoChart({gender,answers}){
         </table>
       </div>
       <div className="dvo-legend">
-        <span className="dvo-legend-item"><span className="dvo-legend-dot" style={{background:"#92d050",border:"1px solid #5a8a20"}}/> unter 3%-Schwelle</span>
-        <span className="dvo-legend-item"><span className="dvo-legend-dot" style={{background:"#ffff00",border:"1px solid #cccc00"}}/> 3%-Schwelle</span>
-        <span className="dvo-legend-item"><span className="dvo-legend-dot" style={{background:"#ff9999",border:"1px solid #cc4444"}}/> 5%-Schwelle</span>
-        <span className="dvo-legend-item"><span className="dvo-legend-dot" style={{background:"#ff0000",border:"1px solid #990000"}}/> 10%-Schwelle</span>
-        <span className="dvo-legend-item"><span className="dvo-legend-dot" style={{background:"white",border:"2.5px solid #c8a070"}}/> 👤 Patient</span>
+        <span className="dvo-legend-item"><span className="dvo-legend-dot" style={{background:"#FFD966",border:"1px solid #c8a030"}}/> 3% Schwelle erreicht</span>
+        <span className="dvo-legend-item"><span className="dvo-legend-dot" style={{background:"#F4A030",border:"1px solid #c07010"}}/> 5% Schwelle erreicht</span>
+        <span className="dvo-legend-item"><span className="dvo-legend-dot" style={{background:"#D42020",border:"1px solid #a00000"}}/> 10% Schwelle erreicht</span>
+        <span className="dvo-legend-item"><span className="dvo-legend-dot" style={{background:"white",border:"1.5px solid #aaa"}}/> Wert = benötigter cF</span>
+        {(patRow||patColIdx!==null)&&<span className="dvo-legend-item"><span className="dvo-legend-dot" style={{background:"#c8a070",border:"2px solid #8a6030"}}/> 👤 Patient</span>}
       </div>
       <div className="dvo-note">
         Quelle: DVO-Leitlinie 2023, Tabelle 3.2 · AWMF 183-001 · Werte = benötigter cF für jeweilige Schwelle (3 Jahre).
