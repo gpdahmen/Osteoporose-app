@@ -1943,9 +1943,9 @@ function App(){
               ⟳ {sessions[0]?.patient?.name||"Letzten"} ({sessions[0]?.fillDate||"–"}) laden
             </button>
           )}
+          <button className="as-btn" style={{marginLeft:"auto"}} onClick={()=>setAdminOpen(true)}>⚙️ Admin</button>
           {gender&&<>
             <button className="as-btn" onClick={handleCalc}>📊 Auswertung</button>
-            <button className="as-btn" style={{marginLeft:"auto"}} onClick={()=>setAdminOpen(true)}>⚙️ Admin</button>
             <button className="as-btn" onClick={handlePrint}>🖨 PDF speichern unter…</button>
             <button className="as-btn" onClick={handleText}>💾 TXT speichern unter…</button>
           </>}

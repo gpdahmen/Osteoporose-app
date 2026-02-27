@@ -3520,16 +3520,16 @@ function App() {
   }, "\uD83D\uDCC2 Verlauf (", sessions.length, ")"), sessions.length > 0 && /*#__PURE__*/React.createElement("button", {
     className: "as-btn hi",
     onClick: () => handleLoadSession(sessions[0])
-  }, "\u27F3 ", sessions[0]?.patient?.name || "Letzten", " (", sessions[0]?.fillDate || "–", ") laden"), gender && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
-    className: "as-btn",
-    onClick: handleCalc
-  }, "\uD83D\uDCCA Auswertung"), /*#__PURE__*/React.createElement("button", {
+  }, "\u27F3 ", sessions[0]?.patient?.name || "Letzten", " (", sessions[0]?.fillDate || "–", ") laden"), /*#__PURE__*/React.createElement("button", {
     className: "as-btn",
     style: {
       marginLeft: "auto"
     },
     onClick: () => setAdminOpen(true)
-  }, "\u2699\uFE0F Admin"), /*#__PURE__*/React.createElement("button", {
+  }, "\u2699\uFE0F Admin"), gender && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+    className: "as-btn",
+    onClick: handleCalc
+  }, "\uD83D\uDCCA Auswertung"), /*#__PURE__*/React.createElement("button", {
     className: "as-btn",
     onClick: handlePrint
   }, "\uD83D\uDDA8 PDF speichern unter\u2026"), /*#__PURE__*/React.createElement("button", {
