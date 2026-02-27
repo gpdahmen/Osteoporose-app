@@ -1051,7 +1051,7 @@ function ResultCard({gender,answers,patient,diff}){
       {diff&&<DiffCard diff={diff} currRisk={risk}/>}
       <DvoChart gender={gender} answers={answers}/>
       <div className="result-note">
-        <strong>Wichtiger Hinweis:</strong> Diese Auswertung ist eine Orientierungshilfe auf Basis der DVO-Leitlinie 2023 und ersetzt keine ärztliche Diagnose. Die endgültige Therapieentscheidung erfordert vollständige klinische Untersuchung, Labordiagnostik und ggf. DXA-Knochendichtemessung.
+        <strong>Wichtiger Hinweis:</strong> Diese Auswertung ist eine Demonstrations- und Schulungshilfe auf Basis der DVO-Leitlinie 2023 und ersetzt keine ärztliche Diagnose. Sie ist kein Medizinprodukt und darf daher nicht im medizinischen Umfeld zu Diagnose- oder Therapieentscheidungszwecken eingesetzt werden. Eine osteologische Therapieentscheidung erfordert unter anderem eine vollständige und gründliche Anamnese, klinische Untersuchung, ggf. Labordiagnostik und ggf. DXA-Knochendichtemessung.
       </div>
     </div>
   );
