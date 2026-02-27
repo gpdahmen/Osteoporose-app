@@ -648,10 +648,10 @@ function loadDiagDb(){
   return{...DIAG_DB_DEFAULTS};
 }
 async function saveDiagDb(db){
-  try{await window.storage.set(DIAG_DB_KEY,JSON.stringify(db));}catch(e){}
+  try{localStorage.setItem(DIAG_DB_KEY,JSON.stringify(db));}catch(e){}
 }
 async function loadDiagDbAsync(){
-  try{const r=await window.storage.get(DIAG_DB_KEY);if(r)return{...DIAG_DB_DEFAULTS,...JSON.parse(r.value)};}catch(e){}
+  try{const v=localStorage.getItem(DIAG_DB_KEY);if(v)return{...DIAG_DB_DEFAULTS,...JSON.parse(v)};}catch(e){}
   return{...DIAG_DB_DEFAULTS};
 }
 

@@ -633,10 +633,10 @@ function loadDiagDb(){
   return{...DIAG_DB_DEFAULTS};
 }
 async function saveDiagDb(db){
-  try{await window.storage.set(DIAG_DB_KEY,JSON.stringify(db));}catch(e){}
+  try{localStorage.setItem(DIAG_DB_KEY,JSON.stringify(db));}catch(e){}
 }
 async function loadDiagDbAsync(){
-  try{const r=await window.storage.get(DIAG_DB_KEY);if(r)return{...DIAG_DB_DEFAULTS,...JSON.parse(r.value)};}catch(e){}
+  try{const v=localStorage.getItem(DIAG_DB_KEY);if(v)return{...DIAG_DB_DEFAULTS,...JSON.parse(v)};}catch(e){}
   return{...DIAG_DB_DEFAULTS};
 }
 
@@ -750,11 +750,11 @@ const STORE_SESSIONS="osteo-sessions";
 const DEFAULT_LH={name:"Dr. med. Georg P. Dahmen",title:"Facharzt für Orthopädie",strasse:"Tangstedter Landstraße 77",plz_ort:"22415 Hamburg",telefon:"",fax:"",email:""};
 
 async function storageGet(key,fallback=null){
-  try{const r=await window.storage.get(key);return r?JSON.parse(r.value):fallback;}
+  try{const v=localStorage.getItem(key);return v!==null?JSON.parse(v):fallback;}
   catch{return fallback;}
 }
 async function storageSet(key,val){
-  try{await window.storage.set(key,JSON.stringify(val));return true;}
+  try{localStorage.setItem(key,JSON.stringify(val));return true;}
   catch{return false;}
 }
 
