@@ -93,16 +93,24 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 .sec{background:white;border-radius:8px;border:1px solid var(--CM);margin-bottom:13px;overflow:hidden;box-shadow:var(--sh)}
 .sec-hdr{padding:14px 20px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;user-select:none;transition:background .15s}
 .sec-hdr:hover{background:var(--CL)}
-.sec-hdr.open{background:var(--D)}
+.sec-hdr.open{background:#d4edda;border-left:4px solid #4cae6b}
 .sec-icon{width:32px;height:32px;border-radius:50%;background:var(--CR);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.sec-hdr.open .sec-icon{background:rgba(255,255,255,.13)}
-.sec-title{font-family:'Playfair Display',serif;font-size:14px;font-weight:600;color:var(--D)}
-.sec-hdr.open .sec-title{color:#e8ddd0}
-.sec-sub{font-size:11px;color:#a09080;margin-top:1px}
-.sec-hdr.open .sec-sub{color:#c8b89a}
+.sec-hdr.open .sec-icon{background:rgba(76,174,107,.18)}
+.sec-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--D)}
+.sec-hdr.open .sec-title{color:#1a4a2a;font-weight:700}
+.sec-sub{font-size:13px;color:#a09080;margin-top:1px}
+.sec-hdr.open .sec-sub{color:#3a6a4a}
 .chev{font-size:11px;color:#a09080;transition:transform .3s;flex-shrink:0}
-.sec-hdr.open .chev{transform:rotate(180deg);color:#c8b89a}
+.sec-hdr.open .chev{transform:rotate(180deg);color:#3a6a4a}
 .sec-body{padding:0 20px;max-height:0;overflow:hidden;transition:max-height .4s ease,padding .2s}
+.sec-hdr.open.has-risk{background:#fde8e8;border-left:4px solid #e05555}
+.sec-hdr.open.has-risk .sec-title{color:#7a1a1a;font-weight:700}
+.sec-hdr.open.has-risk .sec-sub{color:#a03030}
+.sec-hdr.open.has-risk .sec-icon{background:rgba(224,85,85,.15)}
+.sec-hdr.open.has-risk .chev{color:#a03030}
+.sec-hdr.has-risk:not(.open){background:#fff0f0;border-left:4px solid #e05555}
+.sec-hdr.has-risk:not(.open) .sec-title{color:#7a1a1a}
+.sec-hdr.has-risk:not(.open) .sec-sub{color:#a03030}
 .sec-body.open{max-height:6000px;padding:4px 20px 18px}
 
 /* ─── QUESTION ─── */
@@ -925,10 +933,10 @@ function Question({q,value,onChange,answered,rxValue,onRx}){
   );
 }
 
-function Section({section,open,onToggle,answers,onAnswer,onRx}){
+function Section({section,open,onToggle,answers,onAnswer,onRx,hasRisk}){
   return(
     <div className="sec">
-      <div className={`sec-hdr${open?" open":""}`} onClick={onToggle}>
+      <div className={`sec-hdr${open?" open":""}${hasRisk?" has-risk":""}`} onClick={onToggle}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div className="sec-icon">{section.icon}</div>
           <div>
@@ -1735,7 +1743,8 @@ function App(){
         {/* ── Questionnaire Sections (DXA is last section) ── */}
         {disclaimerOk&&gender&&visibleSecs.map(s=>(
           <Section key={s.id} section={s} open={!!openSec[s.id]}
-            onToggle={()=>toggleSec(s.id)} answers={answers} onAnswer={setA} onRx={setA}/>
+            onToggle={()=>toggleSec(s.id)} answers={answers} onAnswer={setA} onRx={setA}
+            hasRisk={s.qs.some(q=>answers[q.id]==="ja")}/>
         ))}
 
         {/* ── Bottom Action Bar (at end as requested) ── */}
