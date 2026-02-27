@@ -463,8 +463,11 @@ const SECTIONS=[
       meds:M("Aromatasehemmer (in Deutschland zugelassen)",["Anastrozol (Arimidex®, Anastrozol-ratiopharm®, Anastrozol Sandoz®, Anastrozol Heumann®, Anastrozol AL®)","Letrozol (Femara®, Letrozol-ratiopharm®, Letrozol Sandoz®, Letrozol AL®, Letrozol Heumann®)","Exemestan (Aromasin®, Exemestan-ratiopharm®, Exemestan Teva®)"])},
     {id:"fruehe_meno",t:"yn",label:"Hatten Sie die Wechseljahre vor dem 45. Lebensjahr oder wurden beide Eierstöcke entfernt?",faktor:1.5,icd:"N95.0, Z90.71",
       hint:"Eine früh einsetzende Menopause oder operative Entfernung der Eierstöcke bedeutet einen langen Zeitraum ohne schützende Östrogenwirkung auf den Knochen."},
-    {id:"gnrh_f",t:"yn",label:"Nehmen Sie hormonunterdrückende Spritzen oder Implantate (GnRH-Agonisten) gegen Endometriose oder Brustkrebs?",faktor:1.7,icd:"Z79.818",hint:"Diese Medikamente (z. B. Zoladex®, Enantone®) schalten die Eierstöcke vorübergehend ab und verursachen eine künstliche Menopause mit raschem Knochenverlust.",
+    {id:"gnrh_f",t:"yn",label:"Nehmen Sie hormonunterdrückende Spritzen oder Implantate (GnRH-Agonisten) gegen Endometriose oder Brustkrebs?",faktor:1.7,icd:"Z79.818G",hint:"Diese Medikamente (z. B. Zoladex®, Enantone®) schalten die Eierstöcke vorübergehend ab und verursachen eine künstliche Menopause mit raschem Knochenverlust.",
       meds:M("GnRH-Agonisten (Frauen)",["Leuprorelin (Enantone® Gyn, Trenantone® Gyn, Leuprolin Hexal®)","Goserelin (Zoladex® 3,6 mg)","Buserelin (Profact® Depot)","Triptorelin (Decapeptyl® Gyn, Pamorelin®)","Nafarelin (Synarel® Nasenspray)"])},
+    {id:"menopause_aktuell",t:"yn_inv",label:"Haben Sie noch die Regelblutung?",
+      hint:"Die Menopause (letzter Zyklus) ist entscheidend für die ICD-10-Kodierung der Osteoporose: Nach der Menopause liegt immer eine postmenopausale Osteoporose (M81.0 / M80.0) vor.",
+      subfield:{id:"menopause_seit",label:"Seit wann keine Regelblutung mehr?",placeholder:"z. B. 2018 oder Alter 50",showIf:"nein"}},
   ]},
   {id:"meds_m",icon:"🔵",title:"Medikamente – nur Männer",sub:"Hormonablative Therapie bei Prostataerkrankungen",onlyFor:"m",qs:[
     {id:"hormonablation",t:"yn",label:"Erhalten Sie eine Hormonblockade gegen Prostatakrebs (Spritzen zur Unterdrückung des Testosterons)?",faktor:2.0,icd:"Z79.818",hint:"Diese Therapie (z. B. Zoladex®, Enantone®, Firmagon®) senkt den Testosteronspiegel auf nahezu null. Das ist das stärkste hormonelle Risiko für Osteoporose beim Mann.",
@@ -587,58 +590,59 @@ function visibleQs(gender){return SECTIONS.filter(s=>!s.onlyFor||s.onlyFor===gen
 
 /* ═══════════════════════════════════════════ DIAGNOSIS DATABASE ═══ */
 const DIAG_DB_DEFAULTS = {
-  hueft_akut:       {diagnose:"Hüftfraktur (niedrigtraumatisch, akut, < 12 Monate)",             icd5:"S72.00"},
-  hueft_alt:        {diagnose:"Zustand nach Hüftfraktur (niedrigtraumatisch, > 12 Monate)",       icd5:"M80.05"},
-  wirbelbruch_akut: {diagnose:"Wirbelkörperfraktur (niedrigtraumatisch, akut, < 12 Monate)",      icd5:"M80.08"},
-  wirbelbruch_anz:  {diagnose:"Wirbelkörperfrakturen (niedrigtraumatisch, > 12 Monate)",           icd5:"M80.08"},
-  humerus:          {diagnose:"Humerusfraktur (niedrigtraumatisch)",                               icd5:"M80.02"},
-  becken:           {diagnose:"Beckenfraktur (niedrigtraumatisch)",                                icd5:"M80.0X"},
-  unterarm:         {diagnose:"Distale Radiusfraktur (niedrigtraumatisch)",                        icd5:"M80.03"},
-  eltern:           {diagnose:"Familienanamnese: proximale Femurfraktur (Elternteil)",             icd5:"Z82.61"},
-  bmi:              {diagnose:"Untergewicht / Malnutrition",                                       icd5:"E44.90"},
-  tbs:              {diagnose:"Pathologische Trabekelknochen-Texturanalyse (TBS)",                 icd5:"M85.80"},
-  glukokortikoide:  {diagnose:"Glukokortikoid-induzierte Osteoporose",                            icd5:"M81.40"},
-  ppi:              {diagnose:"Langzeittherapie mit Protonenpumpenhemmern (> 3 Monate)",          icd5:"Z79.89"},
-  antidepressiva:   {diagnose:"Antidepressiva-Dauermedikation (SSRI/SNRI/TZA)",                   icd5:"Z79.89"},
-  opioide:          {diagnose:"Opioidanalgetika-Dauermedikation",                                  icd5:"Z79.89"},
-  antipsychotika:   {diagnose:"Antipsychotika-/Neuroleptika-Dauermedikation",                     icd5:"Z79.89"},
-  sedativa:         {diagnose:"Benzodiazepin-/Z-Substanzen-Dauermedikation",                      icd5:"Z79.89"},
-  schilddruese:     {diagnose:"Supprimierter TSH unter L-Thyroxin-Therapie",                      icd5:"E05.90"},
-  glitazone:        {diagnose:"Pioglitazon-Dauertherapie (Diabetes mellitus Typ 2)",               icd5:"Z79.89"},
-  antikonvulsiva:   {diagnose:"Antikonvulsiva-Dauermedikation (inkl. Pregabalin/Gabapentin)",      icd5:"Z79.89"},
-  orthostase:       {diagnose:"Orthostatische Hypotension / Sturzrisiko durch Medikation",         icd5:"I95.10"},
-  aromatasehemmer:  {diagnose:"Aromatasehemmer-Therapie (Mammakarzinom)",                          icd5:"Z79.81"},
-  fruehe_meno:      {diagnose:"Prämature Menopause / bilaterale Ovarektomie",                     icd5:"N95.00"},
-  gnrh_f:           {diagnose:"GnRH-Agonisten-Therapie (Endometriose / Mammakarzinom)",           icd5:"Z79.81"},
-  hormonablation:   {diagnose:"Androgendeprivationstherapie (Prostatakarzinom)",                   icd5:"Z79.81"},
-  antiandrogene:    {diagnose:"Antiandrogen-Therapie (Prostatakarzinom)",                          icd5:"Z79.81"},
-  hypogonadismus:   {diagnose:"Männlicher Hypogonadismus",                                        icd5:"E29.10"},
-  rheuma:           {diagnose:"Rheumatoide Arthritis",                                             icd5:"M05.90"},
-  diabetes1:        {diagnose:"Diabetes mellitus Typ 1",                                           icd5:"E10.90"},
-  diabetes2:        {diagnose:"Diabetes mellitus Typ 2",                                           icd5:"E11.90"},
-  hpth:             {diagnose:"Primärer Hyperparathyreoidismus",                                   icd5:"E21.00"},
-  cushing:          {diagnose:"Cushing-Syndrom",                                                   icd5:"E24.90"},
-  schlaganfall:     {diagnose:"Zustand nach Schlaganfall / zerebraler Ischämie",                  icd5:"I63.90"},
-  ms:               {diagnose:"Multiple Sklerose",                                                 icd5:"G35.90"},
-  parkinson:        {diagnose:"Morbus Parkinson",                                                  icd5:"G20.90"},
-  epilepsie:        {diagnose:"Epilepsie",                                                          icd5:"G40.90"},
-  demenz:           {diagnose:"Demenz (inkl. Morbus Alzheimer)",                                  icd5:"F03.90"},
-  depression:       {diagnose:"Depressive Störung",                                               icd5:"F32.90"},
-  herzinsuffizienz: {diagnose:"Herzinsuffizienz",                                                  icd5:"I50.90"},
-  nieren:           {diagnose:"Chronische Nierenerkrankung (CKD Stadium 3b–4)",                   icd5:"N18.30"},
-  copd:             {diagnose:"COPD (chron. obstruktive Lungenerkrankung)",                        icd5:"J44.10"},
-  lupus:            {diagnose:"Systemischer Lupus erythematodes (SLE)",                            icd5:"M32.90"},
-  spondylitis:      {diagnose:"Axiale Spondyloarthritis / Morbus Bechterew",                      icd5:"M45.90"},
-  zoeliakie:        {diagnose:"Zöliakie (glutensensitive Enteropathie)",                           icd5:"K90.00"},
-  crohn:            {diagnose:"Morbus Crohn / Colitis ulcerosa (CED)",                            icd5:"K50.90"},
-  mgus:             {diagnose:"MGUS (monoklonale Gammopathie unklarer Signifikanz)",               icd5:"D47.20"},
-  magenop:          {diagnose:"Zustand nach Magenresektion / Gastrektomie",                        icd5:"Z90.39"},
-  bariatrie:        {diagnose:"Zustand nach bariatrischer Operation (Sleeve/Bypass)",              icd5:"Z98.84"},
-  hiv:              {diagnose:"HIV-Infektion",                                                     icd5:"B24.00"},
-  hyponatriamie:    {diagnose:"Chronische Hyponatriämie",                                         icd5:"E87.10"},
-  wachstumsmangel:  {diagnose:"Hypophyseninsuffizienz / Wachstumshormonmangel",                   icd5:"E23.00"},
-  rauchen:          {diagnose:"Nikotinkonsum (aktiv, > 10 Zigaretten/Tag)",                       icd5:"F17.20"},
-  alkohol:          {diagnose:"Chronischer Alkoholmissbrauch (> 50 g/Tag)",                        icd5:"F10.10"},
+  hueft_akut:       {diagnose:"Hüftfraktur (niedrigtraumatisch, akut, < 12 Monate)",             icd5:"S72.00G",  icd5_f_meno:"M80.05G, T93.1G", icd5_m:"M80.55G, T93.1G"},
+  hueft_alt:        {diagnose:"Zustand nach Hüftfraktur (niedrigtraumatisch, > 12 Monate)",       icd5:"M80.05G, T93.1G", icd5_f_meno:"M80.05G, T93.1G", icd5_m:"M80.55G, T93.1G"},
+  wirbelbruch_akut: {diagnose:"Wirbelkörperfraktur (niedrigtraumatisch, akut, < 12 Monate)",      icd5:"M80.08G",          icd5_f_meno:"M80.08G",         icd5_m:"M80.58G"},
+  wirbelbruch_anz:  {diagnose:"Wirbelkörperfrakturen (niedrigtraumatisch, > 12 Monate)",           icd5:"M80.08G",          icd5_f_meno:"M80.08G",         icd5_m:"M80.58G"},
+  humerus:          {diagnose:"Humerusfraktur (niedrigtraumatisch)",                               icd5:"M80.02G",          icd5_f_meno:"M80.02G",         icd5_m:"M80.52G"},
+  becken:           {diagnose:"Beckenfraktur (niedrigtraumatisch)",                                icd5:"M80.0XG",          icd5_f_meno:"M80.0XG",         icd5_m:"M80.5XG"},
+  unterarm:         {diagnose:"Distale Radiusfraktur (niedrigtraumatisch)",                        icd5:"M80.03G",          icd5_f_meno:"M80.03G",         icd5_m:"M80.53G"},
+  eltern:           {diagnose:"Familienanamnese: proximale Femurfraktur (Elternteil)",             icd5:"Z82.61G"},
+  bmi:              {diagnose:"Untergewicht / Malnutrition",                                       icd5:"E44.90G"},
+  tbs:              {diagnose:"Pathologische Trabekelknochen-Texturanalyse (TBS)",                 icd5:"M85.80G"},
+  glukokortikoide:  {diagnose:"Glukokortikoid-induzierte Osteoporose",                            icd5:"M81.40G"},
+  ppi:              {diagnose:"Langzeittherapie mit Protonenpumpenhemmern (> 3 Monate)",          icd5:"Z79.89G"},
+  antidepressiva:   {diagnose:"Antidepressiva-Dauermedikation (SSRI/SNRI/TZA)",                   icd5:"Z79.89G"},
+  opioide:          {diagnose:"Opioidanalgetika-Dauermedikation",                                  icd5:"Z79.89G"},
+  antipsychotika:   {diagnose:"Antipsychotika-/Neuroleptika-Dauermedikation",                     icd5:"Z79.89G"},
+  sedativa:         {diagnose:"Benzodiazepin-/Z-Substanzen-Dauermedikation",                      icd5:"Z79.89G"},
+  schilddruese:     {diagnose:"Supprimierter TSH unter L-Thyroxin-Therapie",                      icd5:"E05.90G"},
+  glitazone:        {diagnose:"Pioglitazon-Dauertherapie (Diabetes mellitus Typ 2)",               icd5:"Z79.89G"},
+  antikonvulsiva:   {diagnose:"Antikonvulsiva-Dauermedikation (inkl. Pregabalin/Gabapentin)",      icd5:"Z79.89G"},
+  orthostase:       {diagnose:"Orthostatische Hypotension / Sturzrisiko durch Medikation",         icd5:"I95.10G"},
+  aromatasehemmer:  {diagnose:"Aromatasehemmer-Therapie (Mammakarzinom)",                          icd5:"Z79.81G"},
+  fruehe_meno:      {diagnose:"Prämature Menopause / bilaterale Ovarektomie",                     icd5:"N95.00G"},
+  menopause_aktuell:{diagnose:"Postmenopausale Osteoporose",                                             icd5:"M81.00G"},
+  gnrh_f:           {diagnose:"GnRH-Agonisten-Therapie (Endometriose / Mammakarzinom)",           icd5:"Z79.81G"},
+  hormonablation:   {diagnose:"Androgendeprivationstherapie (Prostatakarzinom)",                   icd5:"Z79.81G"},
+  antiandrogene:    {diagnose:"Antiandrogen-Therapie (Prostatakarzinom)",                          icd5:"Z79.81G"},
+  hypogonadismus:   {diagnose:"Männlicher Hypogonadismus",                                        icd5:"E29.10G"},
+  rheuma:           {diagnose:"Rheumatoide Arthritis",                                             icd5:"M05.90G"},
+  diabetes1:        {diagnose:"Diabetes mellitus Typ 1",                                           icd5:"E10.90G"},
+  diabetes2:        {diagnose:"Diabetes mellitus Typ 2",                                           icd5:"E11.90G"},
+  hpth:             {diagnose:"Primärer Hyperparathyreoidismus",                                   icd5:"E21.00G"},
+  cushing:          {diagnose:"Cushing-Syndrom",                                                   icd5:"E24.90G"},
+  schlaganfall:     {diagnose:"Zustand nach Schlaganfall / zerebraler Ischämie",                  icd5:"I63.90G"},
+  ms:               {diagnose:"Multiple Sklerose",                                                 icd5:"G35.90G"},
+  parkinson:        {diagnose:"Morbus Parkinson",                                                  icd5:"G20.90G"},
+  epilepsie:        {diagnose:"Epilepsie",                                                          icd5:"G40.90G"},
+  demenz:           {diagnose:"Demenz (inkl. Morbus Alzheimer)",                                  icd5:"F03.90G"},
+  depression:       {diagnose:"Depressive Störung",                                               icd5:"F32.90G"},
+  herzinsuffizienz: {diagnose:"Herzinsuffizienz",                                                  icd5:"I50.90G"},
+  nieren:           {diagnose:"Chronische Nierenerkrankung (CKD Stadium 3b–4)",                   icd5:"N18.30G"},
+  copd:             {diagnose:"COPD (chron. obstruktive Lungenerkrankung)",                        icd5:"J44.10G"},
+  lupus:            {diagnose:"Systemischer Lupus erythematodes (SLE)",                            icd5:"M32.90G"},
+  spondylitis:      {diagnose:"Axiale Spondyloarthritis / Morbus Bechterew",                      icd5:"M45.90G"},
+  zoeliakie:        {diagnose:"Zöliakie (glutensensitive Enteropathie)",                           icd5:"K90.00G"},
+  crohn:            {diagnose:"Morbus Crohn / Colitis ulcerosa (CED)",                            icd5:"K50.90G"},
+  mgus:             {diagnose:"MGUS (monoklonale Gammopathie unklarer Signifikanz)",               icd5:"D47.20G"},
+  magenop:          {diagnose:"Zustand nach Magenresektion / Gastrektomie",                        icd5:"Z90.39G"},
+  bariatrie:        {diagnose:"Zustand nach bariatrischer Operation (Sleeve/Bypass)",              icd5:"Z98.84G"},
+  hiv:              {diagnose:"HIV-Infektion",                                                     icd5:"B24.00G"},
+  hyponatriamie:    {diagnose:"Chronische Hyponatriämie",                                         icd5:"E87.10G"},
+  wachstumsmangel:  {diagnose:"Hypophyseninsuffizienz / Wachstumshormonmangel",                   icd5:"E23.00G"},
+  rauchen:          {diagnose:"Nikotinkonsum (aktiv, > 10 Zigaretten/Tag)",                       icd5:"F17.20G"},
+  alkohol:          {diagnose:"Chronischer Alkoholmissbrauch (> 50 g/Tag)",                        icd5:"F10.10G"},
 };
 // Stabiler Schlüssel – nie versionieren, damit Nutzeränderungen alle Updates überleben
 const DIAG_DB_OVERRIDES_KEY = "osteo_diagdb_overrides_v1";
@@ -656,7 +660,8 @@ async function saveDiagDb(db){
     for(const id of Object.keys(db)){
       const def=DIAG_DB_DEFAULTS[id];
       const cur=db[id];
-      if(!def||(cur.diagnose!==def.diagnose||cur.icd5!==def.icd5)){
+      if(!def||(cur.diagnose!==def.diagnose||cur.icd5!==def.icd5
+               ||cur.icd5_f_meno!==def.icd5_f_meno||cur.icd5_m!==def.icd5_m)){
         overrides[id]=cur;
       }
     }
@@ -870,6 +875,21 @@ async function idbExportJSON(){
   a.click(); URL.revokeObjectURL(url);
 }
 
+/* ═══════════════════════ ICD-CODE HELPER ═══ */
+// Returns the correct ICD-10 codes as string for a given DIAG_DB entry,
+// considering gender and menopause status.
+function getIcdCodes(entry, gender, answers){
+  if(!entry) return "";
+  const isPostMeno = gender==="f" && answers?.menopause_aktuell==="nein";
+  if(isPostMeno && entry.icd5_f_meno) return entry.icd5_f_meno;
+  if(gender==="m"  && entry.icd5_m)   return entry.icd5_m;
+  return entry.icd5||"";
+}
+// Returns display-friendly array of codes
+function getIcdArray(entry, gender, answers){
+  return getIcdCodes(entry,gender,answers).split(",").map(s=>s.trim()).filter(Boolean);
+}
+
 /* ═══════════════════════════════════════════════ TEXT EXPORT ═══ */
 function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb){
   const db=diagDb||DIAG_DB_DEFAULTS;
@@ -909,9 +929,10 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb){
   else for(const f of risk.factors){
     const diag=db[f.id]||{};
     const diagText=diag.diagnose||f.label;
-    const icd5=diag.icd5||f.icd||"";
+    const icds=getIcdArray(diag,gender,answers);
+    const icdStr=icds.join(", ");
     lines.push(`• ${diagText}`);
-    if(icd5)lines.push(`  ICD-10: ${icd5}`);
+    if(icdStr)lines.push(`  ICD-10: ${icdStr}`);
     lines.push(`  Risikofaktor: ×${f.faktor}  |  Gruppe: ${f.grp==="sturz"?"Sturzrisiko":f.grp==="gc_ra"?"GK/RA-Gruppe":"Allgemein"}`);
     if(f.rx&&f.rx.length>0)lines.push(`  Medikamente: ${f.rx.join(", ")}`);
     lines.push("");
@@ -950,12 +971,24 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb){
   lines.push("Die Therapieentscheidung trifft der behandelnde Arzt.");
   lines.push(sep);
   lines.push("");
+  // Add postmenopausal osteoporosis base diagnosis if applicable
+  const isPostMeno=gender==="f"&&answers?.menopause_aktuell==="nein";
   lines.push("DIAGNOSEN");lines.push(sub);
+  if(isPostMeno){
+    lines.push("Postmenopausale Osteoporose {M81.00G};");
+  } else if(gender==="m"&&risk.factors.some(f=>["hueft_akut","hueft_alt","wirbelbruch_akut","wirbelbruch_anz","humerus","becken","unterarm"].includes(f.id))){
+    lines.push("Osteoporose beim Mann {M81.50G};");
+  }
   for(const f of risk.factors){
     const diag=db[f.id]||{};
     const text=diag.diagnose||f.label;
-    const icd=diag.icd5||f.icd||"";
-    lines.push(icd?text+" {"+icd+"};":text+";");
+    const icds=getIcdArray(diag,gender,answers);
+    const icdStr=icds.join(", ");
+    lines.push(icdStr?text+" {"+icdStr+"};":text+";");
+  }
+  // Menopause since
+  if(isPostMeno&&answers?.menopause_seit){
+    lines.push(`Menopause seit: ${answers.menopause_seit}`);
   }
   return lines.join("\n");
 }
@@ -1055,6 +1088,34 @@ function Question({q,value,onChange,answered,rxValue,onRx}){
         <MedInput qid={q.id} meds={q.meds} rxValue={rxValue} onRx={onRx} autoOpen={value==="ja"||(q.t==="radio"&&!!value&&value!=="Nein")}/>
       )}
       {q.t==="yn"&&yn()}
+      {q.t==="yn_inv"&&(()=>{
+        // yn_inv: "Ja" = kein Risiko, "Nein" = relevant (invertiert)
+        const opts=["Ja","Nein"];
+        return(
+          <div className="yn-row">
+            {opts.map(opt=>{
+              const sel=value===opt.toLowerCase();
+              return(
+                <label key={opt} className={"yn-label"+(sel?" yn-sel":"")}>
+                  <input type="radio" name={q.id} value={opt.toLowerCase()}
+                    checked={sel} onChange={()=>onChange(q.id,opt.toLowerCase())} style={{display:"none"}}/>
+                  {opt}
+                </label>
+              );
+            })}
+          </div>
+        );
+      })()}
+      {q.t==="yn_inv"&&value==="nein"&&q.subfield&&(
+        <div style={{marginTop:8,display:"flex",alignItems:"center",gap:8}}>
+          <label style={{fontSize:13,color:"#5a4a3a",whiteSpace:"nowrap"}}>{q.subfield.label}</label>
+          <input type="text" placeholder={q.subfield.placeholder}
+            value={answers[q.subfield.id]||""}
+            onChange={e=>onChange(q.subfield.id,e.target.value)}
+            style={{padding:"5px 9px",border:"1.5px solid #d4c4a8",borderRadius:5,
+              fontSize:13,width:180,fontFamily:"inherit"}}/>
+        </div>
+      )}
       {q.t==="radio"&&radio()}
       {q.t==="number"&&numIn()}
       {q.t==="dxa"&&dxaIn()}
@@ -1839,7 +1900,9 @@ function GebDatInput({value,onChange}){
 
 /* ═══════════════════════════════════════════ ADMIN PANEL ═══ */
 function AdminPanel({diagDb,onSave,onClose}){
-  const ICD5_RE=/^[A-Z]\d{2}\.\d{2}$/;
+  // Accepts comma-separated ICD codes, each optionally ending in G or X+G
+  const ICD5_RE=/^[A-Z]\d{2}\.[\d]{2}[XG]?G?$/;
+  const validateIcds=(s)=>(s||"").split(",").map(x=>x.trim()).filter(Boolean).every(code=>ICD5_RE.test(code));
   const allIds=Object.keys(DIAG_DB_DEFAULTS);
   const[draft,setDraft]=useState(()=>{
     const d={};
@@ -1903,14 +1966,15 @@ function AdminPanel({diagDb,onSave,onClose}){
                     <th style={{width:80,whiteSpace:"nowrap"}}>Kennung</th>
                     <th style={{width:"22%"}}>Frage (Kurzform)</th>
                     <th style={{width:"auto"}}>Klarschrift-Diagnose</th>
-                    <th style={{width:110,whiteSpace:"nowrap"}}>ICD-10 (5-stellig)</th>
+                    <th style={{width:180,whiteSpace:"nowrap"}}>ICD-10 (kommagetrennt, mit G)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {allIds.map(id=>{
                     const row=draft[id]||{};
-                    const icdOk=ICD5_RE.test(row.icd5||"");
+                    const icdOk=validateIcds(row.icd5);
                     const shortLabel=(labelMap[id]||id).replace(/\?$/,"").slice(0,60)+(labelMap[id]&&labelMap[id].length>60?"…":"");
+                    const def=DIAG_DB_DEFAULTS[id]||{};
                     return(
                       <tr key={id}>
                         <td className="admin-td-id" data-label="Kennung">{id}</td>
@@ -1918,10 +1982,12 @@ function AdminPanel({diagDb,onSave,onClose}){
                         <td data-label="Klarschrift-Diagnose">
                           <input className="admin-input" value={row.diagnose||""} onChange={e=>update(id,"diagnose",e.target.value)}/>
                         </td>
-                        <td data-label="ICD-10 (5-stellig)">
+                        <td data-label="ICD-10 (kommagetrennt)">
                           <input className={"admin-icd-input"+(icdOk?"":" invalid")}
-                            value={row.icd5||""} maxLength={7}
+                            value={row.icd5||""} placeholder="z. B. M80.05G, T93.1G"
                             onChange={e=>update(id,"icd5",e.target.value.toUpperCase())}/>
+                          {def.icd5_f_meno&&<div style={{fontSize:10,color:"#8b7a68",marginTop:2}}>♀ postmeno: {row.icd5_f_meno||def.icd5_f_meno}</div>}
+                          {def.icd5_m&&<div style={{fontSize:10,color:"#8b7a68"}}>♂: {row.icd5_m||def.icd5_m}</div>}
                         </td>
                       </tr>
                     );
