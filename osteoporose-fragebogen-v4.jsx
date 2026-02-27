@@ -457,7 +457,7 @@ const SECTIONS=[
     {id:"humerus",t:"yn",label:"Haben Sie jemals den Oberarmknochen gebrochen?",faktor:1.7,icd:"S42.2, M80.02"},
     {id:"becken",t:"yn",label:"Haben Sie jemals einen Knochen im Becken gebrochen?",faktor:1.7,icd:"S32, M80.0"},
     {id:"unterarm",t:"yn",label:"Haben Sie jemals den Unterarmknochen (Speiche) gebrochen?",faktor:1.6,icd:"S52, M80.03"},
-    {id:"eltern",t:"yn",label:"Hat Ihre Mutter oder Ihr Vater jemals einen Hüftbruch gehabt?",faktor:1.3,icd:"Z82.61",hint:"Ältere Wirbelkörperfrakturen: 1 Fraktur=×2,0 | 2=×2,9 | 3+=×5,0. Alternativ nach Genant-Schweregrad: Grad 1=×2,0 | Grad 2=×2,9 | Grad 3=×5,0. Die stärkste Konstellation (Anzahl oder Grad) gilt – immer nur ein WKFx-Faktor in die Berechnung einsetzen.",,
+    {id:"eltern",t:"yn",label:"Hat Ihre Mutter oder Ihr Vater jemals einen Hüftbruch gehabt?",faktor:1.3,icd:"Z82.61"},
   ]},
   {id:"meds",icon:"💊",title:"Medikamente – Knochen & Sturzrisiko",sub:"Regelmäßig eingenommene Medikamente mit Einfluss auf Knochen oder Sturzrisiko",qs:[
     {id:"glukokortikoide",t:"radio",label:"Nehmen Sie Kortison-Tabletten – seit mehr als 3 Monaten?\nBeispiele: Prednisolon, Decortin®",

@@ -864,7 +864,18 @@ const SECTIONS = [{
       "1 Wirbelbruch": 2.0,
       "2 Wirbelbrüche": 2.9,
       "3 oder mehr Wirbelbrüche": 5.0
-    }
+    },
+    hint: "1 Fraktur=×2,0 | 2=×2,9 | 3+=×5,0. Alternativ Genant-Grad verwenden (s. u.). Immer nur ein WKFx-Faktor einsetzen – der stärkste gilt."
+  }, {
+    id: "genant",
+    t: "radio",
+    label: "Wenn ein Röntgenbefund der Wirbelsäule vorliegt: Welcher Schweregrad nach Genant wurde festgestellt?",
+    fmap: {
+      "Grad 1 (leicht, 20–25 % Höhenverlust)": 2.0,
+      "Grad 2 (mittelgradig, 25–40 % Höhenverlust)": 2.9,
+      "Grad 3 (schwer, > 40 % Höhenverlust)": 5.0
+    },
+    hint: "Der Genant-Schweregrad ist eine Alternative zur Frakturanzahl – es gilt immer der stärkste WKFx-Faktor. Beispiel: Grad 3 (×5,0) überschreibt '2 Wirbelbrüche' (×2,9). Nur ein WKFx-Faktor darf multipliziert werden."
   }, {
     id: "humerus",
     t: "yn",
@@ -888,8 +899,7 @@ const SECTIONS = [{
     t: "yn",
     label: "Hat Ihre Mutter oder Ihr Vater jemals einen Hüftbruch gehabt?",
     faktor: 1.3,
-    icd: "Z82.61",
-    hint: "Nur relevant bis zum 75. Lebensjahr."
+    icd: "Z82.61"
   }]
 }, {
   id: "meds",
@@ -905,8 +915,8 @@ const SECTIONS = [{
     opts: ["Nein", "Sehr niedrige Dosis (< 2,5 mg Prednisolon/Tag)", "Mittlere Dosis (2,5–7,5 mg Prednisolon/Tag)", "Hohe Dosis (> 7,5 mg Prednisolon/Tag)", "Hohe Dosis – erst kürzlich begonnen oder erhöht"],
     fmap: {
       "Sehr niedrige Dosis (< 2,5 mg Prednisolon/Tag)": 1.4,
-      "Mittlere Dosis (2,5–7,5 mg Prednisolon/Tag)": 2.0,
-      "Hohe Dosis (> 7,5 mg Prednisolon/Tag)": 2.9,
+      "Mittlere Dosis (2,5–7,5 mg Prednisolon/Tag)": 2.3,
+      "Hohe Dosis (> 7,5 mg Prednisolon/Tag)": 4.0,
       "Hohe Dosis – erst kürzlich begonnen oder erhöht": 4.9
     },
     meds: M("Orale Glukokortikoide", ["Prednisolon (Decortin®, Prednigalen®, Prednisolon GALEN®, Prednisolon AL®, Hefasolon®)", "Methylprednisolon (Medrol®, Urbason®, Methylprednisolon JENAPHARM®)", "Dexamethason (Fortecortin®, Dexa-ratiopharm®, Dexabene®, Dexamethason JENAPHARM®)", "Betamethason (Celestamine® N, Celestan®)", "Prednison (Prednison acis®)", "Cortison (Cortison CIBA®)", "Triamcinolon (Volon A®, Triamhexal®)", "Budesonid oral (Budenofalk®, Entocort®)", "Hydrocortison (Hydrocortison GALEN®, Kortison H Hoechst®)", "Deflazacort (Calcort®)"])
@@ -1085,7 +1095,7 @@ const SECTIONS = [{
     hint: "Typ-2-Diabetes beginnt meist im Erwachsenenalter, oft behandelt mit Tabletten oder Insulin.",
     opts: ["Nein", "Seit 5–10 Jahren", "Seit über 10 Jahren"],
     fmap: {
-      "Seit 5–10 Jahren": 1.1,
+      "Seit 5–10 Jahren": 1.2,
       "Seit über 10 Jahren": 1.6
     }
   }, {
@@ -1162,7 +1172,7 @@ const SECTIONS = [{
     id: "copd",
     t: "yn",
     label: "Haben Sie eine chronische Lungenerkrankung wie COPD, chronische Bronchitis oder Lungenemphysem?",
-    faktor: 1.3,
+    faktor: 1.5,
     icd: "J44",
     hint: "COPD ist eine chronische Lungenerkrankung, meist durch langjähriges Rauchen verursacht."
   }, {
@@ -1257,7 +1267,7 @@ const SECTIONS = [{
     id: "immobilitaet",
     t: "yn",
     label: "Sind Sie auf einen Rollator, Gehstock oder Rollstuhl angewiesen?",
-    faktor: 1.3,
+    faktor: 1.7,
     icd: "Z74.0"
   }, {
     id: "sturz",
@@ -1715,6 +1725,7 @@ const SECTIONS = [{
 /* ═══════════════════════════════════════════════ RISK CALC ═══ */
 const STURZ_GRP = new Set(["schlaganfall", "ms", "parkinson", "epilepsie", "demenz", "depression", "immobilitaet", "sturz", "tug", "antidepressiva", "opioide", "antipsychotika", "sedativa", "orthostase"]);
 const GC_RA_GRP = new Set(["glukokortikoide", "rheuma"]);
+const WKFx_GRP = new Set(["wirbelbruch_akut", "wirbelbruch_anz", "genant"]);
 const calcBMI = (h, w) => {
   if (!h || !w || h < 100 || w < 20) return null;
   return w / (h / 100) ** 2;
@@ -1797,6 +1808,12 @@ const DIAG_DB_DEFAULTS = {
     icd5: "M80.0XG",
     icd5_f_meno: "M80.0XG",
     icd5_m: "M80.5XG"
+  },
+  genant: {
+    diagnose: "Wirbelkörperfraktur (nach Genant-Schweregrad klassifiziert)",
+    icd5: "M80.08G",
+    icd5_f_meno: "M80.08G",
+    icd5_m: "M80.58G"
   },
   unterarm: {
     diagnose: "Distale Radiusfraktur (niedrigtraumatisch)",
@@ -2273,7 +2290,7 @@ function getFactors(answers, gender) {
     let f = null;
     if (q.t === "yn" && val === "ja" && q.faktor) f = q.faktor;else if (q.t === "radio" && q.fmap && q.fmap[val]) f = q.fmap[val];
     if (!f) continue;
-    const grp = STURZ_GRP.has(q.id) ? "sturz" : GC_RA_GRP.has(q.id) ? "gc_ra" : "other";
+    const grp = STURZ_GRP.has(q.id) ? "sturz" : GC_RA_GRP.has(q.id) ? "gc_ra" : WKFx_GRP.has(q.id) ? "wkfx" : "other";
     const label = q.t === "yn" ? q.label.replace("?", "") : val;
     res.push({
       id: q.id,
@@ -2292,7 +2309,9 @@ function selectTop2(factors) {
   for (const f of s.slice(1)) {
     if (sel.length >= 2) break;
     const first = sel[0];
-    if (first.grp === "sturz" && f.grp === "sturz" || first.grp === "gc_ra" && f.grp === "gc_ra") continue;
+    // Same exclusive group → skip (only one per group)
+    const sameGrp = grp => first.grp === grp && f.grp === grp;
+    if (sameGrp("sturz") || sameGrp("gc_ra") || sameGrp("wkfx")) continue;
     sel.push(f);
   }
   return sel;
