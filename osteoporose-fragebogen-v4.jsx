@@ -1984,11 +1984,44 @@ function DiffCard({diff,currRisk}){
 function ResultCard({gender,answers,patient,diff}){
   const risk=computeRisk(answers,gender);
   const{factors,top2,cF,t3,t5,t10,r3,r5,r10,genInd,cat}=risk;
+  // Zulassungsgerechte Therapieempfehlungen nach deutschen Fachinformationen (Stand 2024)
+  // Romosozumab (Evenity®): in Deutschland nur für postmenopausale Frauen zugelassen
+  // Raloxifen, Bazedoxifen: nur für Frauen zugelassen
+  // Ibandronat oral/i.v.: nur für Frauen zugelassen
+  // Teriparatid (Forsteo® u. a.): für Frauen und Männer zugelassen
+  // Denosumab (Prolia®): für Frauen und Männer zugelassen
+  // Alendronat, Risedronat, Zoledronat: für Frauen und Männer zugelassen
   const catInfo={
-    top:{cls:"top",eye:"Sehr hohes Risiko / Generelle Indikation",h:"10%-Schwelle und/oder generelle Indikation",d:"Osteoanabole Therapie (Romosozumab oder Teriparatid) könnte unverzüglich empfohlen werden (A)."},
-    high:{cls:"high",eye:"Deutlich erhöhtes Risiko",h:"5%-Schwelle erreicht – Therapie indiziert",d:"Spezifische medikamentöse Therapie könnte empfohlen werden (A). Bei 10%-Schwelle: osteoanabole Substanz erwägen."},
-    mod:{cls:"mod",eye:"Mäßig erhöhtes Risiko",h:"3%-Schwelle erreicht – Abklärung empfehlenswert",d:"Spezifische Therapie könnte in Betracht gezogen werden, besonders bei starken/irreversiblen Risikofaktoren (B)."},
-    low:{cls:"low",eye:"Kein erhöhtes Risiko erkennbar",h:"Aktuell kein erhöhtes Frakturrisiko",d:"Allgemeine Prophylaxemaßnahmen (Kalzium, Vitamin D, Bewegung) sind empfehlenswert."},
+    top:{
+      cls:"top",
+      eye:"Sehr hohes Risiko / Generelle Indikation",
+      h:"10%-Schwelle und/oder generelle Indikation erreicht",
+      d: gender==="f"
+        ? "Osteoanabole Therapie sollte unverzüglich erwogen werden (A). In Deutschland zugelassene osteoanabole Optionen für Frauen: Romosozumab (Evenity®, 12 Monate) oder Teriparatid (Forsteo®/Terrosa®/Movymia®, max. 24 Monate). Anschließend Sequenztherapie mit Bisphosphonat oder Denosumab (Prolia®) essenziell."
+        : "Osteoanabole Therapie sollte unverzüglich erwogen werden (A). In Deutschland für Männer zugelassene osteoanabole Option: Teriparatid (Forsteo®/Terrosa®/Movymia®, max. 24 Monate). Hinweis: Romosozumab ist in Deutschland für Männer nicht zugelassen. Anschließend Sequenztherapie mit Alendronat, Risedronat, Zoledronat oder Denosumab (Prolia®).",
+    },
+    high:{
+      cls:"high",
+      eye:"Deutlich erhöhtes Risiko",
+      h:"5%-Schwelle erreicht – spezifische Therapie indiziert",
+      d: gender==="f"
+        ? "Antiresorptive Therapie wird empfohlen (A). Optionen: Bisphosphonate oral (Alendronat, Risedronat, Ibandronat) oder i.v. (Zoledronat, Ibandronat), Denosumab (Prolia® 60 mg s.c. alle 6 Monate), Raloxifen oder Bazedoxifen (SERM, wenn keine Frakturhochrisikokonstellation). Bei 10%-Schwelle osteoanabole Substanz erwägen."
+        : "Antiresorptive Therapie wird empfohlen (A). Für Männer in Deutschland zugelassen: Alendronat, Risedronat, Zoledronat (i.v.) sowie Denosumab (Prolia®). Hinweis: Ibandronat, Raloxifen und Bazedoxifen sind für Männer nicht zugelassen. Bei 10%-Schwelle Teriparatid erwägen.",
+    },
+    mod:{
+      cls:"mod",
+      eye:"Mäßig erhöhtes Risiko",
+      h:"3%-Schwelle erreicht – Abklärung empfehlenswert",
+      d: gender==="f"
+        ? "Spezifische Therapie kann erwogen werden, insbesondere bei starken oder irreversiblen Risikofaktoren (B). DXA zur Therapieschwellenbestimmung empfohlen. Basistherapie: Kalzium 1000 mg/Tag, Vitamin D 800–1000 IE/Tag, körperliche Aktivität, Sturzprophylaxe."
+        : "Spezifische Therapie kann erwogen werden, insbesondere bei starken oder irreversiblen Risikofaktoren (B). DXA zur Therapieschwellenbestimmung empfohlen. Basistherapie: Kalzium 1000 mg/Tag, Vitamin D 800–1000 IE/Tag, körperliche Aktivität, Sturzprophylaxe.",
+    },
+    low:{
+      cls:"low",
+      eye:"Kein erhöhtes Risiko erkennbar",
+      h:"Aktuell kein erhöhtes Frakturrisiko",
+      d:"Allgemeine Prophylaxemaßnahmen werden empfohlen: Kalzium 1000 mg/Tag (bevorzugt über Ernährung), Vitamin D 800–1000 IE/Tag, regelmäßige körperliche Aktivität, Sturzprophylaxe. Verlaufskontrolle in 3–5 Jahren.",
+    },
   };
   const info=cat?catInfo[cat]:null;
   return(
