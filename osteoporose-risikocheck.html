@@ -7,6 +7,8 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
 </head>
 <body>
   <div id="root"></div>
@@ -356,6 +358,37 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
   .result{padding:18px 14px}.btn-row{flex-direction:column}
   .thresh-row{flex-direction:column}.lh-grid{grid-template-columns:1fr}
 }
+/* ─── CAMERA SCANNER ─── */
+.cam-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1200;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px;overflow-y:auto}
+.cam-panel{background:#1a1a1a;border-radius:12px;width:100%;max-width:560px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.cam-head{background:#111;padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+.cam-title{color:#f0f0f0;font-size:15px;font-weight:700;font-family:'Source Sans 3',sans-serif}
+.cam-close{background:none;border:none;color:#aaa;font-size:22px;cursor:pointer;line-height:1;padding:0 4px}
+.cam-mode-row{display:flex;gap:0;border-bottom:1px solid #333}
+.cam-mode-btn{flex:1;padding:10px 6px;background:none;border:none;color:#888;font-size:12px;font-weight:600;cursor:pointer;font-family:'Source Sans 3',sans-serif;border-bottom:3px solid transparent;transition:all .2s}
+.cam-mode-btn.active{color:#4ade80;border-bottom-color:#4ade80}
+.cam-video-wrap{position:relative;background:#000;width:100%;aspect-ratio:4/3;overflow:hidden}
+.cam-video{width:100%;height:100%;object-fit:cover}
+.cam-canvas{display:none}
+.cam-overlay-frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.cam-frame-box{width:72%;aspect-ratio:1;border:3px solid rgba(74,222,128,.8);border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,.35)}
+.cam-frame-box.barcode{aspect-ratio:3/1;border-radius:4px}
+.cam-frame-hint{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:rgba(255,255,255,.8);font-size:12px;font-family:'Source Sans 3',sans-serif}
+.cam-controls{padding:12px 16px;display:flex;gap:8px;justify-content:center;background:#111}
+.cam-snap-btn{background:#4ade80;color:#111;border:none;padding:10px 24px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Source Sans 3',sans-serif}
+.cam-snap-btn:disabled{opacity:.4;cursor:not-allowed}
+.cam-snap-btn.danger{background:#f87171;color:white}
+.cam-result{padding:14px 16px;background:#0f1a0f;border-top:1px solid #2a4a2a;max-height:320px;overflow-y:auto}
+.cam-result-title{color:#4ade80;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;font-family:'Source Sans 3',sans-serif}
+.cam-med-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#1a2a1a;border:1px solid #2d4a2d;border-radius:6px;margin-bottom:6px}
+.cam-med-check{width:18px;height:18px;accent-color:#4ade80;cursor:pointer;flex-shrink:0}
+.cam-med-name{color:#e0f0e0;font-size:13px;font-family:'Source Sans 3',sans-serif;flex:1}
+.cam-med-cat{color:#6a9a6a;font-size:11px;font-family:'Source Sans 3',sans-serif}
+.cam-apply-btn{width:100%;background:#4ade80;color:#111;border:none;padding:10px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;margin-top:10px;font-family:'Source Sans 3',sans-serif}
+.cam-status{padding:10px 16px;text-align:center;color:#aaa;font-size:12.5px;font-family:'Source Sans 3',sans-serif;background:#111}
+.cam-status.scanning{color:#fbbf24}
+.cam-status.success{color:#4ade80}
+.cam-status.error{color:#f87171}
 `;
 
 /* ═══════════════════════ THRESHOLD TABLES (DVO 2023, Tabelle 3.2) ═══ */
@@ -1337,6 +1370,263 @@ function HistoryPanel({sessions,onLoad,onDelete,onClose,gender}){
 }
 
 /* ═══════════════════════════════════════════════ MAIN APP ═══ */
+/* ═══════════════════════════════════════════ CAMERA SCANNER ═══ */
+// Medikamenten-Scanner: QR-Code (Einheitlicher Medikationsplan), Barcode (EAN/PZN), Foto + KI
+function CameraScanner({onMedsFound, onClose}){
+  const[mode,setMode]=useState("qr");   // "qr" | "barcode" | "foto"
+  const[status,setStatus]=useState("Kamera wird gestartet…");
+  const[statusCls,setStatusCls]=useState("scanning");
+  const[result,setResult]=useState(null); // [{name, checked}]
+  const[scanning,setScanning]=useState(true);
+  const videoRef=React.useRef(null);
+  const canvasRef=React.useRef(null);
+  const streamRef=React.useRef(null);
+  const scanTimerRef=React.useRef(null);
+  const jsQRRef=React.useRef(null);
+
+  // Load jsQR dynamically
+  React.useEffect(()=>{
+    if(!window.jsQR){
+      const s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+      s.onload=()=>{jsQRRef.current=window.jsQR;};
+      document.head.appendChild(s);
+    } else {
+      jsQRRef.current=window.jsQR;
+    }
+  },[]);
+
+  // Start camera
+  React.useEffect(()=>{
+    startCamera();
+    return()=>stopCamera();
+  },[]);
+
+  // Restart scan loop when mode changes
+  React.useEffect(()=>{
+    setResult(null);setScanning(true);
+    setStatus(mode==="foto"?"Ausrichten und Foto aufnehmen":mode==="qr"?"QR-Code im Rahmen positionieren":"Barcode im Rahmen positionieren");
+    setStatusCls("scanning");
+    if(mode!=="foto") startScanLoop();
+    else stopScanLoop();
+    return()=>stopScanLoop();
+  },[mode]);
+
+  const startCamera=async()=>{
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:"environment",width:{ideal:1280},height:{ideal:960}}
+      });
+      streamRef.current=stream;
+      if(videoRef.current){videoRef.current.srcObject=stream;await videoRef.current.play();}
+      setStatus(mode==="foto"?"Foto aufnehmen":"Scannen läuft…");setStatusCls("scanning");
+      if(mode!=="foto") startScanLoop();
+    }catch(e){
+      setStatus("Kamerazugriff verweigert – bitte Erlaubnis erteilen");setStatusCls("error");
+    }
+  };
+
+  const stopCamera=()=>{
+    stopScanLoop();
+    streamRef.current?.getTracks().forEach(t=>t.stop());
+  };
+
+  const stopScanLoop=()=>{
+    if(scanTimerRef.current){clearInterval(scanTimerRef.current);scanTimerRef.current=null;}
+  };
+
+  const startScanLoop=()=>{
+    stopScanLoop();
+    scanTimerRef.current=setInterval(()=>scanFrame(),300);
+  };
+
+  const scanFrame=()=>{
+    const video=videoRef.current;const canvas=canvasRef.current;
+    if(!video||!canvas||video.readyState<2) return;
+    const ctx=canvas.getContext('2d');
+    canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+    ctx.drawImage(video,0,0);
+    const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+    // Try jsQR for QR codes
+    if(mode==="qr"&&jsQRRef.current){
+      const code=jsQRRef.current(imgData.data,imgData.width,imgData.height);
+      if(code){stopScanLoop();setScanning(false);parseQrCode(code.data);return;}
+    }
+    // For barcodes: basic EAN detection hint
+    if(mode==="barcode"){
+      // ZXing not available inline – prompt user to snap photo for API
+      setStatus("Barcode positionieren und 📸 Foto aufnehmen klicken");setStatusCls("scanning");
+    }
+  };
+
+  // Parse Einheitlicher Medikationsplan QR code
+  const parseQrCode=async(data)=>{
+    setStatus("QR-Code erkannt – wird ausgewertet…");setStatusCls("scanning");
+    try{
+      // EMP QR: starts with compressed XML or plain XML
+      let xml=data;
+      // Try base64 decompress (pako)
+      if(!data.trim().startsWith('<')&&!data.trim().startsWith('{')){
+        if(window.pako){
+          try{
+            const bin=atob(data.replace(/-/g,'+').replace(/_/g,'/'));
+            const arr=new Uint8Array(bin.split('').map(c=>c.charCodeAt(0)));
+            xml=window.pako.inflate(arr,{to:'string'});
+          }catch(e2){xml=data;}
+        }
+      }
+      // Parse XML for medication names
+      const meds=[];
+      if(xml.includes('<M ')||xml.includes('<m ')){
+        const parser=new DOMParser();
+        const doc=parser.parseFromString(xml,'text/xml');
+        const mEls=[...doc.querySelectorAll('M'),...doc.querySelectorAll('m')];
+        mEls.forEach(m=>{
+          const name=m.getAttribute('a')||m.getAttribute('n')||m.getAttribute('name')||'';
+          const pzn=m.getAttribute('p')||m.getAttribute('pzn')||'';
+          if(name) meds.push({name:name+(pzn?` (PZN: ${pzn})`:''),checked:true});
+        });
+      }
+      if(meds.length>0){
+        setResult(meds);setStatus(`${meds.length} Medikamente erkannt`);setStatusCls("success");
+      } else {
+        // Fallback: send to Claude Vision/API for interpretation
+        await analyzeWithAI("QR-Code Inhalt:\n"+data.substring(0,2000));
+      }
+    }catch(e){
+      setStatus("Fehler beim Auslesen – versuche KI-Analyse…");setStatusCls("error");
+      await analyzeWithAI("QR-Code Inhalt:\n"+data.substring(0,2000));
+    }
+  };
+
+  // Take photo and analyze with Claude Vision API
+  const takePhotoAndAnalyze=async()=>{
+    const video=videoRef.current;const canvas=canvasRef.current;
+    if(!video||!canvas) return;
+    setScanning(false);setStatus("Foto wird analysiert…");setStatusCls("scanning");
+    canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+    canvas.getContext('2d').drawImage(video,0,0);
+    const base64=canvas.toDataURL('image/jpeg',0.85).split(',')[1];
+    const prompt=mode==="barcode"
+      ? "Lies den Barcode oder EAN-Code auf dieser Medikamentenschachtel. Nenne den Medikamentennamen, Wirkstoff und Stärke. Gib das Ergebnis als JSON-Array: [{\"name\":\"Vollständiger Name mit Stärke\",\"wirkstoff\":\"Wirkstoff\"}]"
+      : "Erkenne alle Medikamentennamen in diesem Bild (Schachtel, Medikationsplan oder Liste). Gib das Ergebnis als JSON-Array: [{\"name\":\"Medikamentname Stärke Form\"}]. Nur JSON, kein anderer Text.";
+    await analyzeWithAI(null, base64, prompt);
+  };
+
+  const analyzeWithAI=async(textInput, imageBase64=null, prompt=null)=>{
+    try{
+      const msgContent=[];
+      if(imageBase64) msgContent.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:imageBase64}});
+      msgContent.push({type:"text",text:prompt||"Erkenne alle Medikamentennamen. JSON-Array: [{\"name\":\"...\"}]. Nur JSON."});
+      if(textInput) msgContent[msgContent.length-1].text+="\n\n"+textInput;
+
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514",
+          max_tokens:1000,
+          messages:[{role:"user",content:msgContent}]
+        })
+      });
+      const data=await resp.json();
+      const text=data.content?.map(b=>b.text||'').join('');
+      const jsonMatch=text.match(/\[[\s\S]*\]/);
+      if(jsonMatch){
+        const parsed=JSON.parse(jsonMatch[0]);
+        const meds=parsed.map(m=>({name:m.name||(typeof m==='string'?m:'Unbekannt'),checked:true}));
+        if(meds.length>0){
+          setResult(meds);setStatus(`${meds.length} Medikamente erkannt`);setStatusCls("success");return;
+        }
+      }
+      setStatus("Keine Medikamente erkannt – bitte erneut versuchen");setStatusCls("error");setScanning(true);
+      if(mode!=="foto")startScanLoop();
+    }catch(e){
+      setStatus("KI-Analyse fehlgeschlagen: "+e.message);setStatusCls("error");setScanning(true);
+    }
+  };
+
+  const toggleItem=(i)=>setResult(r=>r.map((m,j)=>j===i?{...m,checked:!m.checked}:m));
+
+  const applyMeds=()=>{
+    const selected=result.filter(m=>m.checked).map(m=>m.name);
+    if(selected.length>0) onMedsFound(selected);
+    onClose();
+  };
+
+  return(
+    <div className="cam-overlay">
+      <div className="cam-panel">
+        <div className="cam-head">
+          <span className="cam-title">📷 Medikamenten-Scanner</span>
+          <button className="cam-close" onClick={()=>{stopCamera();onClose();}}>×</button>
+        </div>
+        <div className="cam-mode-row">
+          <button className={`cam-mode-btn${mode==="qr"?" active":""}`} onClick={()=>setMode("qr")}>
+            🔲 QR-Code<br/><span style={{fontSize:10,fontWeight:400}}>Medikationsplan</span>
+          </button>
+          <button className={`cam-mode-btn${mode==="barcode"?" active":""}`} onClick={()=>setMode("barcode")}>
+            ▌▌▌ Barcode<br/><span style={{fontSize:10,fontWeight:400}}>Schachtel EAN/PZN</span>
+          </button>
+          <button className={`cam-mode-btn${mode==="foto"?" active":""}`} onClick={()=>setMode("foto")}>
+            🤖 KI-Foto<br/><span style={{fontSize:10,fontWeight:400}}>Name/Plan erkennen</span>
+          </button>
+        </div>
+        <div className="cam-video-wrap">
+          <video ref={videoRef} className="cam-video" playsInline muted autoPlay/>
+          <canvas ref={canvasRef} className="cam-canvas"/>
+          <div className="cam-overlay-frame">
+            <div className={`cam-frame-box${mode==="barcode"?" barcode":""}`}/>
+          </div>
+          <div className="cam-frame-hint">
+            {mode==="qr"&&"QR-Code des Medikationsplans positionieren"}
+            {mode==="barcode"&&"Barcode auf Schachtel positionieren"}
+            {mode==="foto"&&"Schachtel / Liste / Plan fotografieren"}
+          </div>
+        </div>
+        <div className="cam-controls">
+          {(mode==="foto"||mode==="barcode")&&(
+            <button className="cam-snap-btn" onClick={takePhotoAndAnalyze} disabled={!scanning&&!result}>
+              📸 Foto aufnehmen &amp; analysieren
+            </button>
+          )}
+          {mode==="qr"&&scanning&&(
+            <button className="cam-snap-btn danger" onClick={()=>{stopScanLoop();setScanning(false);setStatus("Scan gestoppt");}}>
+              ⏹ Scan stoppen
+            </button>
+          )}
+          {!scanning&&mode==="qr"&&!result&&(
+            <button className="cam-snap-btn" onClick={()=>{setScanning(true);startScanLoop();}}>
+              ▶ Neu scannen
+            </button>
+          )}
+        </div>
+        <div className={`cam-status ${statusCls}`}>{status}</div>
+        {result&&result.length>0&&(
+          <div className="cam-result">
+            <div className="cam-result-title">✓ Erkannte Medikamente – bitte prüfen</div>
+            {result.map((m,i)=>(
+              <div key={i} className="cam-med-item">
+                <input type="checkbox" className="cam-med-check" checked={m.checked} onChange={()=>toggleItem(i)}/>
+                <div>
+                  <div className="cam-med-name">{m.name}</div>
+                </div>
+              </div>
+            ))}
+            <button className="cam-apply-btn" onClick={applyMeds}
+              disabled={!result.some(m=>m.checked)}>
+              ✓ {result.filter(m=>m.checked).length} Medikamente übernehmen
+            </button>
+          </div>
+        )}
+      </div>
+      <div style={{color:"#666",fontSize:11,textAlign:"center",marginTop:12,padding:"0 20px",fontFamily:"'Source Sans 3',sans-serif"}}>
+        QR-Code: Einheitlicher Medikationsplan (KBV) · Barcode: EAN-13 / PZN · KI-Foto: Claude Vision API
+      </div>
+    </div>
+  );
+}
+
 function GebDatInput({value,onChange}){
   const age=calcAgeFromBirthdate(value);
   const invalid=age!==null&&(age<18||age>130);
@@ -1477,6 +1767,7 @@ function App(){
   const[adminUnlocked,setAdminUnlocked]=useState(false);
   const ADMIN_PIN="1234";
   const[viewer,setViewer]=useState(null); // {type:"txt"|"pdf", content:string}
+  const[camOpen,setCamOpen]=useState(false);
   const isAndroid=/Android/i.test(navigator.userAgent);
   const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
   const isMobile=isAndroid||isIOS;
@@ -1558,6 +1849,19 @@ function App(){
   };
 
   const handleSaveLh=async(newLh)=>{setLh(newLh);await storageSet(STORE_LH,newLh);};
+  const handleCamMeds=(meds)=>{
+    // Add found medications as free-text entries to the first applicable rx field,
+    // or to a dedicated "aktuelle_medikation_rx" catch-all field
+    const existing=answers["aktuelle_medikation_rx"]||[];
+    const merged=[...new Set([...existing,...meds])];
+    setA("aktuelle_medikation_rx",merged);
+    // Also try to match to known questions
+    meds.forEach(name=>{
+      const lower=name.toLowerCase();
+      // Try to match to sections by keywords
+      const qMatch=Object.keys(answers).find(k=>k.endsWith("_rx")&&false); // placeholder
+    });
+  };
 
   /* ── open TXT viewer ── */
   const handleText=async()=>{
@@ -1621,6 +1925,7 @@ function App(){
           )}
           {gender&&<>
             <button className="as-btn" onClick={handleCalc}>📊 Auswertung</button>
+            <button className="as-btn" onClick={()=>setCamOpen(true)}>📷 Med-Scan</button>
             <button className="as-btn" style={{marginLeft:"auto"}} onClick={()=>setAdminOpen(true)}>⚙️ Admin</button>
             <button className="as-btn" onClick={handlePrint}>🖨 PDF speichern unter…</button>
             <button className="as-btn" onClick={handleText}>💾 TXT speichern unter…</button>
@@ -1782,7 +2087,10 @@ function App(){
         <AdminPanel diagDb={diagDb} onClose={()=>{setAdminOpen(false);setAdminPin("");}}
           onSave={db=>{setDiagDb(db);saveDiagDb(db);}}/>
       )}
-            {viewer&&(
+            {camOpen&&(
+        <CameraScanner onMedsFound={handleCamMeds} onClose={()=>setCamOpen(false)}/>
+      )}
+      {viewer&&(
         <div className="viewer-overlay">
           <div className="viewer-bar">
             {viewer.type==="txt"?(
