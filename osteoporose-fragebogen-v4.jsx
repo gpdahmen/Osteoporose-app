@@ -3197,21 +3197,48 @@ function App(){
     });
   };
 
-  /* ── open TXT viewer ── */
+  /* ── helpers ── */
+  const makeFilename=(ext)=>{
+    const name=(patient.name||"Patient").replace(/[^a-zA-Z0-9_\-äöüÄÖÜß]/g,"_");
+    const date=today.replace(/\./g,"-");
+    return `Osteoporose_${name}_${date}.${ext}`;
+  };
+
+  /* ── TXT: direct save-as with picker ── */
   const handleText=async()=>{
-    if(!gender){setViewer({type:"txt",content:"Bitte zuerst Geschlecht auswählen."});return;}
+    if(!gender){alert("Bitte zuerst Geschlecht auswählen.");return;}
     await saveSession();
     const r=computeRisk(answers,gender);
     const d=prevSession?computeDiff(answers,prevSession,gender):null;
     const text=buildTextExport(patient,gender,answers,r,d,lh,diagDb,sekDiagDb);
+    const fname=makeFilename("txt");
+    // Try native File System Access API (shows real "Speichern unter" dialog)
+    if(typeof window.showSaveFilePicker==="function"){
+      try{
+        const fh=await window.showSaveFilePicker({
+          suggestedName:fname,
+          types:[{description:"Textdatei",accept:{"text/plain":[".txt"]}}],
+        });
+        const ws=await fh.createWritable();
+        await ws.write(text);
+        await ws.close();
+        return;
+      } catch(e){
+        if(e.name==="AbortError") return; // user cancelled – do nothing
+        // fall through to viewer fallback
+      }
+    }
+    // Fallback: show viewer with download button
     setViewer({type:"txt",content:text});
   };
+
+  /* ── PDF: print dialog → user selects "Als PDF speichern" ── */
   const handlePrint=async()=>{
     if(!gender){alert("Bitte zuerst Geschlecht auswählen.");return;}
     await saveSession();
     const allOpen={};visibleSecs.forEach(s=>allOpen[s.id]=true);
     setOpenSec(allOpen);setShowResult(true);
-    // Use window.print() directly after a short delay for DOM to update
+    // Short delay for DOM, then print dialog (browser handles "Save as PDF")
     setTimeout(()=>window.print(),500);
   };
 
@@ -3440,14 +3467,28 @@ function App(){
                   const ta=document.getElementById("viewer-ta");
                   if(ta){ta.select();document.execCommand("copy");}
                 }}>📋 Kopieren</button>
-                <button className="viewer-btn" onClick={()=>{
+                <button className="viewer-btn" onClick={async()=>{
+                  const fname=makeFilename("txt");
+                  if(typeof window.showSaveFilePicker==="function"){
+                    try{
+                      const fh=await window.showSaveFilePicker({
+                        suggestedName:fname,
+                        types:[{description:"Textdatei",accept:{"text/plain":[".txt"]}}],
+                      });
+                      const ws=await fh.createWritable();
+                      await ws.write(viewer.content);
+                      await ws.close();
+                      setViewer(null);
+                      return;
+                    }catch(e){if(e.name==="AbortError")return;}
+                  }
+                  // Fallback anchor download
                   const blob=new Blob([viewer.content],{type:"text/plain;charset=utf-8"});
-                  const fname=`Osteoporose_${(patient.name||"Patient").replace(/[^a-zA-Z0-9_\-äöüÄÖÜß]/g,"_")}_${today.replace(/\./g,"-")}.txt`;
                   const url=URL.createObjectURL(blob);
                   const a=document.createElement("a");a.href=url;a.download=fname;
                   document.body.appendChild(a);a.click();
                   document.body.removeChild(a);URL.revokeObjectURL(url);
-                }}>⬇️ Herunterladen</button>
+                }}>⬇️ Speichern unter…</button>
               </>
             ):(
               <>
@@ -3456,7 +3497,10 @@ function App(){
                   const iframe=document.getElementById("viewer-iframe");
                   if(iframe&&iframe.contentWindow)iframe.contentWindow.print();
                   else window.print();
-                }}>🖨 Drucken / Als PDF</button>
+                }}>🖨 Drucken / Als PDF speichern</button>
+                <span style={{fontSize:11,color:"#a09080",marginLeft:4}}>
+                  → Im Druckdialog „Als PDF speichern" wählen
+                </span>
               </>
             )}
             <button className="viewer-close" onClick={()=>setViewer(null)}>×</button>
