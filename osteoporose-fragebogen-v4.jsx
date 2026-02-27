@@ -3365,11 +3365,11 @@ function App(){
           </div>
           <div className="disclaimer-gate-text">
             Basierend auf der DVO-Leitlinie 2023 zur Prophylaxe, Diagnostik und Therapie der Osteoporose (AWMF-Register 183-001, Version 2.1, November 2023 / Juni 2024). Medikamentennamen sind Beispiele in Deutschland zugelassener Präparate (ohne Gewähr auf Vollständigkeit).<br/><br/>
-            <strong>Dieses Instrument dient der Veranschaulichung oder Schulung und ist keine Unterstützung klinischer Entscheidungen und ersetzt keine individuelle ärztliche Beurteilung.</strong>
+            <strong>Dieses Instrument dient der Veranschaulichung und Schulung von strukturierter Dokumentation bereits bestehender Befunde und ist keine Unterstützung klinischer Entscheidungen und ersetzt keine individuelle ärztliche Beurteilung.</strong>
           </div>
           <label className="disclaimer-gate-check">
             <input type="checkbox" checked={disclaimerOk} onChange={e=>setDisclaimerOk(e.target.checked)}/>
-            <span>Ich habe den Hinweis gelesen und verstanden. Dieses Tool wird ausschließlich zu Schulungs- oder Veranschaulichungszwecken verwendet.</span>
+            <span>Ich habe den Hinweis gelesen und verstanden. Dieses Tool wird ausschließlich zu Dokumentations-, Schulungs- oder Veranschaulichungszwecken verwendet.</span>
           </label>
           {!disclaimerOk&&(
             <div className="disclaimer-gate-blocked">
