@@ -1835,16 +1835,20 @@ function Question({q,value,onChange,answered,rxValue,onRx}){
       ))}
     </div>
   );
-  const radio=()=>(
-    <div className="rg">
-      {q.opts.map(opt=>(
-        <label key={opt} className={`rl${value===opt?" sel":""}`}>
-          <input type="radio" name={q.id} value={opt} checked={value===opt} onChange={()=>onChange(q.id,opt)}/>
-          {opt}
-        </label>
-      ))}
-    </div>
-  );
+  const radio=()=>{
+    // opts array is canonical; fall back to fmap keys for fmap-only questions (e.g. genant)
+    const radioOpts = q.opts || (q.fmap ? Object.keys(q.fmap) : []);
+    return(
+      <div className="rg">
+        {radioOpts.map(opt=>(
+          <label key={opt} className={`rl${value===opt?" sel":""}`}>
+            <input type="radio" name={q.id} value={opt} checked={value===opt} onChange={()=>onChange(q.id,opt)}/>
+            {opt}
+          </label>
+        ))}
+      </div>
+    );
+  };
   const numIn=()=>(
     <div style={{display:"flex",gap:8,alignItems:"center"}}>
       <input className="num-in" type="number" placeholder={q.placeholder} value={value||""}

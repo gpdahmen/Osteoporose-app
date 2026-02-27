@@ -3621,18 +3621,22 @@ function Question({
     checked: value === opt,
     onChange: () => onChange(q.id, opt)
   }), opt === "ja" ? "✓  Ja" : "✗  Nein")));
-  const radio = () => /*#__PURE__*/React.createElement("div", {
-    className: "rg"
-  }, q.opts.map(opt => /*#__PURE__*/React.createElement("label", {
-    key: opt,
-    className: `rl${value === opt ? " sel" : ""}`
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "radio",
-    name: q.id,
-    value: opt,
-    checked: value === opt,
-    onChange: () => onChange(q.id, opt)
-  }), opt)));
+  const radio = () => {
+    // opts array is canonical; fall back to fmap keys for fmap-only questions (e.g. genant)
+    const radioOpts = q.opts || (q.fmap ? Object.keys(q.fmap) : []);
+    return /*#__PURE__*/React.createElement("div", {
+      className: "rg"
+    }, radioOpts.map(opt => /*#__PURE__*/React.createElement("label", {
+      key: opt,
+      className: `rl${value === opt ? " sel" : ""}`
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "radio",
+      name: q.id,
+      value: opt,
+      checked: value === opt,
+      onChange: () => onChange(q.id, opt)
+    }), opt)));
+  };
   const numIn = () => /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
