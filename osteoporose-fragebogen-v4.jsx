@@ -848,6 +848,73 @@ const DIAG_DB_DEFAULTS = {
 // Stabiler Schlüssel – nie versionieren, damit Nutzeränderungen alle Updates überleben
 const DIAG_DB_OVERRIDES_KEY = "osteo_diagdb_overrides_v1";
 
+/* ─── Sekundäre Osteoporose: Diagnose-DB (sym-key → diagnose + icd5) ─── */
+const SEK_DIAG_DB_DEFAULTS = {
+  // Endokrin
+  hpth:              {diagnose:"Primärer Hyperparathyreoidismus",                          icd5:"E21.0G"},
+  cushing:           {diagnose:"Cushing-Syndrom (endogener Hyperkortisolismus)",           icd5:"E24.9G"},
+  hypogonadismus:    {diagnose:"Hypogonadismus (Mann)",                                    icd5:"E29.1G"},
+  hypogonadismus_f:  {diagnose:"Hypogonadismus / Amenorrhoe (Frau, prämenopausal)",       icd5:"N91.2G"},
+  hyperthyreose:     {diagnose:"Hyperthyreose / Überdosierung Schilddrüsenhormon",         icd5:"E05.9G"},
+  akromegalie:       {diagnose:"Akromegalie (Wachstumshormon-Exzess)",                     icd5:"E22.0G"},
+  prolaktinom:       {diagnose:"Prolaktinom / Hyperprolaktinämie",                         icd5:"E22.1G"},
+  // Gastro
+  zoeliakie:         {diagnose:"Zöliakie (glutensensitive Enteropathie)",                  icd5:"K90.0G"},
+  ced:               {diagnose:"Chronisch-entzündliche Darmerkrankung (Morbus Crohn/CU)", icd5:"K50.9G"},
+  vit_d:             {diagnose:"Vitamin-D-Mangel / Osteomalazie",                          icd5:"E55.9G"},
+  malabsorption:     {diagnose:"Malabsorptionssyndrom",                                    icd5:"K90.9G"},
+  lebererkrankung:   {diagnose:"Hepatische Osteodystrophie / Lebererkrankung",            icd5:"K74.6G"},
+  // Nieren
+  nieren:            {diagnose:"Renale Osteodystrophie / CKD-MBD",                        icd5:"N25.8G"},
+  rta_bartter:       {diagnose:"Renale tubuläre Azidose / Bartter-/Gitelman-Syndrom",     icd5:"N25.8G"},
+  hypercalciurie:    {diagnose:"Idiopathische Hyperkalziurie",                             icd5:"E83.52G"},
+  // Hämatologie
+  myelom:            {diagnose:"Multiples Myelom / Plasmozytom",                           icd5:"C90.0G"},
+  mastozytose:       {diagnose:"Systemische Mastozytose",                                  icd5:"D47.02G"},
+  haemochromatose:   {diagnose:"Hereditäre Hämochromatose",                               icd5:"E83.11G"},
+  // Immun
+  sarkoidose:        {diagnose:"Sarkoidose mit Knochenbeteiligung",                        icd5:"D86.9G"},
+  psa:               {diagnose:"Psoriasis-Arthritis",                                      icd5:"M07.3G"},
+  vaskulitis:        {diagnose:"Systemische Vaskulitis",                                   icd5:"M31.9G"},
+  hiv_ost:           {diagnose:"HIV-assoziierte Osteoporose",                              icd5:"B24.0G"},
+  // Neurologie / Lebensstil
+  immo_neuro:        {diagnose:"Immobilisationsosteoporose (neurogen / vollständig)",      icd5:"M81.8G"},
+  essstoerung:       {diagnose:"Osteoporose bei Essstörung / Anorexia nervosa",            icd5:"F50.0G"},
+  alkohol_ost:       {diagnose:"Alkohol-assoziierte Osteoporose",                          icd5:"F10.2G"},
+  // Genetisch / selten
+  oi:                {diagnose:"Osteogenesis imperfecta",                                  icd5:"Q78.0G"},
+  xlh:               {diagnose:"X-linked Hypophosphatemia (XLH)",                          icd5:"E83.30G"},
+  hpp:               {diagnose:"Hypophosphatasia (HPP)",                                   icd5:"E83.39G"},
+  tio:               {diagnose:"Tumorinduzierte Osteomalazie (TIO)",                       icd5:"M83.8G"},
+  paget:             {diagnose:"Morbus Paget des Knochens",                                icd5:"M88.9G"},
+  marfan:            {diagnose:"Marfan-Syndrom",                                           icd5:"Q87.4G"},
+  eds:               {diagnose:"Ehlers-Danlos-Syndrom",                                    icd5:"Q79.6G"},
+  gaucher:           {diagnose:"Morbus Gaucher",                                           icd5:"E75.22G"},
+  turner:            {diagnose:"Turner-Syndrom (45,X)",                                    icd5:"Q96.0G"},
+  klinefelter:       {diagnose:"Klinefelter-Syndrom (47,XXY)",                             icd5:"Q98.0G"},
+  seltene_metabolisch:{diagnose:"Seltene Stoffwechselerkrankung mit Knochenbeteiligung",   icd5:"E74.0G"},
+};
+const SEK_DIAG_DB_KEY = "osteo_sekdb_overrides_v1";
+
+function loadSekDiagDb(){
+  try{
+    const raw = localStorage.getItem(SEK_DIAG_DB_KEY);
+    const overrides = raw ? JSON.parse(raw) : {};
+    return {...SEK_DIAG_DB_DEFAULTS, ...overrides};
+  } catch(e){ return {...SEK_DIAG_DB_DEFAULTS}; }
+}
+function saveSekDiagDb(db){
+  const overrides={};
+  for(const id of Object.keys(db)){
+    const def = SEK_DIAG_DB_DEFAULTS[id];
+    const cur = db[id];
+    if(!def || cur.diagnose!==def.diagnose || cur.icd5!==def.icd5){
+      overrides[id]=cur;
+    }
+  }
+  localStorage.setItem(SEK_DIAG_DB_KEY, JSON.stringify(overrides));
+}
+
 function loadDiagDb(){
   return{...DIAG_DB_DEFAULTS};
 }
@@ -1561,7 +1628,7 @@ function getIcdArray(entry, gender, answers){
 }
 
 /* ═══════════════════════════════════════════════ TEXT EXPORT ═══ */
-function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb){
+function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb){
   const db=diagDb||DIAG_DB_DEFAULTS;
   const d=new Date().toLocaleDateString("de-DE");
   const lines=[];
@@ -1667,6 +1734,31 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb){
   // Menopause since
   if(isPostMeno&&answers?.menopause_seit){
     lines.push(`Menopause seit: ${answers.menopause_seit}`);
+  }
+  // ── Secondary osteoporosis diagnoses ──
+  const sekHits = computeSecondary(answers);
+  if(sekHits.length>0){
+    lines.push("");
+    lines.push("ABKLÄRUNGSHINWEISE – SEKUNDÄRE OSTEOPOROSEFORMEN");lines.push(sub);
+    lines.push("Folgende Befundkonstellationen sollten weiter abgeklärt werden:");
+    lines.push("");
+    for(const {sym,count,hits,profile} of sekHits){
+      const sekEntry = (sekDb||SEK_DIAG_DB_DEFAULTS)[sym]||{};
+      const diagText = sekEntry.diagnose || profile.label;
+      const icdCode  = sekEntry.icd5  || "";
+      lines.push(icdCode ? `• ${diagText} {${icdCode}}` : `• ${diagText}`);
+      lines.push(`  Klinischer Hinweis: ${profile.hinweis.slice(0,120)}${profile.hinweis.length>120?"…":""}`);
+      lines.push(`  Auslösende Angaben (${count}):`);
+      for(const h of hits){
+        lines.push(`    – ${h.label}`);
+      }
+      lines.push(`  Vorgeschlagene Diagnostik:`);
+      for(const u of profile.untersuchungen){
+        lines.push(`    • ${u.name}${u.icd?" ["+u.icd+"]":""}`);
+      }
+      lines.push("");
+    }
+    lines.push("⚠ Abklärungsempfehlungen sind Orientierungshilfen. Diagnosestellung obliegt dem Arzt.");
   }
   return lines.join("\n");
 }
@@ -2672,7 +2764,7 @@ function flattenEntries(id, entries, original){
   return result;
 }
 
-function AdminPanel({diagDb,onSave,onClose}){
+function AdminPanel({diagDb,sekDiagDb,onSave,onSaveSek,onClose}){
   const ICD5_RE=/^[A-Z]\d{2}\.[\d]{2}[XG]?G?$/;
   const validateIcd=(s)=>(s||"").trim()===""||ICD5_RE.test((s||"").trim());
   const allIds=Object.keys(DIAG_DB_DEFAULTS);
@@ -2690,6 +2782,14 @@ function AdminPanel({diagDb,onSave,onClose}){
   const[pinErr,setPinErr]=useState(false);
   const[unlocked,setUnlocked]=useState(false);
   const[search,setSearch]=useState("");
+  const[activeTab,setActiveTab]=useState("risiko"); // "risiko" | "sek"
+  // Secondary DB draft
+  const sekAllIds=Object.keys(SEK_DIAG_DB_DEFAULTS);
+  const[sekDraft,setSekDraft]=useState(()=>{
+    const d={};
+    for(const id of sekAllIds) d[id]={...SEK_DIAG_DB_DEFAULTS[id],...((sekDiagDb||{})[id]||{})};
+    return d;
+  });
 
   // Entry CRUD
   const updateEntry=(id,idx,field,val)=>{
@@ -2714,17 +2814,31 @@ function AdminPanel({diagDb,onSave,onClose}){
     });
   };
 
-  const handleSave=()=>{ onSave(draft); onClose(); };
+  const handleSave=()=>{
+    if(activeTab==="risiko"){ onSave(draft); }
+    else { onSaveSek(sekDraft); }
+    onClose();
+  };
   const handleReset=()=>{
-    if(window.confirm("Alle Diagnosen auf Standardwerte zurücksetzen?")){
-      setDraft(()=>{
-        const d={};
-        for(const id of allIds){
-          const def={...DIAG_DB_DEFAULTS[id]};
-          d[id]={...def,entries:normEntries(def)};
-        }
-        return d;
-      });
+    if(activeTab==="risiko"){
+      if(window.confirm("Alle Risikofaktor-Diagnosen auf Standardwerte zurücksetzen?")){
+        setDraft(()=>{
+          const d={};
+          for(const id of allIds){
+            const def={...DIAG_DB_DEFAULTS[id]};
+            d[id]={...def,entries:normEntries(def)};
+          }
+          return d;
+        });
+      }
+    } else {
+      if(window.confirm("Alle Sekundärform-Diagnosen auf Standardwerte zurücksetzen?")){
+        setSekDraft(()=>{
+          const d={};
+          for(const id of sekAllIds) d[id]={...SEK_DIAG_DB_DEFAULTS[id]};
+          return d;
+        });
+      }
     }
   };
   const tryPin=()=>{
@@ -2749,6 +2863,13 @@ function AdminPanel({diagDb,onSave,onClose}){
                entries.some(e=>(e.diagnose||"").toLowerCase().includes(q)||(e.icd5||"").toLowerCase().includes(q));
       })
     : allIds;
+  const filteredSekIds = search.trim()
+    ? sekAllIds.filter(id=>{
+        const q=search.toLowerCase();
+        const row=sekDraft[id]||{};
+        return id.includes(q)||(row.diagnose||"").toLowerCase().includes(q)||(row.icd5||"").toLowerCase().includes(q);
+      })
+    : sekAllIds;
 
   return(
     <div className="admin-overlay" onClick={onClose}>
@@ -2769,16 +2890,35 @@ function AdminPanel({diagDb,onSave,onClose}){
           </div>
         ):(
           <>
+            {/* Tab bar */}
+            <div style={{display:"flex",background:"#1a1208",borderBottom:"2px solid #c8a070",flexShrink:0}}>
+              {[["risiko","🦴 Risikofaktoren"],["sek","🔎 Sekundäre Osteoporose"]].map(([key,label])=>(
+                <button key={key} onClick={()=>setActiveTab(key)}
+                  style={{padding:"10px 20px",border:"none",cursor:"pointer",
+                    fontFamily:"'Source Sans 3',sans-serif",fontSize:13,fontWeight:700,
+                    background:activeTab===key?"#c8a070":"transparent",
+                    color:activeTab===key?"#1a1208":"#c8a070",
+                    borderBottom:activeTab===key?"2px solid #c8a070":"2px solid transparent",
+                    marginBottom:-2,transition:"all .15s"}}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
             {/* Search bar + info */}
             <div style={{padding:"8px 14px",background:"#fef9f4",borderBottom:"1px solid #ece5d8",
               display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",flexShrink:0}}>
               <input
                 value={search} onChange={e=>setSearch(e.target.value)}
-                placeholder="🔍 Suche nach Kennung, Frage oder Diagnose…"
+                placeholder={activeTab==="risiko"
+                  ?"🔍 Suche nach Kennung, Frage oder Diagnose…"
+                  :"🔍 Suche nach Erkrankung oder ICD-Code…"}
                 style={{flex:1,minWidth:180,padding:"6px 10px",border:"1.5px solid #d4c4a8",
                   borderRadius:5,fontSize:12.5,fontFamily:"inherit",outline:"none"}}/>
               <span style={{fontSize:11,color:"#a09080",whiteSpace:"nowrap"}}>
-                {filteredIds.length} / {allIds.length} Einträge
+                {activeTab==="risiko"
+                  ? `${filteredIds.length} / ${allIds.length} Einträge`
+                  : `${filteredSekIds.length} / ${sekAllIds.length} Einträge`}
               </span>
               <span style={{fontSize:11,color:"#7a6a58"}}>
                 ICD-10: Buchstabe + 2 Ziffern + Punkt + 2 Ziffern + G&nbsp;&nbsp;·&nbsp;&nbsp;Rote Felder = ungültiges Format
@@ -2787,7 +2927,7 @@ function AdminPanel({diagDb,onSave,onClose}){
 
             {/* Card list */}
             <div className="admin-scroll">
-              {filteredIds.map(id=>{
+              {activeTab==="risiko" ? filteredIds.map(id=>{
                 const row = draft[id]||{};
                 const entries = normEntries(row);
                 const def = DIAG_DB_DEFAULTS[id]||{};
@@ -2844,7 +2984,96 @@ function AdminPanel({diagDb,onSave,onClose}){
                     </div>
                   </div>
                 );
-              })}
+              }) : (()=>{
+              // ── SEK TAB ──────────────────────────────────────────────
+              const filteredSekIds2 = search.trim()
+                ? sekAllIds.filter(id=>{
+                    const q=search.toLowerCase();
+                    const row=sekDraft[id]||{};
+                    return id.includes(q)||(row.diagnose||"").toLowerCase().includes(q)||(row.icd5||"").toLowerCase().includes(q);
+                  })
+                : sekAllIds;
+              // Section labels for each sym key (from SEK_PROFILE)
+              const sekSectionMap={
+                hpth:"Hormonell",cushing:"Hormonell",hypogonadismus:"Hormonell",
+                hypogonadismus_f:"Hormonell",hyperthyreose:"Hormonell",
+                akromegalie:"Hormonell",prolaktinom:"Hormonell",
+                zoeliakie:"Gastro/Absorption",ced:"Gastro/Absorption",
+                vit_d:"Gastro/Absorption",malabsorption:"Gastro/Absorption",
+                lebererkrankung:"Gastro/Absorption",
+                nieren:"Nieren/Elektrolyte",rta_bartter:"Nieren/Elektrolyte",
+                hypercalciurie:"Nieren/Elektrolyte",
+                myelom:"Hämatologie",mastozytose:"Hämatologie",
+                haemochromatose:"Hämatologie",
+                sarkoidose:"Immunsystem",psa:"Immunsystem",
+                vaskulitis:"Immunsystem",hiv_ost:"Immunsystem",
+                immo_neuro:"Neurologie/Lebensstil",essstoerung:"Neurologie/Lebensstil",
+                alkohol_ost:"Neurologie/Lebensstil",
+                oi:"Genetisch/Selten",xlh:"Genetisch/Selten",hpp:"Genetisch/Selten",
+                tio:"Genetisch/Selten",paget:"Genetisch/Selten",
+                marfan:"Genetisch/Selten",eds:"Genetisch/Selten",
+                gaucher:"Genetisch/Selten",turner:"Genetisch/Selten",
+                klinefelter:"Genetisch/Selten",seltene_metabolisch:"Genetisch/Selten",
+              };
+              const groupOrder=["Hormonell","Gastro/Absorption","Nieren/Elektrolyte",
+                "Hämatologie","Immunsystem","Neurologie/Lebensstil","Genetisch/Selten"];
+              const grouped={};
+              for(const id of filteredSekIds2){
+                const grp=sekSectionMap[id]||"Sonstige";
+                if(!grouped[grp])grouped[grp]=[];
+                grouped[grp].push(id);
+              }
+              return groupOrder.flatMap(grp=>{
+                if(!(grp in grouped))return[];
+                return[
+                  <div key={"grp-"+grp} style={{
+                    padding:"6px 10px",fontSize:10.5,fontWeight:700,
+                    color:"#c8a070",textTransform:"uppercase",letterSpacing:"1px",
+                    background:"#1e1208",borderRadius:5,marginBottom:4,marginTop:8}}>
+                    {grp}
+                  </div>,
+                  ...grouped[grp].map(id=>{
+                    const row=sekDraft[id]||{};
+                    const icdOk=validateIcd(row.icd5);
+                    const profile=SEK_PROFILE[id]||{};
+                    return(
+                      <div key={id} className="admin-card">
+                        <div className="admin-card-header">
+                          <span className="admin-card-id">{id}</span>
+                          <span className="admin-card-label" style={{fontStyle:"italic",color:"#5a4a30"}}>
+                            {profile.label||id}
+                          </span>
+                        </div>
+                        <div className="admin-card-body">
+                          <div className="admin-diag-labels">
+                            <span className="admin-diag-col-label">Diagnose-Bezeichnung (Textexport)</span>
+                            <span className="admin-diag-col-label">ICD-10-GM (Haupt)</span>
+                            <span></span>
+                          </div>
+                          <div className="admin-diag-row">
+                            <input className="admin-input"
+                              value={row.diagnose||""}
+                              placeholder="Diagnosebezeichnung für Export…"
+                              onChange={e=>setSekDraft(d=>({...d,[id]:{...d[id],diagnose:e.target.value}}))}/>
+                            <input className={"admin-icd-input"+(icdOk?"":" invalid")}
+                              value={row.icd5||""}
+                              placeholder="z. B. E21.0G"
+                              onChange={e=>setSekDraft(d=>({...d,[id]:{...d[id],icd5:e.target.value.toUpperCase()}}))}/>
+                            <span style={{width:26}}/>
+                          </div>
+                          {profile.hinweis&&(
+                            <div style={{fontSize:11,color:"#8b7060",marginTop:5,
+                              borderLeft:"2px solid #d4c4a8",paddingLeft:8,lineHeight:1.5}}>
+                              {profile.hinweis.slice(0,160)}{profile.hinweis.length>160?"…":""}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ];
+              });
+            })()}
             </div>
 
             <div className="admin-footer">
@@ -2865,6 +3094,7 @@ function App(){
   const[printHint,setPrintHint]=useState(false);
   const[showDlModal,setShowDlModal]=useState(null);
   const[diagDb,setDiagDb]=useState(DIAG_DB_DEFAULTS);
+  const[sekDiagDb,setSekDiagDb]=useState(SEK_DIAG_DB_DEFAULTS);
   const[adminOpen,setAdminOpen]=useState(false);
   const[adminPin,setAdminPin]=useState("");
   const[adminUnlocked,setAdminUnlocked]=useState(false);
@@ -2897,6 +3127,7 @@ function App(){
         if(draft.patient)setPatient(p=>({...p,...draft.patient,fillDate:today}));
       }
       const savedDb=await loadDiagDbAsync();setDiagDb(savedDb);
+      setSekDiagDb(loadSekDiagDb());
       const sess=await idbLoadAll();
       setSessions(sess.sort((a,b)=>b.id.localeCompare(a.id)));
     })();
@@ -2972,7 +3203,7 @@ function App(){
     await saveSession();
     const r=computeRisk(answers,gender);
     const d=prevSession?computeDiff(answers,prevSession,gender):null;
-    const text=buildTextExport(patient,gender,answers,r,d,lh,diagDb);
+    const text=buildTextExport(patient,gender,answers,r,d,lh,diagDb,sekDiagDb);
     setViewer({type:"txt",content:text});
   };
   const handlePrint=async()=>{
@@ -3191,8 +3422,10 @@ function App(){
       </div>
 
             {adminOpen&&(
-        <AdminPanel diagDb={diagDb} onClose={()=>{setAdminOpen(false);setAdminPin("");}}
-          onSave={db=>{setDiagDb(db);saveDiagDb(db);}}/>
+        <AdminPanel diagDb={diagDb} sekDiagDb={sekDiagDb}
+          onClose={()=>{setAdminOpen(false);setAdminPin("");}}
+          onSave={db=>{setDiagDb(db);saveDiagDb(db);}}
+          onSaveSek={db=>{setSekDiagDb(db);saveSekDiagDb(db);}}/>
       )}
             {camOpen&&(
         <CameraScanner onMedsFound={handleCamMeds} onClose={()=>setCamOpen(false)}/>
