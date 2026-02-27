@@ -2076,7 +2076,7 @@ function SecondaryPanel({answers}){
             Bei den angegebenen Symptomen ergeben sich aktuell keine konkreten Hinweise auf eine abklärungsbedürftige sekundäre Osteoporoseform.
             <br/>Falls klinisch ein Verdacht besteht, bitte die entsprechenden Symptome oben eintragen.
           </div>
-        ) : sek.map(({sym,count,profile})=>(
+        ) : sek.map(({sym,count,hits,profile})=>(
           <div key={sym} className="sek-item">
             <div className="sek-item-header">
               <div className="sek-item-label">{profile.label}</div>
