@@ -940,7 +940,7 @@ function Question({q,value,onChange,answered,rxValue,onRx}){
       <div className="q-label">{q.label}</div>
       {q.hint&&<div className="q-hint">{q.hint}</div>}
       {q.meds&&(value==="ja"||(value&&value!=="Nein"&&!value.startsWith("Nein")))&&(
-        <MedInput qid={q.id} meds={q.meds} rxValue={rxValue} onRx={onRx} autoOpen={value==="ja"}/>
+        <MedInput qid={q.id} meds={q.meds} rxValue={rxValue} onRx={onRx} autoOpen={value==="ja"||(q.t==="radio"&&!!value&&value!=="Nein")}/>
       )}
       {q.t==="yn"&&yn()}
       {q.t==="radio"&&radio()}

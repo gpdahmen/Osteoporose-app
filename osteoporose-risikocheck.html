@@ -2012,7 +2012,7 @@ function Question({
     meds: q.meds,
     rxValue: rxValue,
     onRx: onRx,
-    autoOpen: value === "ja"
+    autoOpen: value === "ja" || q.t === "radio" && !!value && value !== "Nein"
   }), q.t === "yn" && yn(), q.t === "radio" && radio(), q.t === "number" && numIn(), q.t === "dxa" && dxaIn());
 }
 function Section({
