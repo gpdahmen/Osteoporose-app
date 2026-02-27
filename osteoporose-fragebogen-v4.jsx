@@ -448,17 +448,22 @@ const SECTIONS=[
     {id:"wirbelbruch_akut",t:"yn",label:"Haben Sie in den letzten 12 Monaten einen Knochen in der Wirbelsäule gebrochen?",faktor:2.9,icd:"S22, M80.08"},
     {id:"wirbelbruch_anz",t:"radio",label:"Haben Sie früher einen Knochen in der Wirbelsäule gebrochen – vor mehr als einem Jahr?",icd:"M80.08",
       opts:["Keiner","1 Wirbelbruch","2 Wirbelbrüche","3 oder mehr Wirbelbrüche"],
-      fmap:{"1 Wirbelbruch":2.0,"2 Wirbelbrüche":2.9,"3 oder mehr Wirbelbrüche":5.0}},
+      fmap:{"1 Wirbelbruch":2.0,"2 Wirbelbrüche":2.9,"3 oder mehr Wirbelbrüche":5.0},
+      hint:"1 Fraktur=×2,0 | 2=×2,9 | 3+=×5,0. Alternativ Genant-Grad verwenden (s. u.). Immer nur ein WKFx-Faktor einsetzen – der stärkste gilt."},
+    {id:"genant",t:"radio",
+      label:"Wenn ein Röntgenbefund der Wirbelsäule vorliegt: Welcher Schweregrad nach Genant wurde festgestellt?",
+      fmap:{"Grad 1 (leicht, 20–25 % Höhenverlust)":2.0,"Grad 2 (mittelgradig, 25–40 % Höhenverlust)":2.9,"Grad 3 (schwer, > 40 % Höhenverlust)":5.0},
+      hint:"Der Genant-Schweregrad ist eine Alternative zur Frakturanzahl – es gilt immer der stärkste WKFx-Faktor. Beispiel: Grad 3 (×5,0) überschreibt '2 Wirbelbrüche' (×2,9). Nur ein WKFx-Faktor darf multipliziert werden."},
     {id:"humerus",t:"yn",label:"Haben Sie jemals den Oberarmknochen gebrochen?",faktor:1.7,icd:"S42.2, M80.02"},
     {id:"becken",t:"yn",label:"Haben Sie jemals einen Knochen im Becken gebrochen?",faktor:1.7,icd:"S32, M80.0"},
     {id:"unterarm",t:"yn",label:"Haben Sie jemals den Unterarmknochen (Speiche) gebrochen?",faktor:1.6,icd:"S52, M80.03"},
-    {id:"eltern",t:"yn",label:"Hat Ihre Mutter oder Ihr Vater jemals einen Hüftbruch gehabt?",faktor:1.3,icd:"Z82.61",hint:"Nur relevant bis zum 75. Lebensjahr."},
+    {id:"eltern",t:"yn",label:"Hat Ihre Mutter oder Ihr Vater jemals einen Hüftbruch gehabt?",faktor:1.3,icd:"Z82.61",hint:"Ältere Wirbelkörperfrakturen: 1 Fraktur=×2,0 | 2=×2,9 | 3+=×5,0. Alternativ nach Genant-Schweregrad: Grad 1=×2,0 | Grad 2=×2,9 | Grad 3=×5,0. Die stärkste Konstellation (Anzahl oder Grad) gilt – immer nur ein WKFx-Faktor in die Berechnung einsetzen.",,
   ]},
   {id:"meds",icon:"💊",title:"Medikamente – Knochen & Sturzrisiko",sub:"Regelmäßig eingenommene Medikamente mit Einfluss auf Knochen oder Sturzrisiko",qs:[
     {id:"glukokortikoide",t:"radio",label:"Nehmen Sie Kortison-Tabletten – seit mehr als 3 Monaten?\nBeispiele: Prednisolon, Decortin®",
       hint:"Kortison-Tabletten und -Säfte hemmen den Knochenaufbau stark. Asthma-Inhalationssprays und Nasensprays zählen nicht.",icd:"Z79.52, M81.4",
       opts:["Nein","Sehr niedrige Dosis (< 2,5 mg Prednisolon/Tag)","Mittlere Dosis (2,5–7,5 mg Prednisolon/Tag)","Hohe Dosis (> 7,5 mg Prednisolon/Tag)","Hohe Dosis – erst kürzlich begonnen oder erhöht"],
-      fmap:{"Sehr niedrige Dosis (< 2,5 mg Prednisolon/Tag)":1.4,"Mittlere Dosis (2,5–7,5 mg Prednisolon/Tag)":2.0,"Hohe Dosis (> 7,5 mg Prednisolon/Tag)":2.9,"Hohe Dosis – erst kürzlich begonnen oder erhöht":4.9},
+      fmap:{"Sehr niedrige Dosis (< 2,5 mg Prednisolon/Tag)":1.4,"Mittlere Dosis (2,5–7,5 mg Prednisolon/Tag)":2.3,"Hohe Dosis (> 7,5 mg Prednisolon/Tag)":4.0,"Hohe Dosis – erst kürzlich begonnen oder erhöht":4.9},
       meds:M("Orale Glukokortikoide",["Prednisolon (Decortin®, Prednigalen®, Prednisolon GALEN®, Prednisolon AL®, Hefasolon®)","Methylprednisolon (Medrol®, Urbason®, Methylprednisolon JENAPHARM®)","Dexamethason (Fortecortin®, Dexa-ratiopharm®, Dexabene®, Dexamethason JENAPHARM®)","Betamethason (Celestamine® N, Celestan®)","Prednison (Prednison acis®)","Cortison (Cortison CIBA®)","Triamcinolon (Volon A®, Triamhexal®)","Budesonid oral (Budenofalk®, Entocort®)","Hydrocortison (Hydrocortison GALEN®, Kortison H Hoechst®)","Deflazacort (Calcort®)"])},
     {id:"ppi",t:"yn",label:"Nehmen Sie täglich Tabletten gegen Sodbrennen oder Magensäure – seit mehr als 3 Monaten?\nBeispiele: Omeprazol, Pantoprazol, Nexium®",faktor:1.4,icd:"Z79.899",
       hint:"Gemeint sind Protonenpumpenhemmer wie Pantoprazol oder Omeprazol. Sie werden oft langfristig verordnet und können die Kalziumaufnahme vermindern.",
@@ -516,7 +521,7 @@ const SECTIONS=[
       hint:"Typ-1-Diabetes beginnt meist im Kindes- oder Jugendalter und erfordert immer Insulin."},
     {id:"diabetes2",t:"radio",label:"Haben Sie Typ-2-Diabetes (Altersdiabetes)? Wenn ja: Seit wie vielen Jahren?",icd:"E11",
       hint:"Typ-2-Diabetes beginnt meist im Erwachsenenalter, oft behandelt mit Tabletten oder Insulin.",
-      opts:["Nein","Seit 5–10 Jahren","Seit über 10 Jahren"],fmap:{"Seit 5–10 Jahren":1.1,"Seit über 10 Jahren":1.6}},
+      opts:["Nein","Seit 5–10 Jahren","Seit über 10 Jahren"],fmap:{"Seit 5–10 Jahren":1.2,"Seit über 10 Jahren":1.6}},
     {id:"hpth",t:"yn",label:"Hat Ihr Arzt festgestellt, dass Ihre Nebenschilddrüse überaktiv ist?\nDer Fachbegriff ist primärer Hyperparathyreoidismus.",faktor:2.2,icd:"E21.0",
       hint:"Die Nebenschilddrüsen (vier kleine Drüsen am Hals) steuern den Kalziumhaushalt. Bei dieser Erkrankung ist der Kalziumspiegel im Blut dauerhaft erhöht."},
     {id:"cushing",t:"yn",label:"Hat Ihr Arzt ein Cushing-Syndrom bei Ihnen festgestellt? Dabei ist das Stresshormon Kortisol dauerhaft zu hoch.",faktor:2.5,icd:"E24",
@@ -537,7 +542,7 @@ const SECTIONS=[
       hint:"Das Herz pumpt nicht mehr ausreichend Blut durch den Körper. Typische Zeichen: Luftnot, geschwollene Beine."},
     {id:"nieren",t:"yn",label:"Haben Sie eine chronische Nierenerkrankung oder eine eingeschränkte Nierenfunktion?",faktor:1.6,icd:"N18.3, N18.4",
       hint:"Gemeint ist eine dauerhaft auf weniger als 60 % reduzierte Nierenleistung (Kreatinin erhöht, GFR 15–59 ml/min)."},
-    {id:"copd",t:"yn",label:"Haben Sie eine chronische Lungenerkrankung wie COPD, chronische Bronchitis oder Lungenemphysem?",faktor:1.3,icd:"J44",
+    {id:"copd",t:"yn",label:"Haben Sie eine chronische Lungenerkrankung wie COPD, chronische Bronchitis oder Lungenemphysem?",faktor:1.5,icd:"J44",
       hint:"COPD ist eine chronische Lungenerkrankung, meist durch langjähriges Rauchen verursacht."},
     {id:"lupus",t:"yn",label:"Haben Sie Lupus? Der Fachbegriff ist systemischer Lupus erythematodes (SLE).",faktor:1.5,icd:"M32",
       hint:"Lupus ist eine Autoimmunerkrankung, die viele Organe betreffen kann."},
@@ -563,7 +568,7 @@ const SECTIONS=[
   {id:"lebensstil",icon:"🚶",title:"Lebensstil & Sturzrisiko",sub:"Allgemeine Risikofaktoren und Sturzereignisse",qs:[
     {id:"rauchen",t:"yn",label:"Rauchen Sie zurzeit mehr als 10 Zigaretten am Tag?",faktor:1.5,icd:"F17.2, Z72.0"},
     {id:"alkohol",t:"yn",label:"Trinken Sie täglich Alkohol – mehr als 4 Bier oder mehr als 2 Gläser Wein?",faktor:1.9,icd:"F10.1, Z72.1"},
-    {id:"immobilitaet",t:"yn",label:"Sind Sie auf einen Rollator, Gehstock oder Rollstuhl angewiesen?",faktor:1.3,icd:"Z74.0"},
+    {id:"immobilitaet",t:"yn",label:"Sind Sie auf einen Rollator, Gehstock oder Rollstuhl angewiesen?",faktor:1.7,icd:"Z74.0"},
     {id:"sturz",t:"radio",label:"Sind Sie in den letzten 12 Monaten gestürzt?",icd:"W19",
       opts:["Nein","Einmal gestürzt","Mehr als einmal gestürzt"],
       fmap:{"Einmal gestürzt":1.6,"Mehr als einmal gestürzt":2.0}},
@@ -752,6 +757,7 @@ const SECTIONS=[
 /* ═══════════════════════════════════════════════ RISK CALC ═══ */
 const STURZ_GRP=new Set(["schlaganfall","ms","parkinson","epilepsie","demenz","depression","immobilitaet","sturz","tug","antidepressiva","opioide","antipsychotika","sedativa","orthostase"]);
 const GC_RA_GRP=new Set(["glukokortikoide","rheuma"]);
+const WKFx_GRP=new Set(["wirbelbruch_akut","wirbelbruch_anz","genant"]);
 const calcBMI=(h,w)=>{if(!h||!w||h<100||w<20)return null;return w/((h/100)**2);};
 function calcAgeFromBirthdate(dob){
   if(!dob||dob.trim().length<4)return null;
@@ -797,6 +803,7 @@ const DIAG_DB_DEFAULTS = {
   wirbelbruch_anz:  {diagnose:"Wirbelkörperfrakturen (niedrigtraumatisch, > 12 Monate)",           icd5:"M80.08G",          icd5_f_meno:"M80.08G",         icd5_m:"M80.58G"},
   humerus:          {diagnose:"Humerusfraktur (niedrigtraumatisch)",                               icd5:"M80.02G",          icd5_f_meno:"M80.02G",         icd5_m:"M80.52G"},
   becken:           {diagnose:"Beckenfraktur (niedrigtraumatisch)",                                icd5:"M80.0XG",          icd5_f_meno:"M80.0XG",         icd5_m:"M80.5XG"},
+  genant:           {diagnose:"Wirbelkörperfraktur (nach Genant-Schweregrad klassifiziert)",    icd5:"M80.08G", icd5_f_meno:"M80.08G", icd5_m:"M80.58G"},
   unterarm:         {diagnose:"Distale Radiusfraktur (niedrigtraumatisch)",                        icd5:"M80.03G",          icd5_f_meno:"M80.03G",         icd5_m:"M80.53G"},
   eltern:           {diagnose:"Familienanamnese: proximale Femurfraktur (Elternteil)",             icd5:"Z82.61G"},
   bmi:              {diagnose:"Untergewicht / Malnutrition",                                       icd5:"E44.90G"},
@@ -977,7 +984,7 @@ function getFactors(answers,gender){
     if(q.t==="yn"&&val==="ja"&&q.faktor)f=q.faktor;
     else if((q.t==="radio")&&q.fmap&&q.fmap[val])f=q.fmap[val];
     if(!f)continue;
-    const grp=STURZ_GRP.has(q.id)?"sturz":GC_RA_GRP.has(q.id)?"gc_ra":"other";
+    const grp=STURZ_GRP.has(q.id)?"sturz":GC_RA_GRP.has(q.id)?"gc_ra":WKFx_GRP.has(q.id)?"wkfx":"other";
     const label=q.t==="yn"?q.label.replace("?",""):val;
     res.push({id:q.id,label,faktor:f,icd:q.icd||"",grp});
   }
@@ -990,7 +997,9 @@ function selectTop2(factors){
   for(const f of s.slice(1)){
     if(sel.length>=2)break;
     const first=sel[0];
-    if((first.grp==="sturz"&&f.grp==="sturz")||(first.grp==="gc_ra"&&f.grp==="gc_ra"))continue;
+    // Same exclusive group → skip (only one per group)
+    const sameGrp=(grp)=>first.grp===grp&&f.grp===grp;
+    if(sameGrp("sturz")||sameGrp("gc_ra")||sameGrp("wkfx"))continue;
     sel.push(f);
   }
   return sel;
