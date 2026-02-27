@@ -1762,7 +1762,7 @@ function App(){
         )}
 
         <div className="disclaimer" style={{marginTop:18}}>
-          <strong>DVO-Leitlinie 2023</strong> · AWMF-Register 183-001, Version 2.1 · November 2023 / Juni 2024
+          Auswertung in Analogie zur <strong>DVO-Leitlinie 2023</strong> · AWMF-Register 183-001, Version 2.1 · November 2023 / Juni 2024
         </div>
       </div>
 
