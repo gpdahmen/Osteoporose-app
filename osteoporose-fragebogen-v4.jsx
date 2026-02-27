@@ -1265,9 +1265,20 @@ function DvoChart({gender,answers}){
                     const isPatCell=isPatRow&&patColIdx===ci;
                     const cellCls=isPatCell?(patCellCls||cls||""):cls;
                     return(
-                      <td key={ci} className={cellCls+(isPatCell?" current":"")}>
-                        {v!==null?v:"–"}
-                        {isPatCell&&<div style={{fontSize:9,lineHeight:1.1,marginTop:1,opacity:0.85}}>←Sie</div>}
+                      <td key={ci} className={cellCls} style={isPatCell?{
+                        outline:"3px solid #1a1a1a",
+                        outlineOffset:"-2px",
+                        position:"relative",
+                        padding:"4px 6px"
+                      }:{}}>
+                        {isPatCell?(
+                          <>
+                            <div style={{fontSize:11,lineHeight:1.3}}>{v!==null?v:"–"}</div>
+                            <div style={{fontSize:12,fontWeight:900,lineHeight:1.3,marginTop:2,borderTop:"1px solid rgba(0,0,0,0.25)",paddingTop:2}}>
+                              {cF.toFixed(2)}
+                            </div>
+                          </>
+                        ):(v!==null?v:"–")}
                       </td>
                     );
                   })}
