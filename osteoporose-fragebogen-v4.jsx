@@ -988,9 +988,9 @@ function ResultCard({gender,answers,patient,diff}){
   const risk=computeRisk(answers,gender);
   const{factors,top2,cF,t3,t5,t10,r3,r5,r10,genInd,cat}=risk;
   const catInfo={
-    top:{cls:"top",eye:"Sehr hohes Risiko / Generelle Indikation",h:"10%-Schwelle und/oder generelle Indikation",d:"Osteoanabole Therapie (Romosozumab oder Teriparatid) soll unverzüglich empfohlen werden (A)."},
-    high:{cls:"high",eye:"Deutlich erhöhtes Risiko",h:"5%-Schwelle erreicht – Therapie indiziert",d:"Spezifische medikamentöse Therapie soll empfohlen werden (A). Bei 10%-Schwelle: osteoanabole Substanz erwägen."},
-    mod:{cls:"mod",eye:"Mäßig erhöhtes Risiko",h:"3%-Schwelle erreicht – Abklärung empfehlenswert",d:"Spezifische Therapie sollte in Betracht gezogen werden, besonders bei starken/irreversiblen Risikofaktoren (B)."},
+    top:{cls:"top",eye:"Sehr hohes Risiko / Generelle Indikation",h:"10%-Schwelle und/oder generelle Indikation",d:"Osteoanabole Therapie (Romosozumab oder Teriparatid) könnte unverzüglich empfohlen werden (A)."},
+    high:{cls:"high",eye:"Deutlich erhöhtes Risiko",h:"5%-Schwelle erreicht – Therapie indiziert",d:"Spezifische medikamentöse Therapie könnte empfohlen werden (A). Bei 10%-Schwelle: osteoanabole Substanz erwägen."},
+    mod:{cls:"mod",eye:"Mäßig erhöhtes Risiko",h:"3%-Schwelle erreicht – Abklärung empfehlenswert",d:"Spezifische Therapie könnte in Betracht gezogen werden, besonders bei starken/irreversiblen Risikofaktoren (B)."},
     low:{cls:"low",eye:"Kein erhöhtes Risiko erkennbar",h:"Aktuell kein erhöhtes Frakturrisiko",d:"Allgemeine Prophylaxemaßnahmen (Kalzium, Vitamin D, Bewegung) sind empfehlenswert."},
   };
   const info=cat?catInfo[cat]:null;
