@@ -3297,91 +3297,132 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
   const [brushColor,setBrushColor]=useState("#e63946");
   const [brushSize,setBrushSize]=useState(10);
   const [erasing,setErasing]=useState(false);
-  const refs=useRef({});
-  PAIN_VIEWS.forEach(v=>{if(!refs.current[v.id])refs.current[v.id]=React.createRef();});
+
+  // ONE ref per canvas, stored as DOM nodes directly (no createRef duplication)
+  const canvasRefs=useRef({});
   const drawing=useRef(false);
   const lastPos=useRef(null);
 
-  const drawTemplate=useCallback((vid)=>{
-    const canvas=refs.current[vid]?.current;
+  const COLORS=[
+    {c:"#e63946",l:"Starker Schmerz"},
+    {c:"#f4a261",l:"Mäßiger Schmerz"},
+    {c:"#52b788",l:"Gelegentlich"},
+    {c:"#9b5de5",l:"Taubheit / Kribbeln"},
+  ];
+
+  // Convert SVG to base64 data URL (avoids all CSP / blob URL issues)
+  const svgToDataUrl=(svgStr)=>"data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svgStr)));
+
+  const redrawCanvas=(vid)=>{
+    const canvas=canvasRefs.current[vid];
     if(!canvas) return;
     const v=PAIN_VIEWS.find(x=>x.id===vid);
     const ctx=canvas.getContext("2d");
-    // Use data URL (avoids CSP/CORS issues with createObjectURL+SVG)
-    const svgStr=BODY_SVG[vid];
-    const url="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svgStr);
+    ctx.clearRect(0,0,v.w,v.h);
+    ctx.fillStyle="#fffdf8"; ctx.fillRect(0,0,v.w,v.h);
     const img=new Image();
     img.onload=()=>{
-      ctx.clearRect(0,0,v.w,v.h);
-      ctx.fillStyle="#fffdf8";ctx.fillRect(0,0,v.w,v.h);
       ctx.drawImage(img,0,0,v.w,v.h);
       const saved=painMaps[vid];
-      if(saved){const p=new Image();p.onload=()=>ctx.drawImage(p,0,0);p.src=saved;}
+      if(saved){
+        const p=new Image();
+        p.onload=()=>ctx.drawImage(p,0,0,v.w,v.h);
+        p.src=saved;
+      }
     };
     img.onerror=()=>{
-      // Fallback: plain background with label
-      ctx.fillStyle="#fdf6ee";ctx.fillRect(0,0,v.w,v.h);
-      ctx.strokeStyle="#9b7a5a";ctx.lineWidth=1.5;ctx.strokeRect(2,2,v.w-4,v.h-4);
-      ctx.fillStyle="#9b7a5a";ctx.font="bold 13px Arial";ctx.textAlign="center";
-      ctx.fillText(v.label||vid,v.w/2,v.h/2);
+      ctx.fillStyle="#f7f0e8"; ctx.fillRect(0,0,v.w,v.h);
+      ctx.strokeStyle="#9b7a5a"; ctx.lineWidth=2; ctx.strokeRect(4,4,v.w-8,v.h-8);
+      ctx.fillStyle="#9b7a5a"; ctx.font="bold 14px Arial"; ctx.textAlign="center";
+      ctx.fillText(v.label||vid, v.w/2, v.h/2);
     };
-    img.src=url;
-  },[painMaps]);
+    img.src=svgToDataUrl(BODY_SVG[vid]);
+  };
 
+  // Redraw active view whenever painMaps or open changes
   useEffect(()=>{
     if(!open) return;
-    PAIN_VIEWS.forEach(v=>setTimeout(()=>drawTemplate(v.id),60));
-  },[open]);
+    const t=setTimeout(()=>redrawCanvas(activeView),30);
+    return ()=>clearTimeout(t);
+  },[open,activeView,painMaps]);
 
+  // Redraw ALL views on open (so saved marks are restored)
   useEffect(()=>{
-    if(open) setTimeout(()=>drawTemplate(activeView),30);
-  },[activeView,open]);
+    if(!open) return;
+    const t=setTimeout(()=>PAIN_VIEWS.forEach(v=>redrawCanvas(v.id)),80);
+    return ()=>clearTimeout(t);
+  },[open]);
 
   const getPos=(e,canvas)=>{
     const r=canvas.getBoundingClientRect();
     const sx=canvas.width/r.width, sy=canvas.height/r.height;
-    if(e.touches){const t=e.touches[0];return{x:(t.clientX-r.left)*sx,y:(t.clientY-r.top)*sy};}
-    return{x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy};
+    if(e.touches){
+      const t=e.touches[0];
+      return{x:(t.clientX-r.left)*sx, y:(t.clientY-r.top)*sy};
+    }
+    return{x:(e.clientX-r.left)*sx, y:(e.clientY-r.top)*sy};
   };
+
   const startDraw=(e,vid)=>{
-    e.preventDefault();drawing.current=true;
-    const canvas=refs.current[vid].current;
-    const pos=getPos(e,canvas);lastPos.current=pos;
+    e.preventDefault();
+    const canvas=canvasRefs.current[vid];
+    if(!canvas) return;
+    drawing.current=true;
+    const pos=getPos(e,canvas);
+    lastPos.current=pos;
     const ctx=canvas.getContext("2d");
-    ctx.beginPath();ctx.arc(pos.x,pos.y,brushSize/2,0,Math.PI*2);
-    ctx.fillStyle=erasing?"#fffdf8":brushColor;ctx.globalAlpha=erasing?1:0.72;ctx.fill();ctx.globalAlpha=1;
+    ctx.beginPath();
+    ctx.arc(pos.x,pos.y,brushSize/2,0,Math.PI*2);
+    ctx.fillStyle=erasing?"#fffdf8":brushColor;
+    ctx.globalAlpha=erasing?1:0.72;
+    ctx.fill();
+    ctx.globalAlpha=1;
   };
+
   const doDraw=(e,vid)=>{
-    if(!drawing.current) return;e.preventDefault();
-    const canvas=refs.current[vid].current;
+    if(!drawing.current) return;
+    e.preventDefault();
+    const canvas=canvasRefs.current[vid];
+    if(!canvas) return;
     const pos=getPos(e,canvas);
     const ctx=canvas.getContext("2d");
-    ctx.beginPath();ctx.moveTo(lastPos.current.x,lastPos.current.y);ctx.lineTo(pos.x,pos.y);
-    ctx.strokeStyle=erasing?"#fffdf8":brushColor;ctx.lineWidth=brushSize;
-    ctx.lineCap="round";ctx.lineJoin="round";ctx.globalAlpha=erasing?1:0.72;ctx.stroke();ctx.globalAlpha=1;
+    ctx.beginPath();
+    ctx.moveTo(lastPos.current.x,lastPos.current.y);
+    ctx.lineTo(pos.x,pos.y);
+    ctx.strokeStyle=erasing?"#fffdf8":brushColor;
+    ctx.lineWidth=brushSize;
+    ctx.lineCap="round"; ctx.lineJoin="round";
+    ctx.globalAlpha=erasing?1:0.72;
+    ctx.stroke();
+    ctx.globalAlpha=1;
     lastPos.current=pos;
   };
+
   const endDraw=(vid)=>{
-    if(!drawing.current) return;drawing.current=false;
-    const canvas=refs.current[vid]?.current;
+    if(!drawing.current) return;
+    drawing.current=false;
+    const canvas=canvasRefs.current[vid];
     if(canvas) setPainMaps(pm=>({...pm,[vid]:canvas.toDataURL()}));
   };
+
   const clearView=(vid)=>{
-    setPainMaps(pm=>({...pm,[vid]:null}));setTimeout(()=>drawTemplate(vid),20);
+    setPainMaps(pm=>({...pm,[vid]:null}));
+    setTimeout(()=>redrawCanvas(vid),20);
   };
 
-  const hasDrawing=Object.values(painMaps).some(Boolean);
-  const COLORS=[{c:"#e63946",l:"Starker Schmerz"},{c:"#f4a261",l:"Mäßiger Schmerz"},{c:"#2a9d8f",l:"Gelegentlich"},{c:"#6a0dad",l:"Taubheit/Kribbeln"}];
+  const hasDrawing=Object.values(painMaps).some(v=>v);
+  const av=PAIN_VIEWS.find(v=>v.id===activeView)||PAIN_VIEWS[0];
+  const isBody=av.w===200;
 
   return(
-    <div className="section-card pain-section" style={{overflow:"hidden",marginBottom:12}}>
+    <div className="section-card" style={{marginBottom:12,overflow:"hidden"}}>
       <div className="section-header" onClick={onToggle} style={{cursor:"pointer",userSelect:"none"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <span style={{fontSize:18}}>✏️</span>
           <div>
             <div style={{fontWeight:700,fontSize:15}}>Schmerzzeichnung</div>
             <div style={{fontSize:12,color:"#9b8a7a",fontWeight:400}}>
-              Schmerzbereiche mit Finger oder Stift einzeichnen – Körpervorder-/rückseite und Hände
+              Schmerzbereiche mit Finger oder Stift einzeichnen
               {hasDrawing&&<span style={{marginLeft:8,color:"#e63946",fontWeight:600,fontSize:11}}>● Eingezeichnet</span>}
             </div>
           </div>
@@ -3396,87 +3437,135 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
             <span style={{fontSize:12,fontWeight:700,color:"#6b5a4a"}}>Farbe:</span>
             {COLORS.map(({c,l})=>(
               <button key={c} title={l} onClick={()=>{setBrushColor(c);setErasing(false);}}
-                style={{width:26,height:26,borderRadius:"50%",background:c,cursor:"pointer",
-                  border:brushColor===c&&!erasing?"3px solid #444":"2px solid #ccc",flexShrink:0}}/>
+                style={{width:30,height:30,borderRadius:"50%",background:c,cursor:"pointer",
+                  border:brushColor===c&&!erasing?"3px solid #333":"2px solid #ccc",flexShrink:0}}/>
             ))}
-            <span style={{marginLeft:6,fontSize:12,fontWeight:700,color:"#6b5a4a"}}>Größe:</span>
-            {[6,11,20].map((sz,i)=>(
+            <span style={{fontSize:12,fontWeight:700,color:"#6b5a4a",marginLeft:8}}>Größe:</span>
+            {[[6,"S"],[12,"M"],[22,"L"],[36,"XL"]].map(([sz,lbl])=>(
               <button key={sz} onClick={()=>setBrushSize(sz)}
-                style={{padding:"3px 8px",borderRadius:5,fontFamily:"inherit",cursor:"pointer",fontSize:12,
-                  border:brushSize===sz?"2px solid #9b7a5a":"1px solid #ccc",
-                  background:brushSize===sz?"#f7efe0":"white"}}>
-                {["S","M","L"][i]}
+                style={{padding:"3px 9px",borderRadius:5,fontFamily:"inherit",fontSize:12,cursor:"pointer",
+                  border:brushSize===sz?"2px solid #9b7a5a":"1px solid #c8b8a0",
+                  background:brushSize===sz?"#f7efe0":"white",fontWeight:brushSize===sz?700:400}}>
+                {lbl}
               </button>
             ))}
             <button onClick={()=>setErasing(e=>!e)}
-              style={{padding:"3px 10px",borderRadius:5,fontFamily:"inherit",cursor:"pointer",fontSize:12,marginLeft:4,
-                border:erasing?"2px solid #e63946":"1px solid #ccc",background:erasing?"#fee2e2":"white"}}>
-              🧹 Radieren{erasing?" (aktiv)":""}
+              style={{padding:"3px 10px",borderRadius:5,fontFamily:"inherit",fontSize:12,cursor:"pointer",
+                border:erasing?"2px solid #dc2626":"1px solid #c8b8a0",
+                background:erasing?"#fee2e2":"white",fontWeight:erasing?700:400,marginLeft:4}}>
+              ✦ Radierer {erasing?"(aktiv)":""}
             </button>
             <button onClick={()=>clearView(activeView)}
-              style={{padding:"3px 10px",borderRadius:5,fontFamily:"inherit",cursor:"pointer",fontSize:12,
-                border:"1px solid #d8c8b0",background:"white",color:"#8b5a3a"}}>
-              ✕ Diese Ansicht löschen
+              style={{padding:"3px 10px",borderRadius:5,fontFamily:"inherit",fontSize:12,cursor:"pointer",
+                border:"1px solid #fca5a5",background:"#fff1f2",color:"#b91c1c",marginLeft:4}}>
+              🗑 Diese Ansicht löschen
             </button>
           </div>
 
           {/* Tabs */}
           <div className="pain-tabs pain-no-print">
             {PAIN_VIEWS.map(v=>(
-              <button key={v.id} onClick={()=>setActiveView(v.id)}
+              <button key={v.id}
                 className="pain-tab"
-                style={{borderBottom:activeView===v.id?"none":"1px solid #d8c8b0",
+                onClick={()=>setActiveView(v.id)}
+                style={{
                   background:activeView===v.id?"white":"#f7f0e6",
                   fontWeight:activeView===v.id?700:400,
-                  color:activeView===v.id?"var(--P)":"#9b8a7a",
-                  position:"relative",zIndex:activeView===v.id?2:1}}>
+                  borderBottom:activeView===v.id?"2px solid white":"none",
+                  zIndex:activeView===v.id?2:1,position:"relative",marginBottom:-1,
+                }}>
+                {painMaps[v.id]&&<span style={{color:"#e63946",marginRight:3,fontSize:10}}>●</span>}
                 {v.short}
-                {painMaps[v.id]&&<span style={{marginLeft:3,color:"#e63946",fontSize:9}}>●</span>}
               </button>
             ))}
           </div>
 
-          {/* Active canvas – screen only */}
-          <div className="pain-canvas-area pain-no-print">
+          {/* Canvas area – responsive height */}
+          <div className="pain-canvas-area pain-no-print" style={{
+            display:"flex",
+            justifyContent:"center",
+            alignItems:"flex-start",
+            gap:20,
+            padding:"14px 16px 16px",
+            borderTop:"1px solid #d8c8b0",
+            background:"white",
+            flexWrap:"wrap",
+          }}>
             {PAIN_VIEWS.map(v=>{
-              const isBody=v.w===200;
-              const dispW=isBody?220:200, dispH=isBody?506:288;
+              const active=activeView===v.id;
+              const bodyView=v.w===200;
               return(
-                <div key={v.id} style={{display:activeView===v.id?"flex":"none",gap:14,alignItems:"flex-start"}}>
-                  <div style={{width:dispW,height:dispH,border:"1px solid #d8c8b0",borderRadius:8,
-                    overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,.09)",flexShrink:0}}>
-                    <canvas ref={refs.current[v.id]} width={v.w} height={v.h}
-                      style={{width:"100%",height:"100%",display:"block",
-                        touchAction:"none",cursor:erasing?"cell":"crosshair"}}
-                      onMouseDown={e=>startDraw(e,v.id)} onMouseMove={e=>doDraw(e,v.id)}
-                      onMouseUp={()=>endDraw(v.id)} onMouseLeave={()=>endDraw(v.id)}
-                      onTouchStart={e=>startDraw(e,v.id)} onTouchMove={e=>doDraw(e,v.id)}
-                      onTouchEnd={()=>endDraw(v.id)}/>
+                <div key={v.id} style={{display:active?"flex":"none",gap:16,alignItems:"flex-start",width:"100%",justifyContent:"center"}}>
+                  {/* Canvas wrapper – responsive */}
+                  <div style={{
+                    /* Height: fill at least 50vh, up to 90vh on small screens */
+                    height:"clamp(360px, 70vh, 900px)",
+                    aspectRatio:v.w+"/"+v.h,
+                    maxWidth:bodyView?"360px":"clamp(200px,45vw,460px)",
+                    border:"1px solid #d0c0a8",
+                    borderRadius:10,
+                    overflow:"hidden",
+                    boxShadow:"0 3px 14px rgba(0,0,0,.12)",
+                    flexShrink:0,
+                    background:"#fffdf8",
+                    position:"relative",
+                  }}>
+                    <canvas
+                      ref={el=>{if(el) canvasRefs.current[v.id]=el;}}
+                      width={v.w} height={v.h}
+                      style={{width:"100%",height:"100%",display:"block",touchAction:"none",
+                        cursor:erasing?"cell":"crosshair"}}
+                      onMouseDown={e=>startDraw(e,v.id)}
+                      onMouseMove={e=>doDraw(e,v.id)}
+                      onMouseUp={()=>endDraw(v.id)}
+                      onMouseLeave={()=>endDraw(v.id)}
+                      onTouchStart={e=>startDraw(e,v.id)}
+                      onTouchMove={e=>doDraw(e,v.id)}
+                      onTouchEnd={()=>endDraw(v.id)}
+                    />
                   </div>
-                  <div className="pain-legend">
-                    <div style={{fontWeight:700,color:"#5a3e2a",marginBottom:6,fontSize:12}}>{v.label}</div>
-                    <div>Bitte <strong>mit Finger oder Stift</strong> alle Schmerzbereiche einmalen.</div>
-                    <div style={{marginTop:8}}>
-                      {COLORS.map(({c,l})=>(
-                        <div key={c} style={{display:"flex",gap:5,alignItems:"center",marginBottom:2}}>
-                          <span style={{width:12,height:12,borderRadius:"50%",background:c,flexShrink:0,opacity:.85,display:"inline-block"}}/>
-                          <span>{l}</span>
-                        </div>
-                      ))}
-                    </div>
+                  {/* Legend */}
+                  <div style={{fontSize:13,color:"#9b8a7a",lineHeight:2,paddingTop:4,minWidth:150}}>
+                    <div style={{fontWeight:700,color:"#5a3e2a",marginBottom:8,fontSize:14}}>{v.label}</div>
+                    <div style={{marginBottom:10,fontSize:12,lineHeight:1.6}}>Mit Finger, Stift oder Maus Schmerzbereiche einmalen.</div>
+                    {COLORS.map(({c,l})=>(
+                      <div key={c} style={{display:"flex",gap:7,alignItems:"center",marginBottom:4}}>
+                        <span style={{width:16,height:16,borderRadius:"50%",background:c,flexShrink:0,opacity:.85,display:"inline-block",border:"1px solid rgba(0,0,0,.1)"}}/>
+                        <span style={{fontSize:12}}>{l}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Print layout: all 6 views */}
+          {/* Print grid – separate offscreen canvases drawn from painMaps data URLs */}
           <div className="pain-print-grid">
             {PAIN_VIEWS.map(v=>(
               <div key={v.id} style={{textAlign:"center"}}>
-                <div style={{fontWeight:700,fontSize:10,marginBottom:3,color:"#5a3e2a"}}>{v.label}</div>
-                <canvas ref={refs.current[v.id]} width={v.w} height={v.h}
-                  style={{width:"100%",maxWidth:v.w===200?140:110,border:"1px solid #d8c8b0",borderRadius:5,display:"block",margin:"0 auto"}}/>
+                <div style={{fontWeight:700,fontSize:9,marginBottom:2,color:"#5a3e2a"}}>{v.label}</div>
+                <canvas
+                  ref={el=>{
+                    if(el&&painMaps[v.id]){
+                      const ctx=el.getContext("2d");
+                      const bg=new Image(); bg.onload=()=>{
+                        ctx.drawImage(bg,0,0,v.w,v.h);
+                        if(painMaps[v.id]){const p=new Image();p.onload=()=>ctx.drawImage(p,0,0,v.w,v.h);p.src=painMaps[v.id];}
+                      };
+                      bg.src="data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(BODY_SVG[v.id])));
+                    } else if(el){
+                      const ctx=el.getContext("2d");
+                      ctx.fillStyle="#fdf6ee"; ctx.fillRect(0,0,v.w,v.h);
+                      ctx.strokeStyle="#d0c0a8"; ctx.lineWidth=1; ctx.strokeRect(1,1,v.w-2,v.h-2);
+                      const img=new Image();
+                      img.onload=()=>ctx.drawImage(img,0,0,v.w,v.h);
+                      img.src="data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(BODY_SVG[v.id])));
+                    }
+                  }}
+                  width={v.w} height={v.h}
+                  style={{width:"100%",maxWidth:v.w===200?120:90,border:"1px solid #d8c8b0",borderRadius:4,display:"block",margin:"0 auto"}}
+                />
               </div>
             ))}
           </div>
@@ -3485,7 +3574,6 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
     </div>
   );
 }
-
 /* ─── ANAMNESE SECTION ───────────────────────────────────────────────────── */
 function AnamneseSection({gender,data,onChange,open,onToggle}){
   const DEF={diagnosen:[],weitere:[],allergien:[],familienanamnese:[],fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]};
