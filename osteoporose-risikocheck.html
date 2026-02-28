@@ -9816,6 +9816,7 @@ function App() {
   const [sekProfileDb, setSekProfileDb] = useState(() => buildSekProfileDefaults());
   const [sekUntersDb, setSekUntersDb] = useState(() => buildSekUntersDefaults());
   const [sekQsDb, setSekQsDb] = useState(() => buildSekQsDefaults());
+  const [sekScoringDb, setSekScoringDb] = useState(() => buildSekScoringDefaults());
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminPin, setAdminPin] = useState("");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
@@ -10426,6 +10427,7 @@ function App() {
     sekProfileDb: sekProfileDb,
     sekUntersDb: sekUntersDb,
     sekQsDb: sekQsDb,
+    sekScoringDb: sekScoringDb,
     onClose: () => {
       setAdminOpen(false);
       setAdminPin("");
@@ -10449,6 +10451,10 @@ function App() {
     onSaveSekQs: db => {
       setSekQsDb(db);
       saveSekDb(SEK_QS_KEY, db, buildSekQsDefaults);
+    },
+    onSaveSekScoring: db => {
+      setSekScoringDb(db);
+      saveSekDb(SEK_SCORING_KEY, db, buildSekScoringDefaults);
     }
   }), camOpen && /*#__PURE__*/React.createElement(CameraScanner, {
     onMedsFound: handleCamMeds,

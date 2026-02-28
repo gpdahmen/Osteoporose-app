@@ -5507,6 +5507,7 @@ function App(){
   const[sekProfileDb,setSekProfileDb]=useState(()=>buildSekProfileDefaults());
   const[sekUntersDb,setSekUntersDb]=useState(()=>buildSekUntersDefaults());
   const[sekQsDb,setSekQsDb]=useState(()=>buildSekQsDefaults());
+  const[sekScoringDb,setSekScoringDb]=useState(()=>buildSekScoringDefaults());
   const[adminOpen,setAdminOpen]=useState(false);
   const[adminPin,setAdminPin]=useState("");
   const[adminUnlocked,setAdminUnlocked]=useState(false);
@@ -5916,13 +5917,14 @@ function App(){
 
             {adminOpen&&(
         <AdminPanel diagDb={diagDb} sekDiagDb={sekDiagDb}
-          sekProfileDb={sekProfileDb} sekUntersDb={sekUntersDb} sekQsDb={sekQsDb}
+          sekProfileDb={sekProfileDb} sekUntersDb={sekUntersDb} sekQsDb={sekQsDb} sekScoringDb={sekScoringDb}
           onClose={()=>{setAdminOpen(false);setAdminPin("");}}
           onSave={db=>{setDiagDb(db);saveDiagDb(db);}}
           onSaveSek={db=>{setSekDiagDb(db);saveSekDiagDb(db);}}
           onSaveSekProfile={db=>{setSekProfileDb(db);saveSekDb(SEK_PROFILE_KEY,db,buildSekProfileDefaults);}}
           onSaveSekUnters={db=>{setSekUntersDb(db);saveSekDb(SEK_UNTERS_KEY,db,buildSekUntersDefaults);}}
-          onSaveSekQs={db=>{setSekQsDb(db);saveSekDb(SEK_QS_KEY,db,buildSekQsDefaults);}}/>
+          onSaveSekQs={db=>{setSekQsDb(db);saveSekDb(SEK_QS_KEY,db,buildSekQsDefaults);}}
+          onSaveSekScoring={db=>{setSekScoringDb(db);saveSekDb(SEK_SCORING_KEY,db,buildSekScoringDefaults);}}/>
       )}
             {camOpen&&(
         <CameraScanner onMedsFound={handleCamMeds} onClose={()=>setCamOpen(false)}/>
