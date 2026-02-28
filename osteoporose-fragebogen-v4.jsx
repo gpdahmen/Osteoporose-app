@@ -2739,7 +2739,7 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
   lines.push("");
   // ─ Anamnese ─
   const an=anamnese||{};
-  if((an.diagnosen||[]).length>0||(an.fractures||[]).length>0||(an.ops||[]).length>0||an.menarche||an.menoPause||(an.kinder||[]).length>0){
+  if((an.diagnosen||[]).length>0||(an.weitere||[]).length>0||(an.allergien||[]).length>0||(an.familienanamnese||[]).length>0||(an.fractures||[]).length>0||(an.ops||[]).length>0||an.menarche||an.menoPause||(an.kinder||[]).length>0){
     lines.push("PERSÖNLICHE KRANKENGESCHICHTE");lines.push(sub);
     if((an.diagnosen||[]).length>0){
       lines.push("Bekannte Diagnosen / Vorerkrankungen:");
@@ -2752,6 +2752,37 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
         if(flags.length)s+=" ["+flags.join(", ")+"]";
         lines.push(s);
         if(dx.medikation)lines.push("     Medikation: "+dx.medikation);
+      });
+      lines.push("");
+    }
+    if((an.weitere||[]).length>0){
+      lines.push("Weitere Erkrankungen:");
+      an.weitere.forEach(function(we,i){
+        var s="  "+(i+1)+". "+(we.name||"–");
+        if(we.seitJahr)s+=" (seit "+we.seitJahr+")";
+        if(we.status&&we.status!=="aktiv")s+=" ["+we.status+"]";
+        if(we.anmerkung)s+=" – "+we.anmerkung;
+        lines.push(s);
+      });
+      lines.push("");
+    }
+    if((an.allergien||[]).length>0){
+      lines.push("Allergien / Unverträglichkeiten / Kontraindikationen:");
+      an.allergien.forEach(function(al,i){
+        var s="  "+(i+1)+". "+(al.substanz||"–");
+        if(al.reaktion)s+=" → "+al.reaktion;
+        if(al.schwere)s+=" ["+al.schwere+"]";
+        lines.push(s);
+      });
+      lines.push("");
+    }
+    if((an.familienanamnese||[]).length>0){
+      lines.push("Familienanamnese:");
+      an.familienanamnese.forEach(function(fa,i){
+        var s="  "+(i+1)+". "+(fa.verwandtschaft||"Verwandter")+": "+(fa.diagnose||"–");
+        if(fa.erkranktMit)s+=" (mit ca. "+fa.erkranktMit+" J.)";
+        if(fa.osteoRelevant)s+=" [OSTEOPOROSE-RELEVANT]";
+        lines.push(s);
       });
       lines.push("");
     }
@@ -3276,8 +3307,9 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
     if(!canvas) return;
     const v=PAIN_VIEWS.find(x=>x.id===vid);
     const ctx=canvas.getContext("2d");
-    const svgBlob=new Blob([BODY_SVG[vid]],{type:"image/svg+xml"});
-    const url=URL.createObjectURL(svgBlob);
+    // Use data URL (avoids CSP/CORS issues with createObjectURL+SVG)
+    const svgStr=BODY_SVG[vid];
+    const url="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svgStr);
     const img=new Image();
     img.onload=()=>{
       ctx.clearRect(0,0,v.w,v.h);
@@ -3285,7 +3317,13 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
       ctx.drawImage(img,0,0,v.w,v.h);
       const saved=painMaps[vid];
       if(saved){const p=new Image();p.onload=()=>ctx.drawImage(p,0,0);p.src=saved;}
-      URL.revokeObjectURL(url);
+    };
+    img.onerror=()=>{
+      // Fallback: plain background with label
+      ctx.fillStyle="#fdf6ee";ctx.fillRect(0,0,v.w,v.h);
+      ctx.strokeStyle="#9b7a5a";ctx.lineWidth=1.5;ctx.strokeRect(2,2,v.w-4,v.h-4);
+      ctx.fillStyle="#9b7a5a";ctx.font="bold 13px Arial";ctx.textAlign="center";
+      ctx.fillText(v.label||vid,v.w/2,v.h/2);
     };
     img.src=url;
   },[painMaps]);
@@ -3450,7 +3488,7 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
 
 /* ─── ANAMNESE SECTION ───────────────────────────────────────────────────── */
 function AnamneseSection({gender,data,onChange,open,onToggle}){
-  const DEF={diagnosen:[],fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]};
+  const DEF={diagnosen:[],weitere:[],allergien:[],familienanamnese:[],fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]};
   const d={...DEF,...data};
 
   const updFrac=(i,f,v)=>{const r=[...d.fractures];r[i]={...r[i],[f]:v};onChange({...d,fractures:r});};
@@ -3468,6 +3506,18 @@ function AnamneseSection({gender,data,onChange,open,onToggle}){
   const updDiag=(i,f,v)=>{const r=[...d.diagnosen];r[i]={...r[i],[f]:v};onChange({...d,diagnosen:r});};
   const addDiag=(vorschlag)=>onChange({...d,diagnosen:[...d.diagnosen,{name:vorschlag||"",seitJahr:"",medikation:"",vitdRisiko:false,phosphatRisiko:false}]});
   const delDiag=(i)=>onChange({...d,diagnosen:d.diagnosen.filter((_,j)=>j!==i)});
+
+  const updWeitere=(i,f,v)=>{const r=[...d.weitere];r[i]={...r[i],[f]:v};onChange({...d,weitere:r});};
+  const addWeitere=(vorschlag)=>onChange({...d,weitere:[...d.weitere,{name:vorschlag||"",seitJahr:"",status:"aktiv",anmerkung:""}]});
+  const delWeitere=(i)=>onChange({...d,weitere:d.weitere.filter((_,j)=>j!==i)});
+
+  const updAllerg=(i,f,v)=>{const r=[...d.allergien];r[i]={...r[i],[f]:v};onChange({...d,allergien:r});};
+  const addAllerg=()=>onChange({...d,allergien:[...d.allergien,{substanz:"",reaktion:"",schwere:""}]});
+  const delAllerg=(i)=>onChange({...d,allergien:d.allergien.filter((_,j)=>j!==i)});
+
+  const updFam=(i,f,v)=>{const r=[...d.familienanamnese];r[i]={...r[i],[f]:v};onChange({...d,familienanamnese:r});};
+  const addFam=(vorschlag)=>onChange({...d,familienanamnese:[...d.familienanamnese,{diagnose:vorschlag||"",verwandtschaft:"",erkranktMit:"",osteoRelevant:false}]});
+  const delFam=(i)=>onChange({...d,familienanamnese:d.familienanamnese.filter((_,j)=>j!==i)});
 
   const FRAKTUR_ORTE=["Wirbelsäule","Hüfte / Oberschenkelhals","Unterarm / Handgelenk","Oberarm","Rippe(n)","Becken","Fuß","Hand / Finger","Sprunggelenk","Schulter","Sonstiges"];
   const MENOGRUNDE=[
@@ -3488,7 +3538,7 @@ function AnamneseSection({gender,data,onChange,open,onToggle}){
   const grpTSt={fontSize:13,fontWeight:700,color:"#5a3e2a",marginBottom:8,paddingBottom:4,borderBottom:"1px solid #e8d8c0"};
   const fld=(label,children)=>(<div style={{display:"flex",flexDirection:"column",gap:3}}><label style={lblSt}>{label}</label>{children}</div>);
 
-  const hasData=d.diagnosen.length>0||d.fractures.length>0||d.ops.length>0||d.menarche||(gender==="f"&&(d.menoPause||d.kinder.length>0));
+  const hasData=d.diagnosen.length>0||d.weitere.length>0||d.allergien.length>0||d.familienanamnese.length>0||d.fractures.length>0||d.ops.length>0||d.menarche||(gender==="f"&&(d.menoPause||d.kinder.length>0));
 
   return(
     <div className="section-card anam-section" style={{marginBottom:12,overflow:"hidden"}}>
@@ -3498,7 +3548,7 @@ function AnamneseSection({gender,data,onChange,open,onToggle}){
           <div>
             <div style={{fontWeight:700,fontSize:15}}>Persönliche Krankengeschichte</div>
             <div style={{fontSize:12,color:"#9b8a7a",fontWeight:400}}>
-              Vorerkrankungen · Frühere Knochenbrüche · Operationen{gender==="f"?" · Gynäkologische Anamnese":""}
+              Vorerkrankungen · Familienanamnese · Allergien · Knochenbrüche · Operationen{gender==="f"?" · Gynäkologische Anamnese":""}
               {hasData&&<span style={{marginLeft:8,color:"#4a8f3a",fontWeight:600,fontSize:11}}>✓ Ausgefüllt</span>}
             </div>
           </div>
@@ -3716,6 +3766,250 @@ function AnamneseSection({gender,data,onChange,open,onToggle}){
               </div>
             );
           })()}
+
+
+          {/* ── Weitere Erkrankungen (kategorisiert) ── */}
+          <div style={{marginBottom:20}}>
+            <div style={grpTSt}>📂 Weitere Erkrankungen nach Organsystem</div>
+            {(()=>{
+              const WEITERE_VORSCHLAEGE = {
+                "Herz/Gefäße":["Koronare Herzerkrankung (KHK)","Herzinsuffizienz (HF)","Vorhofflimmern","Arterielle Hypertonie","Periphere arterielle Verschlusskrankheit (pAVK)","Aortenaneurysma","Herzrhythmusstörungen","Zustand nach Herzinfarkt","Herzklappenfehler","Kardiomyopathie"],
+                "Lunge/Atmung":["COPD","Asthma bronchiale","Schlafapnoe-Syndrom","Lungenfibrose / ILD","Lungenemphysem","Sarkoidose","Pulmonale Hypertonie","Bronchialkarzinom","Pleuraerkrankung","Zustand nach Pneumonektomie"],
+                "Magen/Darm":["Gastroösophageale Refluxkrankheit (GERD)","Magengeschwür / Ulkus","Reizdarmsyndrom (RDS)","Divertikulose / Divertikulitis","Chronische Verstopfung","Pankreatitis (akut / chronisch)","Chronische Pankreasinsuffizienz","Gallenerkrankung / Cholezystolithiasis","Hämorrhoiden","Kolonkarzinom / kolorektale Neoplasie"],
+                "Leber/Stoffwechsel":["Fettleber (NAFLD/MASLD)","Alkoholische Lebererkrankung","Leberzirrhose","Hämochromatose (Eisenspeicherkrankheit)","Morbus Wilson","Alpha-1-Antitrypsin-Mangel","Primär biliäre Cholangitis (PBC)","Primär sklerosierende Cholangitis (PSC)","Hyperlipidämie / Dyslipidämie","Gicht / Hyperurikämie"],
+                "Niere/Harnwege":["Chronische Niereninsuffizienz (CKD)","Rezidivierende Harnwegsinfekte","Nephrolithiasis (Nierensteine)","Nephrotisches Syndrom","IgA-Nephropathie","Polyzystische Nierenerkrankung (ADPKD)","Dialysepflichtigkeit","Zustand nach Nierentransplantation","Harnblasenerkrankung","Benigne Prostatahyperplasie (BPH)"],
+                "Nerven/Psychiatrie":["Depressive Erkrankung","Angststörung","Schizophrenie / psychotische Erkrankung","Bipolare Störung","Demenzsyndrom","Morbus Parkinson","Multiple Sklerose (MS)","Epilepsie / Anfallsleiden","Migräne / Kopfschmerzsyndrom","Polyneuropathie","Schlaganfall / TIA","Restless-Legs-Syndrom"],
+                "Bewegungsapparat":["Koxarthrose (Hüftgelenk)","Gonarthrose (Kniegelenk)","Omarthrose (Schultergelenk)","Zervikalsyndrom / HWS-Erkrankung","Lumbalsyndrom / LWS-Erkrankung","Bandscheibenvorfälle","Rheumatoide Arthritis","Spondylitis ankylosans (Morbus Bechterew)","Psoriasis-Arthritis","Fibromyalgie","Polymyalgia rheumatica","Systemischer Lupus erythematodes (SLE)","Sjögren-Syndrom"],
+                "Hormonsystem":["Hypothyreose (Schilddrüsenunterfunktion)","Hyperthyreose / Morbus Basedow","Hashimoto-Thyreoiditis","Typ-1-Diabetes","Typ-2-Diabetes","Morbus Cushing","Addison-Erkrankung","Akromegalie","Hyperprolaktinämie","Phäochromozytom","Nebenschilddrüsenerkrankung"],
+                "Blut/Immunsystem":["Anämie (chronisch)","Eisenmangelanämie","Perniziöse Anämie (B12-Mangel)","Thrombophilie / Gerinnungsstörung","Multiples Myelom","Chronische Leukämie","Lymphom","Thrombozytopenische Purpura (ITP)","Immundefektsyndrom","Mastozytose","Hämophilie"],
+                "Haut":["Psoriasis (Schuppenflechte)","Neurodermitis / Atopisches Ekzem","Chronische Urtikaria","Systemische Sklerodermie","Dermatomyositis","Pemphigus / Pemphigoid","Rosazea","Basalzellkarzinom / Plattenepithelkarzinom","Melanom"],
+                "Augen/HNO":["Grauer Star (Katarakt)","Grüner Star (Glaukom)","Makuladegeneration","Hörverlust / Schwerhörigkeit","Morbus Menière","Tinnitus","Chronische Sinusitis"],
+                "Tumoren/Onkologie":["Mammakarzinom","Prostatakarzinom","Bronchialkarzinom","Kolonkarzinom","Magenneoplasie","Pankreasneoplasie","Schilddrüsenkarzinom","Zervixkarzinom / Endometriumkarzinom","Nierenzellkarzinom","Blasenkarzinom","Melanom","Hämatologische Neoplasie","Zustand nach Chemotherapie","Zustand nach Strahlentherapie","Zustand nach Hormontherapie (Tamoxifen, Aromatasehemmer, GnRH)"],
+                "Sonstiges":["Schlafstörung / Insomnie","Chronisches Fatigue-Syndrom (CFS/ME)","Systemische Amyloidose","Sarkoidose","Zustand nach Organtransplantation","Seltene Erkrankung (nicht klassifiziert)"],
+              };
+              const [filterKat, setFilterKat] = React.useState("");
+              const alleVorschlaege = Object.values(WEITERE_VORSCHLAEGE).flat();
+              const filteredVorschlaege = filterKat
+                ? (WEITERE_VORSCHLAEGE[filterKat]||[])
+                : alleVorschlaege;
+
+              return(
+                <>
+                  {d.weitere.length===0&&(
+                    <div style={{fontSize:12,color:"#a09080",fontStyle:"italic",marginBottom:8}}>
+                      Noch keine weiteren Erkrankungen eingetragen. Bitte alle weiteren bekannten Erkrankungen ergänzen.
+                    </div>
+                  )}
+                  {d.weitere.map((we,i)=>(
+                    <div key={i} style={{...rowSt,flexDirection:"column",alignItems:"stretch",gap:5}}>
+                      <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap"}}>
+                        <span style={{fontSize:13,fontWeight:700,color:"#9b7a5a",minWidth:20,alignSelf:"flex-end",paddingBottom:6}}>{i+1}.</span>
+                        {fld("Erkrankung / Diagnose",
+                          <input list="weitere-diag-list" placeholder="z.B. Arterielle Hypertonie, COPD, Gonarthrose…"
+                            style={{...iSt,minWidth:240,flex:2}} value={we.name||""} onChange={e=>updWeitere(i,"name",e.target.value)}/>
+                        )}
+                        {fld("Bekannt seit",
+                          <input type="number" min="1940" max="2025" placeholder="Jahr"
+                            style={{...iSt,width:80}} value={we.seitJahr||""} onChange={e=>updWeitere(i,"seitJahr",e.target.value)}/>
+                        )}
+                        {fld("Status",
+                          <select style={{...selSt,width:110}} value={we.status||"aktiv"} onChange={e=>updWeitere(i,"status",e.target.value)}>
+                            <option value="aktiv">Aktiv / Bestehend</option>
+                            <option value="zustand">Zustand nach</option>
+                            <option value="abgeheilt">Abgeheilt</option>
+                            <option value="kontrolliert">Kontrolliert</option>
+                          </select>
+                        )}
+                        {fld("Anmerkung / Therapie (opt.)",
+                          <input placeholder="z.B. gut eingestellt, medikamentös, Prothese li."
+                            style={{...iSt,minWidth:160,flex:2}} value={we.anmerkung||""} onChange={e=>updWeitere(i,"anmerkung",e.target.value)}/>
+                        )}
+                        <button onClick={()=>delWeitere(i)} style={delBSt}>✕</button>
+                      </div>
+                    </div>
+                  ))}
+                  <datalist id="weitere-diag-list">
+                    {alleVorschlaege.map(v=><option key={v} value={v}/>)}
+                  </datalist>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:4,marginBottom:6}}>
+                    <button onClick={()=>addWeitere()} style={addBSt}>+ Erkrankung hinzufügen</button>
+                  </div>
+                  {/* Schnellauswahl nach Kategorie */}
+                  <div style={{marginTop:8,padding:"8px 10px",background:"#f7f2ec",borderRadius:7,border:"1px solid #e0d0b8"}}>
+                    <div style={{fontSize:11.5,fontWeight:700,color:"#5a3e2a",marginBottom:6}}>🗂 Schnellauswahl nach Organsystem:</div>
+                    <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:filterKat?6:0}}>
+                      {Object.keys(WEITERE_VORSCHLAEGE).map(kat=>(
+                        <button key={kat} onClick={()=>setFilterKat(k=>k===kat?"":kat)}
+                          style={{padding:"3px 9px",borderRadius:12,fontSize:11,fontFamily:"inherit",cursor:"pointer",
+                            border:filterKat===kat?"2px solid #9b7a5a":"1px solid #c8b8a0",
+                            background:filterKat===kat?"#f7efe0":"white",
+                            fontWeight:filterKat===kat?700:400,color:filterKat===kat?"#5a3020":"#6b5a4a"}}>
+                          {kat}
+                        </button>
+                      ))}
+                    </div>
+                    {filterKat&&(
+                      <div style={{display:"flex",gap:5,flexWrap:"wrap",maxHeight:120,overflowY:"auto",marginTop:2}}>
+                        {(WEITERE_VORSCHLAEGE[filterKat]||[]).map(v=>(
+                          <button key={v} onClick={()=>addWeitere(v)}
+                            style={{padding:"2px 8px",borderRadius:10,fontSize:11,fontFamily:"inherit",cursor:"pointer",
+                              border:"1px solid #d4c0a0",background:"#fffbf5",color:"#5a3e2a"}}>
+                            + {v}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* ── Allergien & Unverträglichkeiten ── */}
+          <div style={{marginBottom:20}}>
+            <div style={grpTSt}>⚠ Allergien, Unverträglichkeiten & Kontraindikationen</div>
+            {d.allergien.length===0&&(
+              <div style={{fontSize:12,color:"#a09080",fontStyle:"italic",marginBottom:8}}>
+                Noch keine Allergien eingetragen (oder keine bekannten Allergien).
+              </div>
+            )}
+            {d.allergien.map((al,i)=>(
+              <div key={i} style={rowSt}>
+                <span style={{fontSize:13,fontWeight:700,color:"#9b7a5a",minWidth:20,alignSelf:"flex-end",paddingBottom:6}}>{i+1}.</span>
+                {fld("Substanz / Auslöser",
+                  <input list="allergen-list" placeholder="z.B. Penicillin, Aspirin, Latex, Kontrastmittel, Erdnüsse"
+                    style={{...iSt,minWidth:200,flex:2}} value={al.substanz||""} onChange={e=>updAllerg(i,"substanz",e.target.value)}/>
+                )}
+                {fld("Reaktion",
+                  <input list="reaktion-list" placeholder="z.B. Exanthem, Anaphylaxie, GI-Beschwerden"
+                    style={{...iSt,minWidth:140,flex:1}} value={al.reaktion||""} onChange={e=>updAllerg(i,"reaktion",e.target.value)}/>
+                )}
+                {fld("Schwere",
+                  <select style={{...selSt,width:120}} value={al.schwere||""} onChange={e=>updAllerg(i,"schwere",e.target.value)}>
+                    <option value="">–</option>
+                    <option value="mild">Mild (lokal)</option>
+                    <option value="moderat">Moderat (systemisch)</option>
+                    <option value="schwer">Schwer / Anaphylaxie</option>
+                    <option value="intol">Unverträglichkeit</option>
+                    <option value="ki">Kontraindikation</option>
+                  </select>
+                )}
+                <button onClick={()=>delAllerg(i)} style={delBSt}>✕</button>
+              </div>
+            ))}
+            <datalist id="allergen-list">
+              {["Penicillin / Amoxicillin","Cephalosporine","Sulfonamide","NSAR / Ibuprofen / Diclofenac","Aspirin / ASS","Bisphosphonate (oral) – GI-Unverträglichkeit","Alendronat – Ösophagitis","Kalzium (Nierenstein-Anamnese beachten)","Jodhaltige Kontrastmittel","Gadolinium (MRT-Kontrastmittel)","Latex","Pflaster / Acrylat-Kleber","Nickel","Nahrungsmittel: Gluten / Weizen","Nahrungsmittel: Nüsse","Nahrungsmittel: Milcheiweiß (Laktose-/Milchallergie)","Nahrungsmittel: Fisch / Krustentiere","Pollen / Gräser","Hausstaub / Hausstaubmilben","Tierhaare","Schimmelpilze"].map(v=><option key={v} value={v}/>)}
+            </datalist>
+            <datalist id="reaktion-list">
+              {["Urtikaria / Exanthem","Angioödem","Anaphylaxie / anaphylaktischer Schock","Bronchospasmus / Atemnot","Übelkeit / Erbrechen","Bauchschmerzen / Diarrhoe","Kopfschmerzen","Hypotonie / Kreislaufreaktion","Ösophagitis / Schluckbeschwerden","Nierenfunktionsverschlechterung","Leberwerterhöhung","Agranulozytose"].map(v=><option key={v} value={v}/>)}
+            </datalist>
+            <button onClick={()=>addAllerg()} style={addBSt}>+ Allergie / Unverträglichkeit hinzufügen</button>
+          </div>
+
+          {/* ── Familienanamnese ── */}
+          <div style={{marginBottom:20}}>
+            <div style={grpTSt}>👨‍👩‍👧 Familienanamnese (Erstgradige Verwandte)</div>
+            <div style={{marginBottom:10,padding:"8px 12px",background:"#f0f4ff",border:"1px solid #c0cce8",borderRadius:7,fontSize:12,color:"#3a4a7a",lineHeight:1.6}}>
+              <strong>Warum wichtig?</strong> Osteoporose, Hüftfrakturen, frühe Herzerkrankungen, Krebserkrankungen, Stoffwechselerkrankungen und genetische Syndrome haben hohe Erblichkeitsanteile.
+              Bitte Erkrankungen von Eltern, Geschwistern und Kindern eintragen. Bei bekannter familiärer Häufung auch Großeltern.
+            </div>
+            {d.familienanamnese.length===0&&(
+              <div style={{fontSize:12,color:"#a09080",fontStyle:"italic",marginBottom:8}}>
+                Noch keine Familienanamnese eingetragen.
+              </div>
+            )}
+            {d.familienanamnese.map((fa,i)=>(
+              <div key={i} style={{...rowSt,flexDirection:"column",alignItems:"stretch",gap:5,
+                borderLeft:fa.osteoRelevant?"3px solid #9b7a5a":"3px solid #e0d0b0",
+                background:fa.osteoRelevant?"#fffbf5":"white"}}>
+                <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap"}}>
+                  <span style={{fontSize:13,fontWeight:700,color:"#9b7a5a",minWidth:20,alignSelf:"flex-end",paddingBottom:6}}>{i+1}.</span>
+                  {fld("Diagnose / Erkrankung",
+                    <input list="familien-diag-list" placeholder="z.B. Hüftfraktur, Osteoporose, Mammakarzinom, Herzinfarkt…"
+                      style={{...iSt,minWidth:220,flex:2}} value={fa.diagnose||""} onChange={e=>updFam(i,"diagnose",e.target.value)}/>
+                  )}
+                  {fld("Verwandtschaftsgrad",
+                    <select style={{...selSt,minWidth:140}} value={fa.verwandtschaft||""} onChange={e=>updFam(i,"verwandtschaft",e.target.value)}>
+                      <option value="">Bitte wählen…</option>
+                      <optgroup label="Erstgradig (50% gemeinsame Gene)">
+                        <option value="mutter">Mutter</option>
+                        <option value="vater">Vater</option>
+                        <option value="schwester">Schwester</option>
+                        <option value="bruder">Bruder</option>
+                        <option value="kind">Kind</option>
+                      </optgroup>
+                      <optgroup label="Zweitgradig (25%)">
+                        <option value="grossmutter_m">Großmutter (mütterlicherseits)</option>
+                        <option value="grossmutter_v">Großmutter (väterlicherseits)</option>
+                        <option value="grossvater_m">Großvater (mütterlicherseits)</option>
+                        <option value="grossvater_v">Großvater (väterlicherseits)</option>
+                        <option value="tante_onkel">Tante / Onkel</option>
+                      </optgroup>
+                      <optgroup label="Drittgradig (12,5%)">
+                        <option value="cousin">Cousin / Cousine</option>
+                      </optgroup>
+                    </select>
+                  )}
+                  {fld("Alter bei Erkrankung (ca.)",
+                    <input type="number" min="1" max="100" placeholder="Jahre"
+                      style={{...iSt,width:78}} value={fa.erkranktMit||""} onChange={e=>updFam(i,"erkranktMit",e.target.value)}/>
+                  )}
+                  <button onClick={()=>delFam(i)} style={delBSt}>✕</button>
+                </div>
+                <div style={{paddingLeft:28,display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+                  <label style={{display:"flex",gap:6,alignItems:"center",cursor:"pointer",
+                    padding:"3px 10px",borderRadius:5,fontSize:12,fontWeight:600,
+                    background:fa.osteoRelevant?"#fef3c7":"#f9f4ee",
+                    border:fa.osteoRelevant?"1px solid #d97706":"1px solid #e0d0b0",
+                    color:fa.osteoRelevant?"#92400e":"#7a6050"}}>
+                    <input type="checkbox" checked={!!fa.osteoRelevant} onChange={e=>updFam(i,"osteoRelevant",e.target.checked)}
+                      style={{width:14,height:14,accentColor:"#d97706",cursor:"pointer"}}/>
+                    🦴 Osteoporose-relevant
+                  </label>
+                  <span style={{fontSize:11,color:"#9b7a5a"}}>
+                    {fa.osteoRelevant?"→ Wird im Risiko-Bericht hervorgehoben":""}
+                  </span>
+                </div>
+              </div>
+            ))}
+            <datalist id="familien-diag-list">
+              {[
+                "Osteoporose","Hüftfraktur (Oberschenkelhalsbruch)","Wirbelkörperfraktur","Schenkelhalsfraktur","Knochenbruch nach Bagatelltrauma","Osteogenesis imperfecta (Glasknochenkrankheit)",
+                "Herzinfarkt (Myokardinfarkt)","Koronare Herzerkrankung (KHK)","Schlaganfall","Plötzlicher Herztod","Arterielle Hypertonie","Herzinsuffizienz",
+                "Mammakarzinom","Ovarialkarzinom","Prostatakarzinom","Kolonkarzinom","Bronchialkarzinom","Melanom","Magenkarzinom","Pankreas-Karzinom",
+                "Typ-1-Diabetes","Typ-2-Diabetes","Schilddrüsenerkrankung","Cushing-Syndrom","Hyperparathyreoidismus",
+                "Rheumatoide Arthritis","Spondylitis ankylosans","Systemischer Lupus erythematodes (SLE)","Psoriasis-Arthritis",
+                "Multiple Sklerose (MS)","Morbus Parkinson","Alzheimer-Demenz","Epilepsie",
+                "Brustkrebs (Mutter/Schwester vor 50 J.) – BRCA-Risiko","Eierstockkrebs – BRCA-Risiko",
+                "Hämochromatose","Zöliakie / Glutenunverträglichkeit","Morbus Crohn / Colitis ulcerosa",
+                "Nierensteine / Nephrolithiasis","Polyzystische Nierenerkrankung",
+                "Marfan-Syndrom","Ehlers-Danlos-Syndrom","Osteogenesis imperfecta",
+                "Vorzeitige Menopause (vor 45. Lebensjahr)","Osteopenie / Knochenschwund allgemein",
+                "Alkoholabhängigkeit","Thromboembolie / Lungenembolie","Depression",
+                "Kleinwuchs / Wachstumsstörung","Hypermobilität der Gelenke",
+              ].map(v=><option key={v} value={v}/>)}
+            </datalist>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:4,marginBottom:8}}>
+              <button onClick={()=>addFam()} style={addBSt}>+ Familienanamnese eintragen</button>
+              <button onClick={()=>addFam("Hüftfraktur (Oberschenkelhalsbruch)")}
+                style={{...addBSt,borderColor:"#9b7a5a",color:"#5a3020"}}>
+                🦴 + Hüftfraktur Elternteil
+              </button>
+              <button onClick={()=>addFam("Osteoporose")}
+                style={{...addBSt,borderColor:"#9b7a5a",color:"#5a3020"}}>
+                🦴 + Osteoporose Elternteil
+              </button>
+            </div>
+            {/* Familiäre Osteoporose-Zusammenfassung */}
+            {d.familienanamnese.filter(fa=>fa.osteoRelevant).length>0&&(
+              <div style={{padding:"8px 12px",background:"#fff8f0",border:"1px solid #e8c880",borderRadius:7,fontSize:12,color:"#7a5010"}}>
+                <strong>🦴 Osteoporose-relevante Familienanamnese:</strong>{" "}
+                {d.familienanamnese.filter(fa=>fa.osteoRelevant).map((fa,i)=>(
+                  <span key={i}>{fa.verwandtschaft&&<strong>{fa.verwandtschaft}: </strong>}{fa.diagnose}{fa.erkranktMit&&" (mit "+fa.erkranktMit+" J.)"}{i<d.familienanamnese.filter(x=>x.osteoRelevant).length-1?", ":""}</span>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* ── Frakturen ── */}
           <div style={{marginBottom:18}}>
@@ -5224,7 +5518,7 @@ function App(){
   const isMobile=isAndroid||isIOS;
   const hasPicker=!isMobile&&typeof window.showSaveFilePicker==="function";
   const[gender,setGender]=useState(null);
-  const[anamnese,setAnamnese]=useState({fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]});
+  const[anamnese,setAnamnese]=useState({diagnosen:[],weitere:[],allergien:[],familienanamnese:[],fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]});
   const[painMaps,setPainMaps]=useState({});
   const[openAnam,setOpenAnam]=useState(true);
   const[openPain,setOpenPain]=useState(true);
@@ -5376,7 +5670,7 @@ function App(){
 
   const handleReset=()=>{
     setAnswers({});setShowResult(false);setOpenSec({});
-    setAnamnese({diagnosen:[],fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]});
+    setAnamnese({diagnosen:[],weitere:[],allergien:[],familienanamnese:[],fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]});
     setPainMaps({});
     setSekStatus({});
     setPatient({name:"",geburtsdatum:"",fillDate:today});setGender(null);setDisclaimerOk(false);

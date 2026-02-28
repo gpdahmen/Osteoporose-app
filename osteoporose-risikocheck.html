@@ -5029,7 +5029,7 @@ function buildTextExport(patient, gender, answers, risk, diff, lh, diagDb, sekDb
   lines.push("");
   // ─ Anamnese ─
   const an = anamnese || {};
-  if ((an.diagnosen || []).length > 0 || (an.fractures || []).length > 0 || (an.ops || []).length > 0 || an.menarche || an.menoPause || (an.kinder || []).length > 0) {
+  if ((an.diagnosen || []).length > 0 || (an.weitere || []).length > 0 || (an.allergien || []).length > 0 || (an.familienanamnese || []).length > 0 || (an.fractures || []).length > 0 || (an.ops || []).length > 0 || an.menarche || an.menoPause || (an.kinder || []).length > 0) {
     lines.push("PERSÖNLICHE KRANKENGESCHICHTE");
     lines.push(sub);
     if ((an.diagnosen || []).length > 0) {
@@ -5043,6 +5043,37 @@ function buildTextExport(patient, gender, answers, risk, diff, lh, diagDb, sekDb
         if (flags.length) s += " [" + flags.join(", ") + "]";
         lines.push(s);
         if (dx.medikation) lines.push("     Medikation: " + dx.medikation);
+      });
+      lines.push("");
+    }
+    if ((an.weitere || []).length > 0) {
+      lines.push("Weitere Erkrankungen:");
+      an.weitere.forEach(function (we, i) {
+        var s = "  " + (i + 1) + ". " + (we.name || "–");
+        if (we.seitJahr) s += " (seit " + we.seitJahr + ")";
+        if (we.status && we.status !== "aktiv") s += " [" + we.status + "]";
+        if (we.anmerkung) s += " – " + we.anmerkung;
+        lines.push(s);
+      });
+      lines.push("");
+    }
+    if ((an.allergien || []).length > 0) {
+      lines.push("Allergien / Unverträglichkeiten / Kontraindikationen:");
+      an.allergien.forEach(function (al, i) {
+        var s = "  " + (i + 1) + ". " + (al.substanz || "–");
+        if (al.reaktion) s += " → " + al.reaktion;
+        if (al.schwere) s += " [" + al.schwere + "]";
+        lines.push(s);
+      });
+      lines.push("");
+    }
+    if ((an.familienanamnese || []).length > 0) {
+      lines.push("Familienanamnese:");
+      an.familienanamnese.forEach(function (fa, i) {
+        var s = "  " + (i + 1) + ". " + (fa.verwandtschaft || "Verwandter") + ": " + (fa.diagnose || "–");
+        if (fa.erkranktMit) s += " (mit ca. " + fa.erkranktMit + " J.)";
+        if (fa.osteoRelevant) s += " [OSTEOPOROSE-RELEVANT]";
+        lines.push(s);
       });
       lines.push("");
     }
@@ -5786,10 +5817,9 @@ function PainBodySection({
     if (!canvas) return;
     const v = PAIN_VIEWS.find(x => x.id === vid);
     const ctx = canvas.getContext("2d");
-    const svgBlob = new Blob([BODY_SVG[vid]], {
-      type: "image/svg+xml"
-    });
-    const url = URL.createObjectURL(svgBlob);
+    // Use data URL (avoids CSP/CORS issues with createObjectURL+SVG)
+    const svgStr = BODY_SVG[vid];
+    const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgStr);
     const img = new Image();
     img.onload = () => {
       ctx.clearRect(0, 0, v.w, v.h);
@@ -5802,7 +5832,18 @@ function PainBodySection({
         p.onload = () => ctx.drawImage(p, 0, 0);
         p.src = saved;
       }
-      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      // Fallback: plain background with label
+      ctx.fillStyle = "#fdf6ee";
+      ctx.fillRect(0, 0, v.w, v.h);
+      ctx.strokeStyle = "#9b7a5a";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(2, 2, v.w - 4, v.h - 4);
+      ctx.fillStyle = "#9b7a5a";
+      ctx.font = "bold 13px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(v.label || vid, v.w / 2, v.h / 2);
     };
     img.src = url;
   }, [painMaps]);
@@ -6142,6 +6183,9 @@ function AnamneseSection({
 }) {
   const DEF = {
     diagnosen: [],
+    weitere: [],
+    allergien: [],
+    familienanamnese: [],
     fractures: [],
     ops: [],
     menarche: "",
@@ -6250,6 +6294,77 @@ function AnamneseSection({
     ...d,
     diagnosen: d.diagnosen.filter((_, j) => j !== i)
   });
+  const updWeitere = (i, f, v) => {
+    const r = [...d.weitere];
+    r[i] = {
+      ...r[i],
+      [f]: v
+    };
+    onChange({
+      ...d,
+      weitere: r
+    });
+  };
+  const addWeitere = vorschlag => onChange({
+    ...d,
+    weitere: [...d.weitere, {
+      name: vorschlag || "",
+      seitJahr: "",
+      status: "aktiv",
+      anmerkung: ""
+    }]
+  });
+  const delWeitere = i => onChange({
+    ...d,
+    weitere: d.weitere.filter((_, j) => j !== i)
+  });
+  const updAllerg = (i, f, v) => {
+    const r = [...d.allergien];
+    r[i] = {
+      ...r[i],
+      [f]: v
+    };
+    onChange({
+      ...d,
+      allergien: r
+    });
+  };
+  const addAllerg = () => onChange({
+    ...d,
+    allergien: [...d.allergien, {
+      substanz: "",
+      reaktion: "",
+      schwere: ""
+    }]
+  });
+  const delAllerg = i => onChange({
+    ...d,
+    allergien: d.allergien.filter((_, j) => j !== i)
+  });
+  const updFam = (i, f, v) => {
+    const r = [...d.familienanamnese];
+    r[i] = {
+      ...r[i],
+      [f]: v
+    };
+    onChange({
+      ...d,
+      familienanamnese: r
+    });
+  };
+  const addFam = vorschlag => onChange({
+    ...d,
+    familienanamnese: [...d.familienanamnese, {
+      diagnose: vorschlag || "",
+      verwandtschaft: "",
+      erkranktMit: "",
+      osteoRelevant: false
+    }]
+  });
+  const delFam = i => onChange({
+    ...d,
+    familienanamnese: d.familienanamnese.filter((_, j) => j !== i)
+  });
   const FRAKTUR_ORTE = ["Wirbelsäule", "Hüfte / Oberschenkelhals", "Unterarm / Handgelenk", "Oberarm", "Rippe(n)", "Becken", "Fuß", "Hand / Finger", "Sprunggelenk", "Schulter", "Sonstiges"];
   const MENOGRUNDE = [{
     v: "natuerlich",
@@ -6340,7 +6455,7 @@ function AnamneseSection({
   }, /*#__PURE__*/React.createElement("label", {
     style: lblSt
   }, label), children);
-  const hasData = d.diagnosen.length > 0 || d.fractures.length > 0 || d.ops.length > 0 || d.menarche || gender === "f" && (d.menoPause || d.kinder.length > 0);
+  const hasData = d.diagnosen.length > 0 || d.weitere.length > 0 || d.allergien.length > 0 || d.familienanamnese.length > 0 || d.fractures.length > 0 || d.ops.length > 0 || d.menarche || gender === "f" && (d.menoPause || d.kinder.length > 0);
   return /*#__PURE__*/React.createElement("div", {
     className: "section-card anam-section",
     style: {
@@ -6375,7 +6490,7 @@ function AnamneseSection({
       color: "#9b8a7a",
       fontWeight: 400
     }
-  }, "Vorerkrankungen \xB7 Fr\xFChere Knochenbr\xFCche \xB7 Operationen", gender === "f" ? " · Gynäkologische Anamnese" : "", hasData && /*#__PURE__*/React.createElement("span", {
+  }, "Vorerkrankungen \xB7 Familienanamnese \xB7 Allergien \xB7 Knochenbr\xFCche \xB7 Operationen", gender === "f" ? " · Gynäkologische Anamnese" : "", hasData && /*#__PURE__*/React.createElement("span", {
     style: {
       marginLeft: 8,
       color: "#4a8f3a",
@@ -6709,6 +6824,454 @@ function AnamneseSection({
       }, "Quellen: DVO-Leitlinie 2023 \xB7 KDIGO 2017 \xB7 Schaefer B et al. J Hepatol 2021 \xB7 Bhatt DL et al. NEJM 2020 \xB7 Munns CF et al. J Clin Endocrinol Metab 2016 (Rachitis-Konsensus) \xB7 Fachinformationen der genannten Pr\xE4parate")));
     })());
   })(), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: grpTSt
+  }, "\uD83D\uDCC2 Weitere Erkrankungen nach Organsystem"), (() => {
+    const WEITERE_VORSCHLAEGE = {
+      "Herz/Gefäße": ["Koronare Herzerkrankung (KHK)", "Herzinsuffizienz (HF)", "Vorhofflimmern", "Arterielle Hypertonie", "Periphere arterielle Verschlusskrankheit (pAVK)", "Aortenaneurysma", "Herzrhythmusstörungen", "Zustand nach Herzinfarkt", "Herzklappenfehler", "Kardiomyopathie"],
+      "Lunge/Atmung": ["COPD", "Asthma bronchiale", "Schlafapnoe-Syndrom", "Lungenfibrose / ILD", "Lungenemphysem", "Sarkoidose", "Pulmonale Hypertonie", "Bronchialkarzinom", "Pleuraerkrankung", "Zustand nach Pneumonektomie"],
+      "Magen/Darm": ["Gastroösophageale Refluxkrankheit (GERD)", "Magengeschwür / Ulkus", "Reizdarmsyndrom (RDS)", "Divertikulose / Divertikulitis", "Chronische Verstopfung", "Pankreatitis (akut / chronisch)", "Chronische Pankreasinsuffizienz", "Gallenerkrankung / Cholezystolithiasis", "Hämorrhoiden", "Kolonkarzinom / kolorektale Neoplasie"],
+      "Leber/Stoffwechsel": ["Fettleber (NAFLD/MASLD)", "Alkoholische Lebererkrankung", "Leberzirrhose", "Hämochromatose (Eisenspeicherkrankheit)", "Morbus Wilson", "Alpha-1-Antitrypsin-Mangel", "Primär biliäre Cholangitis (PBC)", "Primär sklerosierende Cholangitis (PSC)", "Hyperlipidämie / Dyslipidämie", "Gicht / Hyperurikämie"],
+      "Niere/Harnwege": ["Chronische Niereninsuffizienz (CKD)", "Rezidivierende Harnwegsinfekte", "Nephrolithiasis (Nierensteine)", "Nephrotisches Syndrom", "IgA-Nephropathie", "Polyzystische Nierenerkrankung (ADPKD)", "Dialysepflichtigkeit", "Zustand nach Nierentransplantation", "Harnblasenerkrankung", "Benigne Prostatahyperplasie (BPH)"],
+      "Nerven/Psychiatrie": ["Depressive Erkrankung", "Angststörung", "Schizophrenie / psychotische Erkrankung", "Bipolare Störung", "Demenzsyndrom", "Morbus Parkinson", "Multiple Sklerose (MS)", "Epilepsie / Anfallsleiden", "Migräne / Kopfschmerzsyndrom", "Polyneuropathie", "Schlaganfall / TIA", "Restless-Legs-Syndrom"],
+      "Bewegungsapparat": ["Koxarthrose (Hüftgelenk)", "Gonarthrose (Kniegelenk)", "Omarthrose (Schultergelenk)", "Zervikalsyndrom / HWS-Erkrankung", "Lumbalsyndrom / LWS-Erkrankung", "Bandscheibenvorfälle", "Rheumatoide Arthritis", "Spondylitis ankylosans (Morbus Bechterew)", "Psoriasis-Arthritis", "Fibromyalgie", "Polymyalgia rheumatica", "Systemischer Lupus erythematodes (SLE)", "Sjögren-Syndrom"],
+      "Hormonsystem": ["Hypothyreose (Schilddrüsenunterfunktion)", "Hyperthyreose / Morbus Basedow", "Hashimoto-Thyreoiditis", "Typ-1-Diabetes", "Typ-2-Diabetes", "Morbus Cushing", "Addison-Erkrankung", "Akromegalie", "Hyperprolaktinämie", "Phäochromozytom", "Nebenschilddrüsenerkrankung"],
+      "Blut/Immunsystem": ["Anämie (chronisch)", "Eisenmangelanämie", "Perniziöse Anämie (B12-Mangel)", "Thrombophilie / Gerinnungsstörung", "Multiples Myelom", "Chronische Leukämie", "Lymphom", "Thrombozytopenische Purpura (ITP)", "Immundefektsyndrom", "Mastozytose", "Hämophilie"],
+      "Haut": ["Psoriasis (Schuppenflechte)", "Neurodermitis / Atopisches Ekzem", "Chronische Urtikaria", "Systemische Sklerodermie", "Dermatomyositis", "Pemphigus / Pemphigoid", "Rosazea", "Basalzellkarzinom / Plattenepithelkarzinom", "Melanom"],
+      "Augen/HNO": ["Grauer Star (Katarakt)", "Grüner Star (Glaukom)", "Makuladegeneration", "Hörverlust / Schwerhörigkeit", "Morbus Menière", "Tinnitus", "Chronische Sinusitis"],
+      "Tumoren/Onkologie": ["Mammakarzinom", "Prostatakarzinom", "Bronchialkarzinom", "Kolonkarzinom", "Magenneoplasie", "Pankreasneoplasie", "Schilddrüsenkarzinom", "Zervixkarzinom / Endometriumkarzinom", "Nierenzellkarzinom", "Blasenkarzinom", "Melanom", "Hämatologische Neoplasie", "Zustand nach Chemotherapie", "Zustand nach Strahlentherapie", "Zustand nach Hormontherapie (Tamoxifen, Aromatasehemmer, GnRH)"],
+      "Sonstiges": ["Schlafstörung / Insomnie", "Chronisches Fatigue-Syndrom (CFS/ME)", "Systemische Amyloidose", "Sarkoidose", "Zustand nach Organtransplantation", "Seltene Erkrankung (nicht klassifiziert)"]
+    };
+    const [filterKat, setFilterKat] = React.useState("");
+    const alleVorschlaege = Object.values(WEITERE_VORSCHLAEGE).flat();
+    const filteredVorschlaege = filterKat ? WEITERE_VORSCHLAEGE[filterKat] || [] : alleVorschlaege;
+    return /*#__PURE__*/React.createElement(React.Fragment, null, d.weitere.length === 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: "#a09080",
+        fontStyle: "italic",
+        marginBottom: 8
+      }
+    }, "Noch keine weiteren Erkrankungen eingetragen. Bitte alle weiteren bekannten Erkrankungen erg\xE4nzen."), d.weitere.map((we, i) => /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        ...rowSt,
+        flexDirection: "column",
+        alignItems: "stretch",
+        gap: 5
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        alignItems: "flex-end",
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13,
+        fontWeight: 700,
+        color: "#9b7a5a",
+        minWidth: 20,
+        alignSelf: "flex-end",
+        paddingBottom: 6
+      }
+    }, i + 1, "."), fld("Erkrankung / Diagnose", /*#__PURE__*/React.createElement("input", {
+      list: "weitere-diag-list",
+      placeholder: "z.B. Arterielle Hypertonie, COPD, Gonarthrose\u2026",
+      style: {
+        ...iSt,
+        minWidth: 240,
+        flex: 2
+      },
+      value: we.name || "",
+      onChange: e => updWeitere(i, "name", e.target.value)
+    })), fld("Bekannt seit", /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      min: "1940",
+      max: "2025",
+      placeholder: "Jahr",
+      style: {
+        ...iSt,
+        width: 80
+      },
+      value: we.seitJahr || "",
+      onChange: e => updWeitere(i, "seitJahr", e.target.value)
+    })), fld("Status", /*#__PURE__*/React.createElement("select", {
+      style: {
+        ...selSt,
+        width: 110
+      },
+      value: we.status || "aktiv",
+      onChange: e => updWeitere(i, "status", e.target.value)
+    }, /*#__PURE__*/React.createElement("option", {
+      value: "aktiv"
+    }, "Aktiv / Bestehend"), /*#__PURE__*/React.createElement("option", {
+      value: "zustand"
+    }, "Zustand nach"), /*#__PURE__*/React.createElement("option", {
+      value: "abgeheilt"
+    }, "Abgeheilt"), /*#__PURE__*/React.createElement("option", {
+      value: "kontrolliert"
+    }, "Kontrolliert"))), fld("Anmerkung / Therapie (opt.)", /*#__PURE__*/React.createElement("input", {
+      placeholder: "z.B. gut eingestellt, medikament\xF6s, Prothese li.",
+      style: {
+        ...iSt,
+        minWidth: 160,
+        flex: 2
+      },
+      value: we.anmerkung || "",
+      onChange: e => updWeitere(i, "anmerkung", e.target.value)
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: () => delWeitere(i),
+      style: delBSt
+    }, "\u2715")))), /*#__PURE__*/React.createElement("datalist", {
+      id: "weitere-diag-list"
+    }, alleVorschlaege.map(v => /*#__PURE__*/React.createElement("option", {
+      key: v,
+      value: v
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        flexWrap: "wrap",
+        marginTop: 4,
+        marginBottom: 6
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => addWeitere(),
+      style: addBSt
+    }, "+ Erkrankung hinzuf\xFCgen")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 8,
+        padding: "8px 10px",
+        background: "#f7f2ec",
+        borderRadius: 7,
+        border: "1px solid #e0d0b8"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "#5a3e2a",
+        marginBottom: 6
+      }
+    }, "\uD83D\uDDC2 Schnellauswahl nach Organsystem:"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 5,
+        flexWrap: "wrap",
+        marginBottom: filterKat ? 6 : 0
+      }
+    }, Object.keys(WEITERE_VORSCHLAEGE).map(kat => /*#__PURE__*/React.createElement("button", {
+      key: kat,
+      onClick: () => setFilterKat(k => k === kat ? "" : kat),
+      style: {
+        padding: "3px 9px",
+        borderRadius: 12,
+        fontSize: 11,
+        fontFamily: "inherit",
+        cursor: "pointer",
+        border: filterKat === kat ? "2px solid #9b7a5a" : "1px solid #c8b8a0",
+        background: filterKat === kat ? "#f7efe0" : "white",
+        fontWeight: filterKat === kat ? 700 : 400,
+        color: filterKat === kat ? "#5a3020" : "#6b5a4a"
+      }
+    }, kat))), filterKat && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 5,
+        flexWrap: "wrap",
+        maxHeight: 120,
+        overflowY: "auto",
+        marginTop: 2
+      }
+    }, (WEITERE_VORSCHLAEGE[filterKat] || []).map(v => /*#__PURE__*/React.createElement("button", {
+      key: v,
+      onClick: () => addWeitere(v),
+      style: {
+        padding: "2px 8px",
+        borderRadius: 10,
+        fontSize: 11,
+        fontFamily: "inherit",
+        cursor: "pointer",
+        border: "1px solid #d4c0a0",
+        background: "#fffbf5",
+        color: "#5a3e2a"
+      }
+    }, "+ ", v)))));
+  })()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: grpTSt
+  }, "\u26A0 Allergien, Unvertr\xE4glichkeiten & Kontraindikationen"), d.allergien.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#a09080",
+      fontStyle: "italic",
+      marginBottom: 8
+    }
+  }, "Noch keine Allergien eingetragen (oder keine bekannten Allergien)."), d.allergien.map((al, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: rowSt
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#9b7a5a",
+      minWidth: 20,
+      alignSelf: "flex-end",
+      paddingBottom: 6
+    }
+  }, i + 1, "."), fld("Substanz / Auslöser", /*#__PURE__*/React.createElement("input", {
+    list: "allergen-list",
+    placeholder: "z.B. Penicillin, Aspirin, Latex, Kontrastmittel, Erdn\xFCsse",
+    style: {
+      ...iSt,
+      minWidth: 200,
+      flex: 2
+    },
+    value: al.substanz || "",
+    onChange: e => updAllerg(i, "substanz", e.target.value)
+  })), fld("Reaktion", /*#__PURE__*/React.createElement("input", {
+    list: "reaktion-list",
+    placeholder: "z.B. Exanthem, Anaphylaxie, GI-Beschwerden",
+    style: {
+      ...iSt,
+      minWidth: 140,
+      flex: 1
+    },
+    value: al.reaktion || "",
+    onChange: e => updAllerg(i, "reaktion", e.target.value)
+  })), fld("Schwere", /*#__PURE__*/React.createElement("select", {
+    style: {
+      ...selSt,
+      width: 120
+    },
+    value: al.schwere || "",
+    onChange: e => updAllerg(i, "schwere", e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2013"), /*#__PURE__*/React.createElement("option", {
+    value: "mild"
+  }, "Mild (lokal)"), /*#__PURE__*/React.createElement("option", {
+    value: "moderat"
+  }, "Moderat (systemisch)"), /*#__PURE__*/React.createElement("option", {
+    value: "schwer"
+  }, "Schwer / Anaphylaxie"), /*#__PURE__*/React.createElement("option", {
+    value: "intol"
+  }, "Unvertr\xE4glichkeit"), /*#__PURE__*/React.createElement("option", {
+    value: "ki"
+  }, "Kontraindikation"))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => delAllerg(i),
+    style: delBSt
+  }, "\u2715"))), /*#__PURE__*/React.createElement("datalist", {
+    id: "allergen-list"
+  }, ["Penicillin / Amoxicillin", "Cephalosporine", "Sulfonamide", "NSAR / Ibuprofen / Diclofenac", "Aspirin / ASS", "Bisphosphonate (oral) – GI-Unverträglichkeit", "Alendronat – Ösophagitis", "Kalzium (Nierenstein-Anamnese beachten)", "Jodhaltige Kontrastmittel", "Gadolinium (MRT-Kontrastmittel)", "Latex", "Pflaster / Acrylat-Kleber", "Nickel", "Nahrungsmittel: Gluten / Weizen", "Nahrungsmittel: Nüsse", "Nahrungsmittel: Milcheiweiß (Laktose-/Milchallergie)", "Nahrungsmittel: Fisch / Krustentiere", "Pollen / Gräser", "Hausstaub / Hausstaubmilben", "Tierhaare", "Schimmelpilze"].map(v => /*#__PURE__*/React.createElement("option", {
+    key: v,
+    value: v
+  }))), /*#__PURE__*/React.createElement("datalist", {
+    id: "reaktion-list"
+  }, ["Urtikaria / Exanthem", "Angioödem", "Anaphylaxie / anaphylaktischer Schock", "Bronchospasmus / Atemnot", "Übelkeit / Erbrechen", "Bauchschmerzen / Diarrhoe", "Kopfschmerzen", "Hypotonie / Kreislaufreaktion", "Ösophagitis / Schluckbeschwerden", "Nierenfunktionsverschlechterung", "Leberwerterhöhung", "Agranulozytose"].map(v => /*#__PURE__*/React.createElement("option", {
+    key: v,
+    value: v
+  }))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => addAllerg(),
+    style: addBSt
+  }, "+ Allergie / Unvertr\xE4glichkeit hinzuf\xFCgen")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: grpTSt
+  }, "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67 Familienanamnese (Erstgradige Verwandte)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 10,
+      padding: "8px 12px",
+      background: "#f0f4ff",
+      border: "1px solid #c0cce8",
+      borderRadius: 7,
+      fontSize: 12,
+      color: "#3a4a7a",
+      lineHeight: 1.6
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Warum wichtig?"), " Osteoporose, H\xFCftfrakturen, fr\xFChe Herzerkrankungen, Krebserkrankungen, Stoffwechselerkrankungen und genetische Syndrome haben hohe Erblichkeitsanteile. Bitte Erkrankungen von Eltern, Geschwistern und Kindern eintragen. Bei bekannter famili\xE4rer H\xE4ufung auch Gro\xDFeltern."), d.familienanamnese.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "#a09080",
+      fontStyle: "italic",
+      marginBottom: 8
+    }
+  }, "Noch keine Familienanamnese eingetragen."), d.familienanamnese.map((fa, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      ...rowSt,
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: 5,
+      borderLeft: fa.osteoRelevant ? "3px solid #9b7a5a" : "3px solid #e0d0b0",
+      background: fa.osteoRelevant ? "#fffbf5" : "white"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "flex-end",
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#9b7a5a",
+      minWidth: 20,
+      alignSelf: "flex-end",
+      paddingBottom: 6
+    }
+  }, i + 1, "."), fld("Diagnose / Erkrankung", /*#__PURE__*/React.createElement("input", {
+    list: "familien-diag-list",
+    placeholder: "z.B. H\xFCftfraktur, Osteoporose, Mammakarzinom, Herzinfarkt\u2026",
+    style: {
+      ...iSt,
+      minWidth: 220,
+      flex: 2
+    },
+    value: fa.diagnose || "",
+    onChange: e => updFam(i, "diagnose", e.target.value)
+  })), fld("Verwandtschaftsgrad", /*#__PURE__*/React.createElement("select", {
+    style: {
+      ...selSt,
+      minWidth: 140
+    },
+    value: fa.verwandtschaft || "",
+    onChange: e => updFam(i, "verwandtschaft", e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Bitte w\xE4hlen\u2026"), /*#__PURE__*/React.createElement("optgroup", {
+    label: "Erstgradig (50% gemeinsame Gene)"
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "mutter"
+  }, "Mutter"), /*#__PURE__*/React.createElement("option", {
+    value: "vater"
+  }, "Vater"), /*#__PURE__*/React.createElement("option", {
+    value: "schwester"
+  }, "Schwester"), /*#__PURE__*/React.createElement("option", {
+    value: "bruder"
+  }, "Bruder"), /*#__PURE__*/React.createElement("option", {
+    value: "kind"
+  }, "Kind")), /*#__PURE__*/React.createElement("optgroup", {
+    label: "Zweitgradig (25%)"
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "grossmutter_m"
+  }, "Gro\xDFmutter (m\xFCtterlicherseits)"), /*#__PURE__*/React.createElement("option", {
+    value: "grossmutter_v"
+  }, "Gro\xDFmutter (v\xE4terlicherseits)"), /*#__PURE__*/React.createElement("option", {
+    value: "grossvater_m"
+  }, "Gro\xDFvater (m\xFCtterlicherseits)"), /*#__PURE__*/React.createElement("option", {
+    value: "grossvater_v"
+  }, "Gro\xDFvater (v\xE4terlicherseits)"), /*#__PURE__*/React.createElement("option", {
+    value: "tante_onkel"
+  }, "Tante / Onkel")), /*#__PURE__*/React.createElement("optgroup", {
+    label: "Drittgradig (12,5%)"
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "cousin"
+  }, "Cousin / Cousine")))), fld("Alter bei Erkrankung (ca.)", /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: "1",
+    max: "100",
+    placeholder: "Jahre",
+    style: {
+      ...iSt,
+      width: 78
+    },
+    value: fa.erkranktMit || "",
+    onChange: e => updFam(i, "erkranktMit", e.target.value)
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => delFam(i),
+    style: delBSt
+  }, "\u2715")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      paddingLeft: 28,
+      display: "flex",
+      gap: 10,
+      alignItems: "center",
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "flex",
+      gap: 6,
+      alignItems: "center",
+      cursor: "pointer",
+      padding: "3px 10px",
+      borderRadius: 5,
+      fontSize: 12,
+      fontWeight: 600,
+      background: fa.osteoRelevant ? "#fef3c7" : "#f9f4ee",
+      border: fa.osteoRelevant ? "1px solid #d97706" : "1px solid #e0d0b0",
+      color: fa.osteoRelevant ? "#92400e" : "#7a6050"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: !!fa.osteoRelevant,
+    onChange: e => updFam(i, "osteoRelevant", e.target.checked),
+    style: {
+      width: 14,
+      height: 14,
+      accentColor: "#d97706",
+      cursor: "pointer"
+    }
+  }), "\uD83E\uDDB4 Osteoporose-relevant"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#9b7a5a"
+    }
+  }, fa.osteoRelevant ? "→ Wird im Risiko-Bericht hervorgehoben" : "")))), /*#__PURE__*/React.createElement("datalist", {
+    id: "familien-diag-list"
+  }, ["Osteoporose", "Hüftfraktur (Oberschenkelhalsbruch)", "Wirbelkörperfraktur", "Schenkelhalsfraktur", "Knochenbruch nach Bagatelltrauma", "Osteogenesis imperfecta (Glasknochenkrankheit)", "Herzinfarkt (Myokardinfarkt)", "Koronare Herzerkrankung (KHK)", "Schlaganfall", "Plötzlicher Herztod", "Arterielle Hypertonie", "Herzinsuffizienz", "Mammakarzinom", "Ovarialkarzinom", "Prostatakarzinom", "Kolonkarzinom", "Bronchialkarzinom", "Melanom", "Magenkarzinom", "Pankreas-Karzinom", "Typ-1-Diabetes", "Typ-2-Diabetes", "Schilddrüsenerkrankung", "Cushing-Syndrom", "Hyperparathyreoidismus", "Rheumatoide Arthritis", "Spondylitis ankylosans", "Systemischer Lupus erythematodes (SLE)", "Psoriasis-Arthritis", "Multiple Sklerose (MS)", "Morbus Parkinson", "Alzheimer-Demenz", "Epilepsie", "Brustkrebs (Mutter/Schwester vor 50 J.) – BRCA-Risiko", "Eierstockkrebs – BRCA-Risiko", "Hämochromatose", "Zöliakie / Glutenunverträglichkeit", "Morbus Crohn / Colitis ulcerosa", "Nierensteine / Nephrolithiasis", "Polyzystische Nierenerkrankung", "Marfan-Syndrom", "Ehlers-Danlos-Syndrom", "Osteogenesis imperfecta", "Vorzeitige Menopause (vor 45. Lebensjahr)", "Osteopenie / Knochenschwund allgemein", "Alkoholabhängigkeit", "Thromboembolie / Lungenembolie", "Depression", "Kleinwuchs / Wachstumsstörung", "Hypermobilität der Gelenke"].map(v => /*#__PURE__*/React.createElement("option", {
+    key: v,
+    value: v
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap",
+      marginTop: 4,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => addFam(),
+    style: addBSt
+  }, "+ Familienanamnese eintragen"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => addFam("Hüftfraktur (Oberschenkelhalsbruch)"),
+    style: {
+      ...addBSt,
+      borderColor: "#9b7a5a",
+      color: "#5a3020"
+    }
+  }, "\uD83E\uDDB4 + H\xFCftfraktur Elternteil"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => addFam("Osteoporose"),
+    style: {
+      ...addBSt,
+      borderColor: "#9b7a5a",
+      color: "#5a3020"
+    }
+  }, "\uD83E\uDDB4 + Osteoporose Elternteil")), d.familienanamnese.filter(fa => fa.osteoRelevant).length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 12px",
+      background: "#fff8f0",
+      border: "1px solid #e8c880",
+      borderRadius: 7,
+      fontSize: 12,
+      color: "#7a5010"
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "\uD83E\uDDB4 Osteoporose-relevante Familienanamnese:"), " ", d.familienanamnese.filter(fa => fa.osteoRelevant).map((fa, i) => /*#__PURE__*/React.createElement("span", {
+    key: i
+  }, fa.verwandtschaft && /*#__PURE__*/React.createElement("strong", null, fa.verwandtschaft, ": "), fa.diagnose, fa.erkranktMit && " (mit " + fa.erkranktMit + " J.)", i < d.familienanamnese.filter(x => x.osteoRelevant).length - 1 ? ", " : "")))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 18
     }
@@ -9265,6 +9828,10 @@ function App() {
   const hasPicker = !isMobile && typeof window.showSaveFilePicker === "function";
   const [gender, setGender] = useState(null);
   const [anamnese, setAnamnese] = useState({
+    diagnosen: [],
+    weitere: [],
+    allergien: [],
+    familienanamnese: [],
     fractures: [],
     ops: [],
     menarche: "",
@@ -9480,6 +10047,9 @@ function App() {
     setOpenSec({});
     setAnamnese({
       diagnosen: [],
+      weitere: [],
+      allergien: [],
+      familienanamnese: [],
       fractures: [],
       ops: [],
       menarche: "",
