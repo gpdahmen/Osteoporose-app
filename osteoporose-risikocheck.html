@@ -2164,6 +2164,71 @@ const SEK_DIAG_DB_DEFAULTS = {
   }
 };
 const SEK_DIAG_DB_KEY = "osteo_sekdb_overrides_v1";
+const SEK_PROFILE_KEY = "osteo_sekprofile_overrides_v1";
+const SEK_UNTERS_KEY = "osteo_sekunters_overrides_v1";
+const SEK_QS_KEY = "osteo_sekqs_overrides_v1";
+
+// Build default question map from SECTIONS at runtime
+function buildSekQsDefaults() {
+  const m = {};
+  for (const sec of SECTIONS) {
+    if (!sec.symcheck) continue;
+    for (const q of sec.qs || []) {
+      m[q.id] = {
+        label: q.label,
+        hint: q.hint || ""
+      };
+    }
+  }
+  return m;
+}
+// Build default profile map from SEK_PROFILE at runtime
+function buildSekProfileDefaults() {
+  const m = {};
+  for (const [sym, p] of Object.entries(SEK_PROFILE)) {
+    m[sym] = {
+      label: p.label,
+      hinweis: p.hinweis
+    };
+  }
+  return m;
+}
+// Build default unters map from SEK_PROFILE at runtime
+function buildSekUntersDefaults() {
+  const m = {};
+  for (const [sym, p] of Object.entries(SEK_PROFILE)) {
+    m[sym] = (p.untersuchungen || []).map(u => ({
+      ...u
+    }));
+  }
+  return m;
+}
+function loadSekDb(key, buildDefaults) {
+  try {
+    const raw = localStorage.getItem(key);
+    const overrides = raw ? JSON.parse(raw) : {};
+    return mergeDeepSek(buildDefaults(), overrides);
+  } catch (e) {
+    return buildDefaults();
+  }
+}
+function mergeDeepSek(defaults, overrides) {
+  const result = {
+    ...defaults
+  };
+  for (const [k, v] of Object.entries(overrides)) {
+    result[k] = v; // override entire entry
+  }
+  return result;
+}
+function saveSekDb(key, current, buildDefaults) {
+  const defaults = buildDefaults();
+  const overrides = {};
+  for (const [k, v] of Object.entries(current)) {
+    if (JSON.stringify(v) !== JSON.stringify(defaults[k])) overrides[k] = v;
+  }
+  localStorage.setItem(key, JSON.stringify(overrides));
+}
 function loadSekDiagDb() {
   try {
     const raw = localStorage.getItem(SEK_DIAG_DB_KEY);
@@ -4025,7 +4090,10 @@ function ResultCard({
 
 /* ─── SECONDARY OSTEOPOROSIS PANEL ─── */
 function SecondaryPanel({
-  answers
+  answers,
+  sekProfileDb,
+  sekUntersDb,
+  sekQsDb
 }) {
   const sek = computeSecondary(answers);
   return /*#__PURE__*/React.createElement("div", {
@@ -4056,7 +4124,7 @@ function SecondaryPanel({
     className: "sek-item-header"
   }, /*#__PURE__*/React.createElement("div", {
     className: "sek-item-label"
-  }, profile.label), /*#__PURE__*/React.createElement("span", {
+  }, sekProfileDb && sekProfileDb[sym] && sekProfileDb[sym].label || profile.label), /*#__PURE__*/React.createElement("span", {
     className: "sek-item-count" + (count >= 2 ? " strong" : "")
   }, count, " Hinweis", count > 1 ? "e" : "")), /*#__PURE__*/React.createElement("div", {
     className: "sek-triggers"
@@ -4073,7 +4141,7 @@ function SecondaryPanel({
     }
   }, /*#__PURE__*/React.createElement("div", {
     className: "sek-trigger-q"
-  }, hit.label), /*#__PURE__*/React.createElement("div", {
+  }, sekQsDb && sekQsDb[hit.qid] && sekQsDb[hit.qid].label || hit.label), /*#__PURE__*/React.createElement("div", {
     className: "sek-trigger-sec"
   }, hit.sectionTitle)), /*#__PURE__*/React.createElement("span", {
     style: {
@@ -4089,11 +4157,11 @@ function SecondaryPanel({
     }
   }, "Ja")))), /*#__PURE__*/React.createElement("div", {
     className: "sek-hinweis"
-  }, /*#__PURE__*/React.createElement("strong", null, "Klinischer Hinweis:"), " ", profile.hinweis), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("strong", null, "Klinischer Hinweis:"), " ", sekProfileDb && sekProfileDb[sym] && sekProfileDb[sym].hinweis || profile.hinweis), /*#__PURE__*/React.createElement("div", {
     className: "sek-unt-title"
   }, "Bei klinischem Verdacht k\xF6nnten folgende Befunde interessant sein:"), /*#__PURE__*/React.createElement("div", {
     className: "sek-unt-grid"
-  }, profile.untersuchungen.map((u, i) => /*#__PURE__*/React.createElement("div", {
+  }, (sekUntersDb && sekUntersDb[sym] || profile.untersuchungen || []).map((u, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     className: "sek-unt-item"
   }, /*#__PURE__*/React.createElement("span", {
@@ -5045,8 +5113,14 @@ function flattenEntries(id, entries, original) {
 function AdminPanel({
   diagDb,
   sekDiagDb,
+  sekProfileDb,
+  sekUntersDb,
+  sekQsDb,
   onSave,
   onSaveSek,
+  onSaveSekProfile,
+  onSaveSekUnters,
+  onSaveSekQs,
   onClose
 }) {
   const ICD5_RE = /^[A-Z]\d{2}\.[\d]{2}[XG]?G?$/;
@@ -5083,6 +5157,20 @@ function AdminPanel({
     };
     return d;
   });
+  // Profile (label + hinweis), Untersuchungen, Questions drafts
+  const [sekProfileDraft, setSekProfileDraft] = useState(() => ({
+    ...buildSekProfileDefaults(),
+    ...(sekProfileDb || {})
+  }));
+  const [sekUntersDraft, setSekUntersDraft] = useState(() => ({
+    ...buildSekUntersDefaults(),
+    ...(sekUntersDb || {})
+  }));
+  const [sekQsDraft, setSekQsDraft] = useState(() => ({
+    ...buildSekQsDefaults(),
+    ...(sekQsDb || {})
+  }));
+  const [expandedSym, setExpandedSym] = useState(null);
 
   // Entry CRUD
   const updateEntry = (id, idx, field, val) => {
@@ -5132,6 +5220,9 @@ function AdminPanel({
       onSave(draft);
     } else {
       onSaveSek(sekDraft);
+      onSaveSekProfile(sekProfileDraft);
+      onSaveSekUnters(sekUntersDraft);
+      onSaveSekQs(sekQsDraft);
     }
     onClose();
   };
@@ -5153,7 +5244,7 @@ function AdminPanel({
         });
       }
     } else {
-      if (window.confirm("Alle Sekundärform-Diagnosen auf Standardwerte zurücksetzen?")) {
+      if (window.confirm("Alle Sekundärform-Daten auf Standardwerte zurücksetzen?")) {
         setSekDraft(() => {
           const d = {};
           for (const id of sekAllIds) d[id] = {
@@ -5161,6 +5252,9 @@ function AdminPanel({
           };
           return d;
         });
+        setSekProfileDraft(buildSekProfileDefaults());
+        setSekUntersDraft(buildSekUntersDefaults());
+        setSekQsDraft(buildSekQsDefaults());
       }
     }
   };
@@ -5337,13 +5431,21 @@ function AdminPanel({
       className: "admin-gender-hint"
     }, def.icd5_f_meno && /*#__PURE__*/React.createElement("span", null, "\u2640 postmenopausal: ", /*#__PURE__*/React.createElement("strong", null, row.icd5_f_meno || def.icd5_f_meno), "\u2003"), def.icd5_m && /*#__PURE__*/React.createElement("span", null, "\u2642 Mann: ", /*#__PURE__*/React.createElement("strong", null, row.icd5_m || def.icd5_m)))));
   }) : (() => {
-    // ── SEK TAB ──────────────────────────────────────────────
-    const filteredSekIds2 = search.trim() ? sekAllIds.filter(id => {
-      const q = search.toLowerCase();
-      const row = sekDraft[id] || {};
-      return id.includes(q) || (row.diagnose || "").toLowerCase().includes(q) || (row.icd5 || "").toLowerCase().includes(q);
-    }) : sekAllIds;
-    // Section labels for each sym key (from SEK_PROFILE)
+    // ── SEK TAB (full editor) ────────────────────────────────
+    // Build sym→questions lookup from SECTIONS at render time
+    const symQsMap = {};
+    for (const sec of SECTIONS) {
+      if (!sec.symcheck) continue;
+      for (const q of sec.qs || []) {
+        if (q.sym) {
+          if (!symQsMap[q.sym]) symQsMap[q.sym] = [];
+          symQsMap[q.sym].push({
+            ...q,
+            sectionTitle: sec.title
+          });
+        }
+      }
+    }
     const sekSectionMap = {
       hpth: "Hormonell",
       cushing: "Hormonell",
@@ -5383,18 +5485,52 @@ function AdminPanel({
       seltene_metabolisch: "Genetisch/Selten"
     };
     const groupOrder = ["Hormonell", "Gastro/Absorption", "Nieren/Elektrolyte", "Hämatologie", "Immunsystem", "Neurologie/Lebensstil", "Genetisch/Selten"];
+    // Filter by search
+    const filteredSekIds2 = search.trim() ? Object.keys(SEK_PROFILE).filter(sym => {
+      const q = search.toLowerCase();
+      const prof = sekProfileDraft[sym] || {};
+      const diag = sekDraft[sym] || {};
+      const qLabels = (symQsMap[sym] || []).map(x => (sekQsDraft[x.id] || {}).label || x.label).join(" ");
+      return sym.includes(q) || (prof.label || "").toLowerCase().includes(q) || (prof.hinweis || "").toLowerCase().includes(q) || (diag.diagnose || "").toLowerCase().includes(q) || qLabels.toLowerCase().includes(q);
+    }) : Object.keys(SEK_PROFILE);
     const grouped = {};
-    for (const id of filteredSekIds2) {
-      const grp = sekSectionMap[id] || "Sonstige";
+    for (const sym of filteredSekIds2) {
+      const grp = sekSectionMap[sym] || "Sonstige";
       if (!grouped[grp]) grouped[grp] = [];
-      grouped[grp].push(id);
+      grouped[grp].push(sym);
     }
+    const inputSt = {
+      padding: "5px 9px",
+      border: "1.5px solid #d4c4a8",
+      borderRadius: 5,
+      fontSize: 12.5,
+      fontFamily: "inherit",
+      width: "100%",
+      background: "#fff",
+      outline: "none"
+    };
+    const labelSt = {
+      fontSize: 10,
+      fontWeight: 700,
+      color: "#8b6a3a",
+      textTransform: "uppercase",
+      letterSpacing: ".8px",
+      marginBottom: 3,
+      display: "block"
+    };
+    const icdSt = ok => ({
+      ...inputSt,
+      width: 120,
+      border: `1.5px solid ${ok ? "#d4c4a8" : "#dc2626"}`,
+      flexShrink: 0,
+      background: ok ? "#fff" : "#fef2f2"
+    });
     return groupOrder.flatMap(grp => {
       if (!(grp in grouped)) return [];
       return [/*#__PURE__*/React.createElement("div", {
         key: "grp-" + grp,
         style: {
-          padding: "6px 10px",
+          padding: "6px 12px",
           fontSize: 10.5,
           fontWeight: 700,
           color: "#c8a070",
@@ -5403,71 +5539,344 @@ function AdminPanel({
           background: "#1e1208",
           borderRadius: 5,
           marginBottom: 4,
-          marginTop: 8
+          marginTop: 10
         }
-      }, grp), ...grouped[grp].map(id => {
-        const row = sekDraft[id] || {};
-        const icdOk = validateIcd(row.icd5);
-        const profile = SEK_PROFILE[id] || {};
+      }, grp), ...grouped[grp].map(sym => {
+        const profRow = sekProfileDraft[sym] || {};
+        const diagRow = sekDraft[sym] || {};
+        const untersRows = sekUntersDraft[sym] || [];
+        const symQs = symQsMap[sym] || [];
+        const isOpen = expandedSym === sym;
+        const icdOk = validateIcd(diagRow.icd5);
         return /*#__PURE__*/React.createElement("div", {
-          key: id,
-          className: "admin-card"
-        }, /*#__PURE__*/React.createElement("div", {
-          className: "admin-card-header"
-        }, /*#__PURE__*/React.createElement("span", {
-          className: "admin-card-id"
-        }, id), /*#__PURE__*/React.createElement("span", {
-          className: "admin-card-label",
+          key: sym,
+          className: "admin-card",
           style: {
-            fontStyle: "italic",
-            color: "#5a4a30"
+            marginBottom: 6
           }
-        }, profile.label || id)), /*#__PURE__*/React.createElement("div", {
-          className: "admin-card-body"
         }, /*#__PURE__*/React.createElement("div", {
-          className: "admin-diag-labels"
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "10px 14px",
+            background: "#f8f0e4",
+            borderBottom: "1px solid #ece0cc",
+            borderRadius: "6px 6px 0 0",
+            cursor: "pointer"
+          },
+          onClick: () => setExpandedSym(isOpen ? null : sym)
         }, /*#__PURE__*/React.createElement("span", {
-          className: "admin-diag-col-label"
-        }, "Diagnose-Bezeichnung (Textexport)"), /*#__PURE__*/React.createElement("span", {
-          className: "admin-diag-col-label"
-        }, "ICD-10-GM (Haupt)"), /*#__PURE__*/React.createElement("span", null)), /*#__PURE__*/React.createElement("div", {
-          className: "admin-diag-row"
+          style: {
+            fontSize: 13,
+            color: "#c8a070",
+            fontWeight: 700,
+            transform: isOpen ? "rotate(90deg)" : "none",
+            transition: "transform .2s",
+            display: "inline-block"
+          }
+        }, "\u25B6"), /*#__PURE__*/React.createElement("span", {
+          className: "admin-card-id",
+          style: {
+            flexShrink: 0
+          }
+        }, sym), /*#__PURE__*/React.createElement("span", {
+          style: {
+            flex: 1,
+            fontSize: 13,
+            fontWeight: 600,
+            color: "#3a2a10"
+          }
+        }, profRow.label || sym), /*#__PURE__*/React.createElement("span", {
+          style: {
+            fontSize: 10,
+            color: "#a09070",
+            whiteSpace: "nowrap"
+          }
+        }, symQs.length, " Frage", symQs.length !== 1 ? "n" : "", " \xB7 ", untersRows.length, " Unt.")), isOpen && /*#__PURE__*/React.createElement("div", {
+          style: {
+            padding: "14px 16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 14
+          }
+        }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+          style: labelSt
+        }, "\uD83C\uDFF7 Erkrankungsname (Anzeige & Auswertung)"), /*#__PURE__*/React.createElement("input", {
+          style: inputSt,
+          value: profRow.label || "",
+          placeholder: "Erkrankungsname\u2026",
+          onChange: e => setSekProfileDraft(d => ({
+            ...d,
+            [sym]: {
+              ...(d[sym] || {}),
+              label: e.target.value
+            }
+          }))
+        })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+          style: labelSt
+        }, "\uD83D\uDCCB Klinischer Hinweis (Auswertungstext)"), /*#__PURE__*/React.createElement("textarea", {
+          style: {
+            ...inputSt,
+            resize: "vertical",
+            minHeight: 72,
+            lineHeight: 1.55
+          },
+          value: profRow.hinweis || "",
+          placeholder: "Klinischer Hinweis f\xFCr die Auswertungsansicht\u2026",
+          onChange: e => setSekProfileDraft(d => ({
+            ...d,
+            [sym]: {
+              ...(d[sym] || {}),
+              hinweis: e.target.value
+            }
+          }))
+        })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+          style: labelSt
+        }, "\uD83C\uDFE5 Diagnose & ICD-10 bei Best\xE4tigung (Textexport)"), /*#__PURE__*/React.createElement("div", {
+          style: {
+            display: "flex",
+            gap: 8,
+            alignItems: "flex-start"
+          }
         }, /*#__PURE__*/React.createElement("input", {
-          className: "admin-input",
-          value: row.diagnose || "",
-          placeholder: "Diagnosebezeichnung f\xFCr Export\u2026",
+          style: {
+            ...inputSt,
+            flex: 1
+          },
+          value: diagRow.diagnose || "",
+          placeholder: "Diagnosebezeichnung f\xFCr den Textexport\u2026",
           onChange: e => setSekDraft(d => ({
             ...d,
-            [id]: {
-              ...d[id],
+            [sym]: {
+              ...d[sym],
               diagnose: e.target.value
             }
           }))
         }), /*#__PURE__*/React.createElement("input", {
-          className: "admin-icd-input" + (icdOk ? "" : " invalid"),
-          value: row.icd5 || "",
-          placeholder: "z. B. E21.0G",
+          style: icdSt(icdOk),
+          value: diagRow.icd5 || "",
+          placeholder: "E21.0G",
           onChange: e => setSekDraft(d => ({
             ...d,
-            [id]: {
-              ...d[id],
+            [sym]: {
+              ...d[sym],
               icd5: e.target.value.toUpperCase()
             }
           }))
-        }), /*#__PURE__*/React.createElement("span", {
+        })), !icdOk && /*#__PURE__*/React.createElement("div", {
           style: {
-            width: 26
+            fontSize: 10,
+            color: "#dc2626",
+            marginTop: 2
           }
-        })), profile.hinweis && /*#__PURE__*/React.createElement("div", {
+        }, "Ung\xFCltiges ICD-10-Format (Beispiel: E21.0G)")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+          style: labelSt
+        }, "\u2753 Ausl\xF6sende Symptomfragen (", symQs.length, ")"), symQs.length === 0 && /*#__PURE__*/React.createElement("div", {
+          style: {
+            fontSize: 12,
+            color: "#a09080",
+            fontStyle: "italic",
+            padding: "6px 0"
+          }
+        }, "Keine Fragen f\xFCr diese Erkrankung definiert."), symQs.map((q, qi) => {
+          const qRow = sekQsDraft[q.id] || {
+            label: q.label,
+            hint: q.hint || ""
+          };
+          return /*#__PURE__*/React.createElement("div", {
+            key: q.id,
+            style: {
+              background: "#f4f0ea",
+              borderRadius: 6,
+              padding: "10px 12px",
+              marginBottom: 6,
+              border: "1px solid #e0d4c0"
+            }
+          }, /*#__PURE__*/React.createElement("div", {
+            style: {
+              display: "flex",
+              gap: 6,
+              marginBottom: 2,
+              alignItems: "center"
+            }
+          }, /*#__PURE__*/React.createElement("span", {
+            style: {
+              fontSize: 9.5,
+              fontWeight: 700,
+              color: "#a08050",
+              textTransform: "uppercase",
+              letterSpacing: ".6px",
+              background: "#e8d8b0",
+              padding: "1px 6px",
+              borderRadius: 8,
+              flexShrink: 0
+            }
+          }, q.id), q.onlyFor && /*#__PURE__*/React.createElement("span", {
+            style: {
+              fontSize: 9,
+              color: "#fff",
+              background: q.onlyFor === "f" ? "#db2777" : "#2563eb",
+              padding: "1px 5px",
+              borderRadius: 8,
+              flexShrink: 0
+            }
+          }, "nur ", q.onlyFor === "f" ? "♀ Frauen" : "♂ Männer"), /*#__PURE__*/React.createElement("span", {
+            style: {
+              fontSize: 10,
+              color: "#9a8a70",
+              marginLeft: "auto",
+              flexShrink: 0
+            }
+          }, q.sectionTitle)), /*#__PURE__*/React.createElement("label", {
+            style: {
+              ...labelSt,
+              marginTop: 6,
+              marginBottom: 3
+            }
+          }, "Fragetext"), /*#__PURE__*/React.createElement("textarea", {
+            style: {
+              ...inputSt,
+              resize: "vertical",
+              minHeight: 52,
+              fontSize: 12,
+              lineHeight: 1.5,
+              whiteSpace: "pre-wrap"
+            },
+            value: qRow.label || "",
+            placeholder: "Fragetext\u2026",
+            onChange: e => setSekQsDraft(d => ({
+              ...d,
+              [q.id]: {
+                ...(d[q.id] || {}),
+                label: e.target.value
+              }
+            }))
+          }), /*#__PURE__*/React.createElement("label", {
+            style: {
+              ...labelSt,
+              marginTop: 6,
+              marginBottom: 3
+            }
+          }, "Erkl\xE4rungstext (wird dem Arzt als Hinweis angezeigt)"), /*#__PURE__*/React.createElement("input", {
+            style: {
+              ...inputSt,
+              fontSize: 12
+            },
+            value: qRow.hint || "",
+            placeholder: "Klinischer Erkl\xE4rungstext (optional)\u2026",
+            onChange: e => setSekQsDraft(d => ({
+              ...d,
+              [q.id]: {
+                ...(d[q.id] || {}),
+                hint: e.target.value
+              }
+            }))
+          }));
+        })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+          style: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 6
+          }
+        }, /*#__PURE__*/React.createElement("label", {
+          style: {
+            ...labelSt,
+            marginBottom: 0
+          }
+        }, "\uD83D\uDD2C Vorgeschlagene Untersuchungen (", untersRows.length, ")"), /*#__PURE__*/React.createElement("button", {
+          onClick: () => setSekUntersDraft(d => ({
+            ...d,
+            [sym]: [...(d[sym] || []), {
+              name: "",
+              icd: ""
+            }]
+          })),
           style: {
             fontSize: 11,
-            color: "#8b7060",
-            marginTop: 5,
-            borderLeft: "2px solid #d4c4a8",
-            paddingLeft: 8,
-            lineHeight: 1.5
+            padding: "3px 10px",
+            background: "#1a7f4f",
+            color: "#fff",
+            border: "none",
+            borderRadius: 5,
+            cursor: "pointer",
+            fontFamily: "inherit"
           }
-        }, profile.hinweis.slice(0, 160), profile.hinweis.length > 160 ? "…" : "")));
+        }, "+ Zeile hinzuf\xFCgen")), untersRows.length === 0 && /*#__PURE__*/React.createElement("div", {
+          style: {
+            fontSize: 12,
+            color: "#a09080",
+            fontStyle: "italic",
+            padding: "4px 0"
+          }
+        }, "Noch keine Untersuchungen \u2013 Zeile hinzuf\xFCgen."), untersRows.map((u, ui) => {
+          const icdU = validateIcd(u.icd || (u.icd || "").replace(/G$/, "") + "G");
+          return /*#__PURE__*/React.createElement("div", {
+            key: ui,
+            style: {
+              display: "flex",
+              gap: 6,
+              marginBottom: 5,
+              alignItems: "center"
+            }
+          }, /*#__PURE__*/React.createElement("input", {
+            style: {
+              ...inputSt,
+              flex: 1,
+              fontSize: 12
+            },
+            value: u.name || "",
+            placeholder: "Untersuchungsname / Labortest\u2026",
+            onChange: e => setSekUntersDraft(d => {
+              const rows = [...(d[sym] || [])];
+              rows[ui] = {
+                ...rows[ui],
+                name: e.target.value
+              };
+              return {
+                ...d,
+                [sym]: rows
+              };
+            })
+          }), /*#__PURE__*/React.createElement("input", {
+            style: {
+              ...inputSt,
+              width: 90,
+              flexShrink: 0,
+              fontSize: 12
+            },
+            value: u.icd || "",
+            placeholder: "ICD",
+            onChange: e => setSekUntersDraft(d => {
+              const rows = [...(d[sym] || [])];
+              rows[ui] = {
+                ...rows[ui],
+                icd: e.target.value.toUpperCase()
+              };
+              return {
+                ...d,
+                [sym]: rows
+              };
+            })
+          }), /*#__PURE__*/React.createElement("button", {
+            onClick: () => setSekUntersDraft(d => ({
+              ...d,
+              [sym]: (d[sym] || []).filter((_, i) => i !== ui)
+            })),
+            style: {
+              flexShrink: 0,
+              background: "#fee2e2",
+              color: "#dc2626",
+              border: "1px solid #fca5a5",
+              borderRadius: 5,
+              padding: "3px 8px",
+              cursor: "pointer",
+              fontSize: 13,
+              fontFamily: "inherit"
+            }
+          }, "\u2715"));
+        }))));
       })];
     });
   })()), /*#__PURE__*/React.createElement("div", {
@@ -5488,6 +5897,9 @@ function App() {
   const [showDlModal, setShowDlModal] = useState(null);
   const [diagDb, setDiagDb] = useState(DIAG_DB_DEFAULTS);
   const [sekDiagDb, setSekDiagDb] = useState(SEK_DIAG_DB_DEFAULTS);
+  const [sekProfileDb, setSekProfileDb] = useState(() => buildSekProfileDefaults());
+  const [sekUntersDb, setSekUntersDb] = useState(() => buildSekUntersDefaults());
+  const [sekQsDb, setSekQsDb] = useState(() => buildSekQsDefaults());
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminPin, setAdminPin] = useState("");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
@@ -5530,6 +5942,9 @@ function App() {
       const savedDb = await loadDiagDbAsync();
       setDiagDb(savedDb);
       setSekDiagDb(loadSekDiagDb());
+      setSekProfileDb(loadSekDb(SEK_PROFILE_KEY, buildSekProfileDefaults));
+      setSekUntersDb(loadSekDb(SEK_UNTERS_KEY, buildSekUntersDefaults));
+      setSekQsDb(loadSekDb(SEK_QS_KEY, buildSekQsDefaults));
       const sess = await idbLoadAll();
       setSessions(sess.sort((a, b) => b.id.localeCompare(a.id)));
     })();
@@ -5936,17 +6351,27 @@ function App() {
       borderRadius: 8,
       border: "1px dashed var(--P)"
     }
-  }, "Bitte oben das biologische Geschlecht ausw\xE4hlen, um den Fragebogen zu starten."), disclaimerOk && gender && visibleSecs.map(s => /*#__PURE__*/React.createElement(Section, {
-    key: s.id,
-    section: s,
-    open: !!openSec[s.id],
-    onToggle: () => toggleSec(s.id),
-    answers: answers,
-    onAnswer: setA,
-    onRx: setA,
-    hasRisk: s.qs.some(q => answers[q.id] === "ja"),
-    onCameraOpen: () => setCamOpen(true)
-  })), gender && /*#__PURE__*/React.createElement("div", {
+  }, "Bitte oben das biologische Geschlecht ausw\xE4hlen, um den Fragebogen zu starten."), disclaimerOk && gender && visibleSecs.map(s => {
+    const sWithEdits = s.symcheck ? {
+      ...s,
+      qs: (s.qs || []).map(q => ({
+        ...q,
+        label: sekQsDb && sekQsDb[q.id] && sekQsDb[q.id].label || q.label,
+        hint: sekQsDb && sekQsDb[q.id] && sekQsDb[q.id].hint !== undefined ? sekQsDb[q.id].hint || undefined : q.hint
+      }))
+    } : s;
+    return /*#__PURE__*/React.createElement(Section, {
+      key: s.id,
+      section: sWithEdits,
+      open: !!openSec[s.id],
+      onToggle: () => toggleSec(s.id),
+      answers: answers,
+      onAnswer: setA,
+      onRx: setA,
+      hasRisk: sWithEdits.qs.some(q => answers[q.id] === "ja"),
+      onCameraOpen: () => setCamOpen(true)
+    });
+  }), gender && /*#__PURE__*/React.createElement("div", {
     className: "bottom-bar"
   }, /*#__PURE__*/React.createElement("div", {
     className: "bottom-bar-title"
@@ -5996,6 +6421,9 @@ function App() {
   }, "Auswertung in Analogie zur ", /*#__PURE__*/React.createElement("strong", null, "DVO-Leitlinie 2023"), " \xB7 AWMF-Register 183-001, Version 2.1 \xB7 November 2023 / Juni 2024")), adminOpen && /*#__PURE__*/React.createElement(AdminPanel, {
     diagDb: diagDb,
     sekDiagDb: sekDiagDb,
+    sekProfileDb: sekProfileDb,
+    sekUntersDb: sekUntersDb,
+    sekQsDb: sekQsDb,
     onClose: () => {
       setAdminOpen(false);
       setAdminPin("");
@@ -6007,6 +6435,18 @@ function App() {
     onSaveSek: db => {
       setSekDiagDb(db);
       saveSekDiagDb(db);
+    },
+    onSaveSekProfile: db => {
+      setSekProfileDb(db);
+      saveSekDb(SEK_PROFILE_KEY, db, buildSekProfileDefaults);
+    },
+    onSaveSekUnters: db => {
+      setSekUntersDb(db);
+      saveSekDb(SEK_UNTERS_KEY, db, buildSekUntersDefaults);
+    },
+    onSaveSekQs: db => {
+      setSekQsDb(db);
+      saveSekDb(SEK_QS_KEY, db, buildSekQsDefaults);
     }
   }), camOpen && /*#__PURE__*/React.createElement(CameraScanner, {
     onMedsFound: handleCamMeds,

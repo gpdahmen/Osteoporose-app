@@ -902,6 +902,60 @@ const SEK_DIAG_DB_DEFAULTS = {
   seltene_metabolisch:{diagnose:"Seltene Stoffwechselerkrankung mit Knochenbeteiligung",   icd5:"E74.0G"},
 };
 const SEK_DIAG_DB_KEY = "osteo_sekdb_overrides_v1";
+const SEK_PROFILE_KEY  = "osteo_sekprofile_overrides_v1";
+const SEK_UNTERS_KEY   = "osteo_sekunters_overrides_v1";
+const SEK_QS_KEY       = "osteo_sekqs_overrides_v1";
+
+// Build default question map from SECTIONS at runtime
+function buildSekQsDefaults(){
+  const m={};
+  for(const sec of SECTIONS){
+    if(!sec.symcheck) continue;
+    for(const q of (sec.qs||[])){
+      m[q.id]={label:q.label, hint:q.hint||""};
+    }
+  }
+  return m;
+}
+// Build default profile map from SEK_PROFILE at runtime
+function buildSekProfileDefaults(){
+  const m={};
+  for(const [sym,p] of Object.entries(SEK_PROFILE)){
+    m[sym]={label:p.label, hinweis:p.hinweis};
+  }
+  return m;
+}
+// Build default unters map from SEK_PROFILE at runtime
+function buildSekUntersDefaults(){
+  const m={};
+  for(const [sym,p] of Object.entries(SEK_PROFILE)){
+    m[sym]=(p.untersuchungen||[]).map(u=>({...u}));
+  }
+  return m;
+}
+
+function loadSekDb(key, buildDefaults){
+  try{
+    const raw=localStorage.getItem(key);
+    const overrides=raw?JSON.parse(raw):{};
+    return mergeDeepSek(buildDefaults(), overrides);
+  }catch(e){ return buildDefaults(); }
+}
+function mergeDeepSek(defaults, overrides){
+  const result={...defaults};
+  for(const [k,v] of Object.entries(overrides)){
+    result[k]=v; // override entire entry
+  }
+  return result;
+}
+function saveSekDb(key, current, buildDefaults){
+  const defaults=buildDefaults();
+  const overrides={};
+  for(const [k,v] of Object.entries(current)){
+    if(JSON.stringify(v)!==JSON.stringify(defaults[k])) overrides[k]=v;
+  }
+  localStorage.setItem(key, JSON.stringify(overrides));
+}
 
 function loadSekDiagDb(){
   try{
@@ -2101,7 +2155,7 @@ function ResultCard({gender,answers,patient,diff}){
 }
 
 /* ─── SECONDARY OSTEOPOROSIS PANEL ─── */
-function SecondaryPanel({answers}){
+function SecondaryPanel({answers,sekProfileDb,sekUntersDb,sekQsDb}){
   const sek = computeSecondary(answers);
   return(
     <div className="sek-panel">
@@ -2125,7 +2179,7 @@ function SecondaryPanel({answers}){
         ) : sek.map(({sym,count,hits,profile})=>(
           <div key={sym} className="sek-item">
             <div className="sek-item-header">
-              <div className="sek-item-label">{profile.label}</div>
+              <div className="sek-item-label">{(sekProfileDb&&sekProfileDb[sym]&&sekProfileDb[sym].label)||profile.label}</div>
               <span className={"sek-item-count"+(count>=2?" strong":"")}>
                 {count} Hinweis{count>1?"e":""}
               </span>
@@ -2140,7 +2194,7 @@ function SecondaryPanel({answers}){
                 <div key={i} className="sek-trigger-row">
                   <span className="sek-trigger-check">✓</span>
                   <div style={{flex:1}}>
-                    <div className="sek-trigger-q">{hit.label}</div>
+                    <div className="sek-trigger-q">{(sekQsDb&&sekQsDb[hit.qid]&&sekQsDb[hit.qid].label)||hit.label}</div>
                     <div className="sek-trigger-sec">{hit.sectionTitle}</div>
                   </div>
                   <span style={{fontSize:11,color:"#16a34a",fontWeight:700,
@@ -2153,11 +2207,11 @@ function SecondaryPanel({answers}){
             </div>
 
             <div className="sek-hinweis">
-              <strong>Klinischer Hinweis:</strong> {profile.hinweis}
+              <strong>Klinischer Hinweis:</strong> {(sekProfileDb&&sekProfileDb[sym]&&sekProfileDb[sym].hinweis)||profile.hinweis}
             </div>
             <div className="sek-unt-title">Bei klinischem Verdacht könnten folgende Befunde interessant sein:</div>
             <div className="sek-unt-grid">
-              {profile.untersuchungen.map((u,i)=>(
+              {((sekUntersDb&&sekUntersDb[sym])||profile.untersuchungen||[]).map((u,i)=>(
                 <div key={i} className="sek-unt-item">
                   <span style={{flex:1}}>{u.name}</span>
                   {u.icd&&<span className="sek-unt-icd">{u.icd}</span>}
@@ -2810,7 +2864,7 @@ function flattenEntries(id, entries, original){
   return result;
 }
 
-function AdminPanel({diagDb,sekDiagDb,onSave,onSaveSek,onClose}){
+function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,onSave,onSaveSek,onSaveSekProfile,onSaveSekUnters,onSaveSekQs,onClose}){
   const ICD5_RE=/^[A-Z]\d{2}\.[\d]{2}[XG]?G?$/;
   const validateIcd=(s)=>(s||"").trim()===""||ICD5_RE.test((s||"").trim());
   const allIds=Object.keys(DIAG_DB_DEFAULTS);
@@ -2836,6 +2890,11 @@ function AdminPanel({diagDb,sekDiagDb,onSave,onSaveSek,onClose}){
     for(const id of sekAllIds) d[id]={...SEK_DIAG_DB_DEFAULTS[id],...((sekDiagDb||{})[id]||{})};
     return d;
   });
+  // Profile (label + hinweis), Untersuchungen, Questions drafts
+  const[sekProfileDraft,setSekProfileDraft]=useState(()=>({...buildSekProfileDefaults(),...(sekProfileDb||{})}));
+  const[sekUntersDraft,setSekUntersDraft]=useState(()=>({...buildSekUntersDefaults(),...(sekUntersDb||{})}));
+  const[sekQsDraft,setSekQsDraft]=useState(()=>({...buildSekQsDefaults(),...(sekQsDb||{})}));
+  const[expandedSym,setExpandedSym]=useState(null);
 
   // Entry CRUD
   const updateEntry=(id,idx,field,val)=>{
@@ -2862,7 +2921,12 @@ function AdminPanel({diagDb,sekDiagDb,onSave,onSaveSek,onClose}){
 
   const handleSave=()=>{
     if(activeTab==="risiko"){ onSave(draft); }
-    else { onSaveSek(sekDraft); }
+    else {
+      onSaveSek(sekDraft);
+      onSaveSekProfile(sekProfileDraft);
+      onSaveSekUnters(sekUntersDraft);
+      onSaveSekQs(sekQsDraft);
+    }
     onClose();
   };
   const handleReset=()=>{
@@ -2878,12 +2942,11 @@ function AdminPanel({diagDb,sekDiagDb,onSave,onSaveSek,onClose}){
         });
       }
     } else {
-      if(window.confirm("Alle Sekundärform-Diagnosen auf Standardwerte zurücksetzen?")){
-        setSekDraft(()=>{
-          const d={};
-          for(const id of sekAllIds) d[id]={...SEK_DIAG_DB_DEFAULTS[id]};
-          return d;
-        });
+      if(window.confirm("Alle Sekundärform-Daten auf Standardwerte zurücksetzen?")){
+        setSekDraft(()=>{const d={};for(const id of sekAllIds)d[id]={...SEK_DIAG_DB_DEFAULTS[id]};return d;});
+        setSekProfileDraft(buildSekProfileDefaults());
+        setSekUntersDraft(buildSekUntersDefaults());
+        setSekQsDraft(buildSekQsDefaults());
       }
     }
   };
@@ -3031,15 +3094,18 @@ function AdminPanel({diagDb,sekDiagDb,onSave,onSaveSek,onClose}){
                   </div>
                 );
               }) : (()=>{
-              // ── SEK TAB ──────────────────────────────────────────────
-              const filteredSekIds2 = search.trim()
-                ? sekAllIds.filter(id=>{
-                    const q=search.toLowerCase();
-                    const row=sekDraft[id]||{};
-                    return id.includes(q)||(row.diagnose||"").toLowerCase().includes(q)||(row.icd5||"").toLowerCase().includes(q);
-                  })
-                : sekAllIds;
-              // Section labels for each sym key (from SEK_PROFILE)
+              // ── SEK TAB (full editor) ────────────────────────────────
+              // Build sym→questions lookup from SECTIONS at render time
+              const symQsMap={};
+              for(const sec of SECTIONS){
+                if(!sec.symcheck) continue;
+                for(const q of (sec.qs||[])){
+                  if(q.sym){
+                    if(!symQsMap[q.sym])symQsMap[q.sym]=[];
+                    symQsMap[q.sym].push({...q,sectionTitle:sec.title});
+                  }
+                }
+              }
               const sekSectionMap={
                 hpth:"Hormonell",cushing:"Hormonell",hypogonadismus:"Hormonell",
                 hypogonadismus_f:"Hormonell",hyperthyreose:"Hormonell",
@@ -3063,57 +3129,206 @@ function AdminPanel({diagDb,sekDiagDb,onSave,onSaveSek,onClose}){
               };
               const groupOrder=["Hormonell","Gastro/Absorption","Nieren/Elektrolyte",
                 "Hämatologie","Immunsystem","Neurologie/Lebensstil","Genetisch/Selten"];
+              // Filter by search
+              const filteredSekIds2=search.trim()
+                ? Object.keys(SEK_PROFILE).filter(sym=>{
+                    const q=search.toLowerCase();
+                    const prof=sekProfileDraft[sym]||{};
+                    const diag=sekDraft[sym]||{};
+                    const qLabels=(symQsMap[sym]||[]).map(x=>(sekQsDraft[x.id]||{}).label||x.label).join(" ");
+                    return sym.includes(q)||(prof.label||"").toLowerCase().includes(q)
+                      ||(prof.hinweis||"").toLowerCase().includes(q)
+                      ||(diag.diagnose||"").toLowerCase().includes(q)
+                      ||qLabels.toLowerCase().includes(q);
+                  })
+                : Object.keys(SEK_PROFILE);
               const grouped={};
-              for(const id of filteredSekIds2){
-                const grp=sekSectionMap[id]||"Sonstige";
+              for(const sym of filteredSekIds2){
+                const grp=sekSectionMap[sym]||"Sonstige";
                 if(!grouped[grp])grouped[grp]=[];
-                grouped[grp].push(id);
+                grouped[grp].push(sym);
               }
+              const inputSt={padding:"5px 9px",border:"1.5px solid #d4c4a8",borderRadius:5,
+                fontSize:12.5,fontFamily:"inherit",width:"100%",background:"#fff",outline:"none"};
+              const labelSt={fontSize:10,fontWeight:700,color:"#8b6a3a",textTransform:"uppercase",
+                letterSpacing:".8px",marginBottom:3,display:"block"};
+              const icdSt=(ok)=>({...inputSt,width:120,border:`1.5px solid ${ok?"#d4c4a8":"#dc2626"}`,
+                flexShrink:0,background:ok?"#fff":"#fef2f2"});
               return groupOrder.flatMap(grp=>{
                 if(!(grp in grouped))return[];
                 return[
                   <div key={"grp-"+grp} style={{
-                    padding:"6px 10px",fontSize:10.5,fontWeight:700,
+                    padding:"6px 12px",fontSize:10.5,fontWeight:700,
                     color:"#c8a070",textTransform:"uppercase",letterSpacing:"1px",
-                    background:"#1e1208",borderRadius:5,marginBottom:4,marginTop:8}}>
+                    background:"#1e1208",borderRadius:5,marginBottom:4,marginTop:10}}>
                     {grp}
                   </div>,
-                  ...grouped[grp].map(id=>{
-                    const row=sekDraft[id]||{};
-                    const icdOk=validateIcd(row.icd5);
-                    const profile=SEK_PROFILE[id]||{};
+                  ...grouped[grp].map(sym=>{
+                    const profRow=sekProfileDraft[sym]||{};
+                    const diagRow=sekDraft[sym]||{};
+                    const untersRows=sekUntersDraft[sym]||[];
+                    const symQs=symQsMap[sym]||[];
+                    const isOpen=expandedSym===sym;
+                    const icdOk=validateIcd(diagRow.icd5);
                     return(
-                      <div key={id} className="admin-card">
-                        <div className="admin-card-header">
-                          <span className="admin-card-id">{id}</span>
-                          <span className="admin-card-label" style={{fontStyle:"italic",color:"#5a4a30"}}>
-                            {profile.label||id}
+                      <div key={sym} className="admin-card" style={{marginBottom:6}}>
+
+                        {/* ── Card header: toggle + Erkrankungsname ── */}
+                        <div style={{display:"flex",alignItems:"center",gap:8,
+                          padding:"10px 14px",background:"#f8f0e4",
+                          borderBottom:"1px solid #ece0cc",borderRadius:"6px 6px 0 0",
+                          cursor:"pointer"}}
+                          onClick={()=>setExpandedSym(isOpen?null:sym)}>
+                          <span style={{fontSize:13,color:"#c8a070",fontWeight:700,
+                            transform:isOpen?"rotate(90deg)":"none",
+                            transition:"transform .2s",display:"inline-block"}}>▶</span>
+                          <span className="admin-card-id" style={{flexShrink:0}}>{sym}</span>
+                          <span style={{flex:1,fontSize:13,fontWeight:600,color:"#3a2a10"}}>
+                            {profRow.label||sym}
+                          </span>
+                          <span style={{fontSize:10,color:"#a09070",whiteSpace:"nowrap"}}>
+                            {symQs.length} Frage{symQs.length!==1?"n":""} · {untersRows.length} Unt.
                           </span>
                         </div>
-                        <div className="admin-card-body">
-                          <div className="admin-diag-labels">
-                            <span className="admin-diag-col-label">Diagnose-Bezeichnung (Textexport)</span>
-                            <span className="admin-diag-col-label">ICD-10-GM (Haupt)</span>
-                            <span></span>
-                          </div>
-                          <div className="admin-diag-row">
-                            <input className="admin-input"
-                              value={row.diagnose||""}
-                              placeholder="Diagnosebezeichnung für Export…"
-                              onChange={e=>setSekDraft(d=>({...d,[id]:{...d[id],diagnose:e.target.value}}))}/>
-                            <input className={"admin-icd-input"+(icdOk?"":" invalid")}
-                              value={row.icd5||""}
-                              placeholder="z. B. E21.0G"
-                              onChange={e=>setSekDraft(d=>({...d,[id]:{...d[id],icd5:e.target.value.toUpperCase()}}))}/>
-                            <span style={{width:26}}/>
-                          </div>
-                          {profile.hinweis&&(
-                            <div style={{fontSize:11,color:"#8b7060",marginTop:5,
-                              borderLeft:"2px solid #d4c4a8",paddingLeft:8,lineHeight:1.5}}>
-                              {profile.hinweis.slice(0,160)}{profile.hinweis.length>160?"…":""}
+
+                        {isOpen&&(
+                          <div style={{padding:"14px 16px",display:"flex",flexDirection:"column",gap:14}}>
+
+                            {/* ── Erkrankungsname ── */}
+                            <div>
+                              <label style={labelSt}>🏷 Erkrankungsname (Anzeige & Auswertung)</label>
+                              <input style={inputSt}
+                                value={profRow.label||""}
+                                placeholder="Erkrankungsname…"
+                                onChange={e=>setSekProfileDraft(d=>({...d,[sym]:{...d[sym]||{},label:e.target.value}}))}/>
                             </div>
-                          )}
-                        </div>
+
+                            {/* ── Klinischer Hinweis ── */}
+                            <div>
+                              <label style={labelSt}>📋 Klinischer Hinweis (Auswertungstext)</label>
+                              <textarea style={{...inputSt,resize:"vertical",minHeight:72,lineHeight:1.55}}
+                                value={profRow.hinweis||""}
+                                placeholder="Klinischer Hinweis für die Auswertungsansicht…"
+                                onChange={e=>setSekProfileDraft(d=>({...d,[sym]:{...d[sym]||{},hinweis:e.target.value}}))}/>
+                            </div>
+
+                            {/* ── Diagnose bei Bestätigung ── */}
+                            <div>
+                              <label style={labelSt}>🏥 Diagnose & ICD-10 bei Bestätigung (Textexport)</label>
+                              <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                                <input style={{...inputSt,flex:1}}
+                                  value={diagRow.diagnose||""}
+                                  placeholder="Diagnosebezeichnung für den Textexport…"
+                                  onChange={e=>setSekDraft(d=>({...d,[sym]:{...d[sym],diagnose:e.target.value}}))}/>
+                                <input style={icdSt(icdOk)}
+                                  value={diagRow.icd5||""}
+                                  placeholder="E21.0G"
+                                  onChange={e=>setSekDraft(d=>({...d,[sym]:{...d[sym],icd5:e.target.value.toUpperCase()}}))}/>
+                              </div>
+                              {!icdOk&&<div style={{fontSize:10,color:"#dc2626",marginTop:2}}>
+                                Ungültiges ICD-10-Format (Beispiel: E21.0G)
+                              </div>}
+                            </div>
+
+                            {/* ── Auslösende Symptomfragen ── */}
+                            <div>
+                              <label style={labelSt}>❓ Auslösende Symptomfragen ({symQs.length})</label>
+                              {symQs.length===0&&(
+                                <div style={{fontSize:12,color:"#a09080",fontStyle:"italic",padding:"6px 0"}}>
+                                  Keine Fragen für diese Erkrankung definiert.
+                                </div>
+                              )}
+                              {symQs.map((q,qi)=>{
+                                const qRow=sekQsDraft[q.id]||{label:q.label,hint:q.hint||""};
+                                return(
+                                  <div key={q.id} style={{
+                                    background:"#f4f0ea",borderRadius:6,
+                                    padding:"10px 12px",marginBottom:6,
+                                    border:"1px solid #e0d4c0"}}>
+                                    <div style={{display:"flex",gap:6,marginBottom:2,alignItems:"center"}}>
+                                      <span style={{fontSize:9.5,fontWeight:700,color:"#a08050",
+                                        textTransform:"uppercase",letterSpacing:".6px",
+                                        background:"#e8d8b0",padding:"1px 6px",borderRadius:8,flexShrink:0}}>
+                                        {q.id}
+                                      </span>
+                                      {q.onlyFor&&(
+                                        <span style={{fontSize:9,color:"#fff",
+                                          background:q.onlyFor==="f"?"#db2777":"#2563eb",
+                                          padding:"1px 5px",borderRadius:8,flexShrink:0}}>
+                                          nur {q.onlyFor==="f"?"♀ Frauen":"♂ Männer"}
+                                        </span>
+                                      )}
+                                      <span style={{fontSize:10,color:"#9a8a70",marginLeft:"auto",flexShrink:0}}>
+                                        {q.sectionTitle}
+                                      </span>
+                                    </div>
+                                    <label style={{...labelSt,marginTop:6,marginBottom:3}}>Fragetext</label>
+                                    <textarea style={{...inputSt,resize:"vertical",minHeight:52,
+                                      fontSize:12,lineHeight:1.5,whiteSpace:"pre-wrap"}}
+                                      value={qRow.label||""}
+                                      placeholder="Fragetext…"
+                                      onChange={e=>setSekQsDraft(d=>({...d,[q.id]:{...d[q.id]||{},label:e.target.value}}))}/>
+                                    <label style={{...labelSt,marginTop:6,marginBottom:3}}>
+                                      Erklärungstext (wird dem Arzt als Hinweis angezeigt)
+                                    </label>
+                                    <input style={{...inputSt,fontSize:12}}
+                                      value={qRow.hint||""}
+                                      placeholder="Klinischer Erklärungstext (optional)…"
+                                      onChange={e=>setSekQsDraft(d=>({...d,[q.id]:{...d[q.id]||{},hint:e.target.value}}))}/>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* ── Vorgeschlagene Untersuchungen ── */}
+                            <div>
+                              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                                <label style={{...labelSt,marginBottom:0}}>
+                                  🔬 Vorgeschlagene Untersuchungen ({untersRows.length})
+                                </label>
+                                <button onClick={()=>setSekUntersDraft(d=>({...d,[sym]:[...(d[sym]||[]),{name:"",icd:""}]}))}
+                                  style={{fontSize:11,padding:"3px 10px",background:"#1a7f4f",color:"#fff",
+                                    border:"none",borderRadius:5,cursor:"pointer",fontFamily:"inherit"}}>
+                                  + Zeile hinzufügen
+                                </button>
+                              </div>
+                              {untersRows.length===0&&(
+                                <div style={{fontSize:12,color:"#a09080",fontStyle:"italic",padding:"4px 0"}}>
+                                  Noch keine Untersuchungen – Zeile hinzufügen.
+                                </div>
+                              )}
+                              {untersRows.map((u,ui)=>{
+                                const icdU=validateIcd(u.icd||(u.icd||"").replace(/G$/,"")+"G");
+                                return(
+                                  <div key={ui} style={{display:"flex",gap:6,marginBottom:5,alignItems:"center"}}>
+                                    <input style={{...inputSt,flex:1,fontSize:12}}
+                                      value={u.name||""}
+                                      placeholder="Untersuchungsname / Labortest…"
+                                      onChange={e=>setSekUntersDraft(d=>{
+                                        const rows=[...(d[sym]||[])];
+                                        rows[ui]={...rows[ui],name:e.target.value};
+                                        return{...d,[sym]:rows};
+                                      })}/>
+                                    <input style={{...inputSt,width:90,flexShrink:0,fontSize:12}}
+                                      value={u.icd||""}
+                                      placeholder="ICD"
+                                      onChange={e=>setSekUntersDraft(d=>{
+                                        const rows=[...(d[sym]||[])];
+                                        rows[ui]={...rows[ui],icd:e.target.value.toUpperCase()};
+                                        return{...d,[sym]:rows};
+                                      })}/>
+                                    <button
+                                      onClick={()=>setSekUntersDraft(d=>({...d,[sym]:(d[sym]||[]).filter((_,i)=>i!==ui)}))}
+                                      style={{flexShrink:0,background:"#fee2e2",color:"#dc2626",
+                                        border:"1px solid #fca5a5",borderRadius:5,padding:"3px 8px",
+                                        cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>✕</button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -3141,6 +3356,9 @@ function App(){
   const[showDlModal,setShowDlModal]=useState(null);
   const[diagDb,setDiagDb]=useState(DIAG_DB_DEFAULTS);
   const[sekDiagDb,setSekDiagDb]=useState(SEK_DIAG_DB_DEFAULTS);
+  const[sekProfileDb,setSekProfileDb]=useState(()=>buildSekProfileDefaults());
+  const[sekUntersDb,setSekUntersDb]=useState(()=>buildSekUntersDefaults());
+  const[sekQsDb,setSekQsDb]=useState(()=>buildSekQsDefaults());
   const[adminOpen,setAdminOpen]=useState(false);
   const[adminPin,setAdminPin]=useState("");
   const[adminUnlocked,setAdminUnlocked]=useState(false);
@@ -3174,6 +3392,9 @@ function App(){
       }
       const savedDb=await loadDiagDbAsync();setDiagDb(savedDb);
       setSekDiagDb(loadSekDiagDb());
+      setSekProfileDb(loadSekDb(SEK_PROFILE_KEY, buildSekProfileDefaults));
+      setSekUntersDb(loadSekDb(SEK_UNTERS_KEY, buildSekUntersDefaults));
+      setSekQsDb(loadSekDb(SEK_QS_KEY, buildSekQsDefaults));
       const sess=await idbLoadAll();
       setSessions(sess.sort((a,b)=>b.id.localeCompare(a.id)));
     })();
@@ -3451,12 +3672,23 @@ function App(){
         )}
 
         {/* ── Questionnaire Sections (DXA is last section) ── */}
-        {disclaimerOk&&gender&&visibleSecs.map(s=>(
-          <Section key={s.id} section={s} open={!!openSec[s.id]}
-            onToggle={()=>toggleSec(s.id)} answers={answers} onAnswer={setA} onRx={setA}
-            hasRisk={s.qs.some(q=>answers[q.id]==="ja")}
-            onCameraOpen={()=>setCamOpen(true)}/>
-        ))}
+        {disclaimerOk&&gender&&visibleSecs.map(s=>{
+          const sWithEdits = s.symcheck ? {
+            ...s,
+            qs:(s.qs||[]).map(q=>({
+              ...q,
+              label:(sekQsDb&&sekQsDb[q.id]&&sekQsDb[q.id].label)||q.label,
+              hint: sekQsDb&&sekQsDb[q.id]&&sekQsDb[q.id].hint!==undefined
+                ? (sekQsDb[q.id].hint||undefined) : q.hint,
+            }))
+          } : s;
+          return(
+            <Section key={s.id} section={sWithEdits} open={!!openSec[s.id]}
+              onToggle={()=>toggleSec(s.id)} answers={answers} onAnswer={setA} onRx={setA}
+              hasRisk={sWithEdits.qs.some(q=>answers[q.id]==="ja")}
+              onCameraOpen={()=>setCamOpen(true)}/>
+          );
+        })}
 
         {/* ── Bottom Action Bar (at end as requested) ── */}
         {gender&&(
@@ -3496,9 +3728,13 @@ function App(){
 
             {adminOpen&&(
         <AdminPanel diagDb={diagDb} sekDiagDb={sekDiagDb}
+          sekProfileDb={sekProfileDb} sekUntersDb={sekUntersDb} sekQsDb={sekQsDb}
           onClose={()=>{setAdminOpen(false);setAdminPin("");}}
           onSave={db=>{setDiagDb(db);saveDiagDb(db);}}
-          onSaveSek={db=>{setSekDiagDb(db);saveSekDiagDb(db);}}/>
+          onSaveSek={db=>{setSekDiagDb(db);saveSekDiagDb(db);}}
+          onSaveSekProfile={db=>{setSekProfileDb(db);saveSekDb(SEK_PROFILE_KEY,db,buildSekProfileDefaults);}}
+          onSaveSekUnters={db=>{setSekUntersDb(db);saveSekDb(SEK_UNTERS_KEY,db,buildSekUntersDefaults);}}
+          onSaveSekQs={db=>{setSekQsDb(db);saveSekDb(SEK_QS_KEY,db,buildSekQsDefaults);}}/>
       )}
             {camOpen&&(
         <CameraScanner onMedsFound={handleCamMeds} onClose={()=>setCamOpen(false)}/>
