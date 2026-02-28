@@ -2722,7 +2722,7 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
   lines.push(`  ${lh.strasse}, ${lh.plz_ort}`);
   if(lh.telefon)lines.push(`  Tel.: ${lh.telefon}${lh.fax?" | Fax: "+lh.fax:""}`);
   lines.push(sep);
-  lines.push("  OSTEOPOROSE-RISIKOCHECK – AUSWERTUNG");
+  lines.push("  ANAMNESE- UND OSTEOPOROSE-DOKUMENTATIONSHILFE UND RISIKOCHECK – AUSWERTUNG");
   lines.push("  DVO-Leitlinie 2023 | S3-Leitlinie AWMF 183-001");
   lines.push(`  Ausgabedatum: ${d}`);
   lines.push(sep);lines.push("");
@@ -3206,7 +3206,7 @@ function ResultCard({gender,answers,patient,diff}){
   const info=cat?catInfo[cat]:null;
   return(
     <div className="result">
-      <div className="result-title">📊 Auswertung – Osteoporose-Dokumentationshilfe</div>
+      <div className="result-title">📊 Auswertung – Anamnese- und Osteoporose-Dokumentationshilfe</div>
       <div className="thresh-row">
         <ThreshPill label="3%-Schwelle (3 J.)" threshold={t3} reached={r3}/>
         <ThreshPill label="5%-Schwelle (3 J.)" threshold={t5} reached={r5}/>
@@ -5721,7 +5721,7 @@ function App(){
 
         {/* ── App Header ── */}
         <div className="hdr">
-          <h1>Osteoporose-Dokumentationshilfe und Risikocheck</h1>
+          <h1>Anamnese- und Osteoporose-Dokumentationshilfe und Risikocheck</h1>
           <p className="hdr-sub">Systematische Erfassung von Risikofaktoren und Symptomen sekundärer Osteoporoseformen – mit automatischer Berechnung der DVO-Therapieschwellen und Abklärungsempfehlungen.</p>
           <div className="badge">In Anlehnung an die DVO-Leitlinie 2023 · S3-Leitlinie AWMF 183-001 · Version 2.1</div>
         </div>

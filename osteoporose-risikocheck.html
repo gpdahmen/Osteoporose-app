@@ -5010,7 +5010,7 @@ function buildTextExport(patient, gender, answers, risk, diff, lh, diagDb, sekDb
   lines.push(`  ${lh.strasse}, ${lh.plz_ort}`);
   if (lh.telefon) lines.push(`  Tel.: ${lh.telefon}${lh.fax ? " | Fax: " + lh.fax : ""}`);
   lines.push(sep);
-  lines.push("  OSTEOPOROSE-RISIKOCHECK – AUSWERTUNG");
+  lines.push("  ANAMNESE- UND OSTEOPOROSE-DOKUMENTATIONSHILFE UND RISIKOCHECK – AUSWERTUNG");
   lines.push("  DVO-Leitlinie 2023 | S3-Leitlinie AWMF 183-001");
   lines.push(`  Ausgabedatum: ${d}`);
   lines.push(sep);
@@ -5658,7 +5658,7 @@ function ResultCard({
     className: "result"
   }, /*#__PURE__*/React.createElement("div", {
     className: "result-title"
-  }, "\uD83D\uDCCA Auswertung \u2013 Osteoporose-Dokumentationshilfe"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCCA Auswertung \u2013 Anamnese- und Osteoporose-Dokumentationshilfe"), /*#__PURE__*/React.createElement("div", {
     className: "thresh-row"
   }, /*#__PURE__*/React.createElement(ThreshPill, {
     label: "3%-Schwelle (3 J.)",
@@ -10126,7 +10126,7 @@ function App() {
     onSave: handleSaveLh
   }), /*#__PURE__*/React.createElement("div", {
     className: "hdr"
-  }, /*#__PURE__*/React.createElement("h1", null, "Osteoporose-Dokumentationshilfe und Risikocheck"), /*#__PURE__*/React.createElement("p", {
+  }, /*#__PURE__*/React.createElement("h1", null, "Anamnese- und Osteoporose-Dokumentationshilfe und Risikocheck"), /*#__PURE__*/React.createElement("p", {
     className: "hdr-sub"
   }, "Systematische Erfassung von Risikofaktoren und Symptomen sekund\xE4rer Osteoporoseformen \u2013 mit automatischer Berechnung der DVO-Therapieschwellen und Abkl\xE4rungsempfehlungen."), /*#__PURE__*/React.createElement("div", {
     className: "badge"
