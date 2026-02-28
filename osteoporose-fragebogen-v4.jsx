@@ -4887,6 +4887,10 @@ function App(){
   const isMobile=isAndroid||isIOS;
   const hasPicker=!isMobile&&typeof window.showSaveFilePicker==="function";
   const[gender,setGender]=useState(null);
+  const[anamnese,setAnamnese]=useState({fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]});
+  const[painMaps,setPainMaps]=useState({});
+  const[openAnam,setOpenAnam]=useState(true);
+  const[openPain,setOpenPain]=useState(true);
   const[answers,setAnswers]=useState({});
   const[patient,setPatient]=useState({name:"",geburtsdatum:"",fillDate:today});
   const[openSec,setOpenSec]=useState({});
