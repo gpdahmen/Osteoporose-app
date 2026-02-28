@@ -769,6 +769,23 @@ const SECTIONS=[
       hint:"Turner-Syndrom führt durch primären Hypogonadismus zu schwerer Osteoporose – oft erst im Erwachsenenalter erkannt."},
     {id:"sym_klinefelter_ost",t:"yn",label:"Wurde bei Ihnen ein Klinefelter-Syndrom oder eine ähnliche Chromosomenbesonderheit festgestellt?",sym:"klinefelter",onlyFor:"m",
       hint:"Klinefelter-Syndrom führt durch Hypogonadismus zu erhöhtem Osteoporoserisiko – DXA empfohlen ab Diagnosestellung."},
+
+    /* ── Eisen-Osteomalazie ── */
+    {id:"sym_eisen_ost",t:"yn",label:"Erhalten Sie regelmäßig Eisen-Infusionen? (z.B. Ferinject®, Monofer®, Cosmofer®)",sym:"eisen_osteomalazie",
+      hint:"Ferrioxid-haltige Eisenpräparate (besonders Ferric Carboxymaltose / Ferinject®) können eine FGF-23-vermittelte Hypophosphatämie mit Osteomalazie auslösen. Das Risiko steigt mit wiederholten Gaben."},
+    {id:"sym_eisen_ost_praep",t:"text",label:"Wenn ja – welches Eisenpräparat wird verwendet?",
+      showIf:{id:"sym_eisen_ost",val:"ja"},
+      hint:"Bitte Präparatname angeben, z.B. Ferinject®, Monofer®, Cosmofer®, Venofer®, Fermed®"},
+    {id:"sym_eisen_ost_seit",t:"text",label:"Seit wann erhalten Sie Eisen-Infusionen? (Monat/Jahr)",
+      showIf:{id:"sym_eisen_ost",val:"ja"},
+      hint:"Bei längerer Anwendung (> 3 Monate) sollte Phosphat und FGF-23 kontrolliert werden."},
+
+    /* ── MTX-Osteopathie ── */
+    {id:"sym_mtx_ost",t:"yn",label:"Nehmen Sie Methotrexat (MTX)? (z.B. als Rheuma-, Psoriasis- oder Tumortherapie)",sym:"mtx_osteopathie",
+      hint:"Methotrexat kann bei längerer Anwendung (> 6 Monate) oder höherer kumulativer Dosis eine Osteopathie mit Stressfrakturen und Knochenschmerzen verursachen (MTX-Osteopathie)."},
+    {id:"sym_mtx_seit",t:"text",label:"Wenn ja – seit wann nehmen Sie MTX und in welcher Dosis?",
+      showIf:{id:"sym_mtx_ost",val:"ja"},
+      hint:"Bitte angeben: Dosis in mg/Woche und ungefähre Therapiedauer. Kumulativdosen > 6 g sind mit erhöhtem Osteopathierisiko assoziiert."},
   ]},
 ];
 
@@ -918,6 +935,8 @@ const SEK_DIAG_DB_DEFAULTS = {
   turner:            {diagnose:"Turner-Syndrom (45,X)",                                    icd5:"Q96.0G"},
   klinefelter:       {diagnose:"Klinefelter-Syndrom (47,XXY)",                             icd5:"Q98.0G"},
   seltene_metabolisch:{diagnose:"Seltene Stoffwechselerkrankung mit Knochenbeteiligung",   icd5:"E74.0G"},
+  eisen_osteomalazie:{diagnose:"Eisen-Infusionsbedingte Osteomalazie (Ferrioxid-assoziierte Hypophosphatämie)",icd5:"E83.30G"},
+  mtx_osteopathie:   {diagnose:"Methotrexat-Induzierte Osteopathie",                                          icd5:"M81.4G"},
 };
 // ══════════════════════════════════════════════════════════════════════
 // SEK_SCORES_DEFAULTS  –  Klinische Scores & Stadieneinteilungen
@@ -1849,6 +1868,30 @@ const SEK_SCORING_DEFAULTS = {
       {name: "Gentestung",                              beschreibung: "GBA1 (Gaucher), GLA (Fabry), GAA (Pompe) – Ergebnis entscheidet über Enzymersatz-Indikation"},
     ]
   },
+  eisen_osteomalazie: {
+    titel: "Ferrioxid-assoziierte Hypophosphatämie – Diagnostische Kriterien",
+    quelle: "Schaefer B et al. J Hepatol 2021; Fachinformationen Ferinject®",
+    url: "https://doi.org/10.1016/j.jhep.2020.09.027",
+    stufen: [
+      {name: "Hypophosphatämie", beschreibung: "Phosphat < 0,87 mmol/l – bei wiederholten Ferinject®-Infusionen in bis zu 75% der Patienten"},
+      {name: "FGF-23-Erhöhung", beschreibung: "Intaktes FGF-23 > 100 pg/ml → renale Phosphatverschwendung + Hemmung Vitamin-D-Aktivierung"},
+      {name: "Osteomalazie leicht", beschreibung: "Phosphat ↓, keine/geringe Symptome, Knochendichte erhalten"},
+      {name: "Osteomalazie mäßig", beschreibung: "Knochenschmerzen, proximale Muskelschwäche, Gang unsicher"},
+      {name: "Osteomalazie schwer", beschreibung: "Looser-Umbauzonen, Stressfrakturen (Rippen, Metatarsalia), Gehunfähigkeit"},
+      {name: "Hochrisiko-Indikator", beschreibung: "≥ 3 Ferric-Carboxymaltose-Infusionen (Ferinject®) ODER kumulative Dosis > 3 g/12 Monate → Phosphat-Monitoring zwingend erforderlich"},
+    ]
+  },
+  mtx_osteopathie: {
+    titel: "Methotrexat-Osteopathie – Risikostratifizierung nach kumulativer Dosis",
+    quelle: "Zonneveld IM et al. Dermatology 1996; Braun J et al. Ann Rheum Dis 2010; DGRh",
+    url: "https://doi.org/10.1159/000246975",
+    stufen: [
+      {name: "Niedrigrisiko", beschreibung: "MTX < 6 Monate ODER kumulative Dosis < 1,5 g – Osteopathie selten; DXA-Baseline empfohlen"},
+      {name: "Moderates Risiko", beschreibung: "MTX 6–24 Monate ODER kum. Dosis 1,5–6 g – DXA-Monitoring, Folsäuresubstitution sicherstellen"},
+      {name: "Hochrisiko", beschreibung: "MTX > 24 Monate ODER kum. Dosis > 6 g – erhöhtes Frakturrisiko (Tibia, Metatarsalia); DXA jährlich; ggf. Bisphosphonat-Prophylaxe"},
+      {name: "Klinisches Bild", beschreibung: "Periartikuläre Knochenschmerzen (Knöchel, Füße), Stressfrakturen ohne adäquates Trauma; Laborbefunde oft unauffällig"},
+    ]
+  },
 };
 
 const SEK_SCORING_KEY = "osteo_sekscoring_overrides_v1";
@@ -2569,6 +2612,35 @@ const SEK_PROFILE = {
       {name:"Muskelbiopsie / genetisches Panel bei klinischem Verdacht",icd:"E74.0"},
       {name:"DXA, Kalzium, Phosphat, Vitamin D",icd:"E74.0"},
       {name:"Überweisung Humangenetik / Stoffwechselzentrum",icd:"E74.0"},
+    ]
+  },
+  eisen_osteomalazie: {
+    label: "Eisen-Infusionsbedingte Osteomalazie",
+    hinweis: "Ferrioxid-haltige Eisenpräparate – insbesondere Ferric Carboxymaltose (Ferinject®) – können über eine FGF-23-vermittelte Phosphaturie eine Hypophosphatämie und Osteomalazie auslösen. Das Risiko steigt mit der Anzahl der Infusionen und vorbestehender Niereninsuffizienz. Phosphat und FGF-23 sollten bei regelmäßigen Eisen-Infusionen routinemäßig kontrolliert werden.",
+    untersuchungen: [
+      {name:"Phosphat im Serum (Zielwert: 0,87–1,45 mmol/l)",icd:"E83.30"},
+      {name:"FGF-23 (Fibroblast Growth Factor 23, intakt)",icd:"E83.30"},
+      {name:"Kalzium, Albumin (korrigiertes Kalzium)",icd:"E83.30"},
+      {name:"Vitamin D (25-OH-D3)",icd:"E55.9"},
+      {name:"Parathormon (PTH)",icd:"E83.30"},
+      {name:"Alkalische Phosphatase (AP), Knochen-AP",icd:"E83.30"},
+      {name:"Kalzium und Phosphat im 24h-Urin (TmP/GFR berechnen)",icd:"E83.30"},
+      {name:"Röntgen / MRT: Stress- und Ermüdungsfrakturen (Rippen, Metatarsalia)?",icd:"M83.8"},
+      {name:"DXA Knochendichte (Hüfte + LWS) bei symptomatischen Patienten",icd:"E83.30"},
+    ]
+  },
+  mtx_osteopathie: {
+    label: "Methotrexat-Induzierte Osteopathie",
+    hinweis: "Methotrexat (MTX) inhibiert die Dihydrofolatreduktase und hemmt Osteoblasten-Proliferation sowie Knochenmineralisierung. Bei kumulativen Dosen > 6 g oder Therapiedauer > 6 Monate treten periartikuläre Knochenschmerzen und Stressfrakturen (bevorzugt Tibia, Metatarsalia) auf – laborchemisch oft unauffällig. Folsäuresubstitution reduziert die MTX-Toxizität.",
+    untersuchungen: [
+      {name:"DXA Knochendichte (Hüfte + LWS)",icd:"M81.4"},
+      {name:"Alkalische Phosphatase (AP), Knochen-AP (Osteocalcin)",icd:"M81.4"},
+      {name:"Vitamin D (25-OH-D3), Kalzium",icd:"E55.9"},
+      {name:"Homocystein im Serum (MTX-Toxizitätsmarker)",icd:"M81.4"},
+      {name:"Folsäure im Serum (Substitution ausreichend?)",icd:"M81.4"},
+      {name:"Röntgen Tibia / Metatarsalia (Looser-Umbauzonen?, Periostreaktion?)",icd:"M83.8"},
+      {name:"MRT betroffene Region (Knochenmarködem, Stressfraktur?)",icd:"M81.4"},
+      {name:"Kumulative MTX-Dosis dokumentieren und evaluieren (Risikoschwelle > 6 g)",icd:"M81.4"},
     ]
   },
 };
@@ -3574,7 +3646,7 @@ function AnamneseSection({gender,data,onChange,open,onToggle}){
 
 
 /* ─── SECONDARY OSTEOPOROSIS PANEL ─── */
-function SecondaryPanel({answers,sekProfileDb,sekUntersDb,sekQsDb}){
+function SecondaryPanel({answers,sekProfileDb,sekUntersDb,sekQsDb,sekScoringDb,sekStatus,onSekStatus}){
   const sek = computeSecondary(answers);
   return(
     <div className="sek-panel">
@@ -3624,6 +3696,45 @@ function SecondaryPanel({answers,sekProfileDb,sekUntersDb,sekQsDb}){
                 </div>
               ))}
             </div>
+
+            {/* ── Bekanntheits-Abfrage ── */}
+            {(()=>{
+              const st=sekStatus[sym]||{};
+              const upd=(field,val)=>onSekStatus&&onSekStatus(prev=>({...prev,[sym]:{...(prev[sym]||{}),bekannt:st.bekannt||"",[field]:val}}));
+              const updB=(val)=>onSekStatus&&onSekStatus(prev=>({...prev,[sym]:{...(prev[sym]||{}),bekannt:val}}));
+              return(
+                <div style={{margin:"10px 0",padding:"10px 12px",background:"#f0f9f4",border:"1px solid #86efac",borderRadius:7}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#166534",marginBottom:8}}>
+                    📋 Ist diese Erkrankung bereits bekannt und diagnostiziert?
+                  </div>
+                  <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",marginBottom:st.bekannt==="ja"?8:0}}>
+                    {[{v:"ja",l:"Ja, bekannt"},{v:"nein",l:"Nein / unklar"},{v:"verdacht",l:"Klinischer Verdacht"}].map(opt=>(
+                      <label key={opt.v} style={{display:"flex",gap:5,alignItems:"center",cursor:"pointer",fontSize:13}}>
+                        <input type="radio" name={"sek_bekannt_"+sym} value={opt.v}
+                          checked={st.bekannt===opt.v} onChange={()=>updB(opt.v)}/>
+                        {opt.l}
+                      </label>
+                    ))}
+                  </div>
+                  {st.bekannt==="ja"&&(
+                    <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"flex-end",marginTop:6}}>
+                      <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                        <label style={{fontSize:11.5,fontWeight:600,color:"#166534"}}>Bekannt seit (Jahr / Monat)</label>
+                        <input type="text" placeholder="z.B. 2019, März 2022"
+                          style={{padding:"5px 8px",border:"1px solid #86efac",borderRadius:5,fontSize:12,fontFamily:"inherit",background:"white",width:140}}
+                          value={st.seitWann||""} onChange={e=>upd("seitWann",e.target.value)}/>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:3,flex:1,minWidth:160}}>
+                        <label style={{fontSize:11.5,fontWeight:600,color:"#166534"}}>Aktuelle Behandlung / Therapie</label>
+                        <input type="text" placeholder="z.B. Vitamin D, keine Therapie, Calcitriol + Phosphat"
+                          style={{padding:"5px 8px",border:"1px solid #86efac",borderRadius:5,fontSize:12,fontFamily:"inherit",background:"white",width:"100%"}}
+                          value={st.behandlung||""} onChange={e=>upd("behandlung",e.target.value)}/>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="sek-hinweis">
               <strong>Klinischer Hinweis:</strong> {(sekProfileDb&&sekProfileDb[sym]&&sekProfileDb[sym].hinweis)||profile.hinweis}
@@ -4891,6 +5002,7 @@ function App(){
   const[painMaps,setPainMaps]=useState({});
   const[openAnam,setOpenAnam]=useState(true);
   const[openPain,setOpenPain]=useState(true);
+  const[sekStatus,setSekStatus]=useState({}); // {[sym]: {bekannt:'ja'|'nein'|'', seitWann:'', behandlung:''}}
   const[answers,setAnswers]=useState({});
   const[patient,setPatient]=useState({name:"",geburtsdatum:"",fillDate:today});
   const[openSec,setOpenSec]=useState({});
@@ -5040,6 +5152,7 @@ function App(){
     setAnswers({});setShowResult(false);setOpenSec({});
     setAnamnese({fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]});
     setPainMaps({});
+    setSekStatus({});
     setPatient({name:"",geburtsdatum:"",fillDate:today});setGender(null);setDisclaimerOk(false);
     storageSet(STORE_DRAFT,null);
   };
@@ -5108,12 +5221,27 @@ function App(){
             {disclaimerOk?"✅":"⚠️"} Nutzungshinweis
           </div>
           <div className="disclaimer-gate-text">
+            <strong style={{display:"block",marginBottom:6}}>Medizinisch-fachlicher Hinweis</strong>
             Basierend auf der DVO-Leitlinie 2023 zur Prophylaxe, Diagnostik und Therapie der Osteoporose (AWMF-Register 183-001, Version 2.1, November 2023 / Juni 2024). Medikamentennamen sind Beispiele in Deutschland zugelassener Präparate (ohne Gewähr auf Vollständigkeit).<br/><br/>
-            <strong>Dieses Instrument dient der Veranschaulichung und Schulung von strukturierter Dokumentation bereits bestehender Befunde und ist keine Unterstützung klinischer Entscheidungen und ersetzt keine individuelle ärztliche Beurteilung.</strong>
+            <strong>Dieses Instrument dient der Veranschaulichung und Schulung von strukturierter Dokumentation bereits bestehender Befunde. Es ist keine Unterstützung klinischer Entscheidungen und ersetzt keine individuelle ärztliche Beurteilung.</strong>
+            <div style={{marginTop:12,padding:"8px 10px",background:"#fff8f0",borderRadius:5,borderLeft:"3px solid #d4a060",fontSize:12}}>
+              <strong>Datenschutz (DSGVO)</strong><br/>
+              Alle eingegebenen Daten verbleiben ausschließlich auf dem Gerät des Nutzers. Es findet <strong>keine Übertragung</strong> von Patientendaten an externe Server, Datenbanken oder Dritte statt. Daten werden im lokalen Browserspeicher (localStorage / IndexedDB) des verwendeten Endgeräts gespeichert und können jederzeit gelöscht werden.<br/><br/>
+              Die Verarbeitung personenbezogener Patientendaten im Rahmen der ärztlichen Dokumentation erfolgt auf Grundlage von <strong>Art. 6 Abs. 1 lit. c DSGVO</strong> (rechtliche Verpflichtung) in Verbindung mit <strong>Art. 9 Abs. 2 lit. h DSGVO</strong> (Gesundheitsversorgung) sowie § 22 Abs. 1 Nr. 1 lit. b BDSG. Der für die Verarbeitung Verantwortliche im Sinne von <strong>Art. 4 Nr. 7 DSGVO</strong> ist die das Programm einsetzende medizinische Einrichtung bzw. die behandelnde Ärztin / der behandelnde Arzt.<br/><br/>
+              Das Instrument verarbeitet keine Daten auf eigene Veranlassung. Bei dauerhafter klinischer Nutzung mit Patientenbezug ist eine Aufnahme in das Verfahrensverzeichnis gemäß <strong>Art. 30 DSGVO</strong> zu empfehlen.
+            </div>
+            <div style={{marginTop:10,padding:"8px 10px",background:"#f0f8ff",borderRadius:5,borderLeft:"3px solid #7ab0d4",fontSize:12}}>
+              <strong>Externe Ressourcen, die beim Laden des Programms genutzt werden:</strong><br/>
+              <span style={{display:"block",marginTop:4}}>
+                • <strong>Google Fonts API</strong> (fonts.googleapis.com / fonts.gstatic.com): Schriftarten „Playfair Display" und „Source Sans 3" – Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA. Datenschutzerklärung: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={{color:"#4a7ab0"}}>policies.google.com/privacy</a>. Beim Laden werden IP-Adresse und Browser-Informationen an Google übermittelt.<br/>
+                • <strong>jsQR via jsDelivr CDN</strong> (cdn.jsdelivr.net): JavaScript-Bibliothek zur QR-Code-Erkennung im Medikamenten-Scanner (wird nur bei Kameranutzung geladen) – jsDelivr, Prosperous Net Claymoor, 9 Castle Street, Castletown, IM9 1LF, Isle of Man.
+              </span>
+              Die React-Bibliotheken (react, react-dom) und alle übrigen Programmbestandteile sind direkt in das Dokument eingebettet und erfordern nach dem erstmaligen Laden keine externe Verbindung.
+            </div>
           </div>
           <label className="disclaimer-gate-check">
             <input type="checkbox" checked={disclaimerOk} onChange={e=>setDisclaimerOk(e.target.checked)}/>
-            <span>Ich habe den Hinweis gelesen und verstanden. Dieses Tool wird ausschließlich zu Dokumentations-, Schulungs- oder Veranschaulichungszwecken verwendet.</span>
+            <span>Ich habe den Nutzungshinweis sowie den Datenschutzhinweis gelesen und verstanden. Dieses Tool wird ausschließlich zu Dokumentations-, Schulungs- oder Veranschaulichungszwecken verwendet und ich bin für die datenschutzkonforme Nutzung verantwortlich.</span>
           </label>
           {!disclaimerOk&&(
             <div className="disclaimer-gate-blocked">
@@ -5258,7 +5386,7 @@ function App(){
         )}
 
       {showResult&&gender&&(
-        <SecondaryPanel answers={answers} sekProfileDb={sekProfileDb} sekUntersDb={sekUntersDb} sekQsDb={sekQsDb} sekScoringDb={sekScoringDb}/>
+        <SecondaryPanel answers={answers} sekProfileDb={sekProfileDb} sekUntersDb={sekUntersDb} sekQsDb={sekQsDb} sekScoringDb={sekScoringDb} sekStatus={sekStatus} onSekStatus={setSekStatus}/>
       )}
 
         <div className="disclaimer" style={{marginTop:18}}>

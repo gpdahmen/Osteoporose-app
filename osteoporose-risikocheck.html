@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>Osteoporose-Dokumentationshilfe und Risikocheck – DVO 2023</title></head><body><div id="root"></div><script>
+<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>Anamnese- und Osteoporose-Dokumentationshilfe und Risikocheck – DVO 2023</title></head><body><div id="root"></div><script>
 /**
  * @license React
  * react.production.min.js
@@ -1737,6 +1737,47 @@ const SECTIONS = [{
     sym: "klinefelter",
     onlyFor: "m",
     hint: "Klinefelter-Syndrom führt durch Hypogonadismus zu erhöhtem Osteoporoserisiko – DXA empfohlen ab Diagnosestellung."
+  }, /* ── Eisen-Osteomalazie ── */
+  {
+    id: "sym_eisen_ost",
+    t: "yn",
+    label: "Erhalten Sie regelmäßig Eisen-Infusionen? (z.B. Ferinject®, Monofer®, Cosmofer®)",
+    sym: "eisen_osteomalazie",
+    hint: "Ferrioxid-haltige Eisenpräparate (besonders Ferric Carboxymaltose / Ferinject®) können eine FGF-23-vermittelte Hypophosphatämie mit Osteomalazie auslösen. Das Risiko steigt mit wiederholten Gaben."
+  }, {
+    id: "sym_eisen_ost_praep",
+    t: "text",
+    label: "Wenn ja – welches Eisenpräparat wird verwendet?",
+    showIf: {
+      id: "sym_eisen_ost",
+      val: "ja"
+    },
+    hint: "Bitte Präparatname angeben, z.B. Ferinject®, Monofer®, Cosmofer®, Venofer®, Fermed®"
+  }, {
+    id: "sym_eisen_ost_seit",
+    t: "text",
+    label: "Seit wann erhalten Sie Eisen-Infusionen? (Monat/Jahr)",
+    showIf: {
+      id: "sym_eisen_ost",
+      val: "ja"
+    },
+    hint: "Bei längerer Anwendung (> 3 Monate) sollte Phosphat und FGF-23 kontrolliert werden."
+  }, /* ── MTX-Osteopathie ── */
+  {
+    id: "sym_mtx_ost",
+    t: "yn",
+    label: "Nehmen Sie Methotrexat (MTX)? (z.B. als Rheuma-, Psoriasis- oder Tumortherapie)",
+    sym: "mtx_osteopathie",
+    hint: "Methotrexat kann bei längerer Anwendung (> 6 Monate) oder höherer kumulativer Dosis eine Osteopathie mit Stressfrakturen und Knochenschmerzen verursachen (MTX-Osteopathie)."
+  }, {
+    id: "sym_mtx_seit",
+    t: "text",
+    label: "Wenn ja – seit wann nehmen Sie MTX und in welcher Dosis?",
+    showIf: {
+      id: "sym_mtx_ost",
+      val: "ja"
+    },
+    hint: "Bitte angeben: Dosis in mg/Woche und ungefähre Therapiedauer. Kumulativdosen > 6 g sind mit erhöhtem Osteopathierisiko assoziiert."
   }]
 }];
 
@@ -2179,6 +2220,14 @@ const SEK_DIAG_DB_DEFAULTS = {
   seltene_metabolisch: {
     diagnose: "Seltene Stoffwechselerkrankung mit Knochenbeteiligung",
     icd5: "E74.0G"
+  },
+  eisen_osteomalazie: {
+    diagnose: "Eisen-Infusionsbedingte Osteomalazie (Ferrioxid-assoziierte Hypophosphatämie)",
+    icd5: "E83.30G"
+  },
+  mtx_osteopathie: {
+    diagnose: "Methotrexat-Induzierte Osteopathie",
+    icd5: "M81.4G"
   }
 };
 // ══════════════════════════════════════════════════════════════════════
@@ -3572,6 +3621,48 @@ const SEK_SCORING_DEFAULTS = {
       name: "Gentestung",
       beschreibung: "GBA1 (Gaucher), GLA (Fabry), GAA (Pompe) – Ergebnis entscheidet über Enzymersatz-Indikation"
     }]
+  },
+  eisen_osteomalazie: {
+    titel: "Ferrioxid-assoziierte Hypophosphatämie – Diagnostische Kriterien",
+    quelle: "Schaefer B et al. J Hepatol 2021; Fachinformationen Ferinject®",
+    url: "https://doi.org/10.1016/j.jhep.2020.09.027",
+    stufen: [{
+      name: "Hypophosphatämie",
+      beschreibung: "Phosphat < 0,87 mmol/l – bei wiederholten Ferinject®-Infusionen in bis zu 75% der Patienten"
+    }, {
+      name: "FGF-23-Erhöhung",
+      beschreibung: "Intaktes FGF-23 > 100 pg/ml → renale Phosphatverschwendung + Hemmung Vitamin-D-Aktivierung"
+    }, {
+      name: "Osteomalazie leicht",
+      beschreibung: "Phosphat ↓, keine/geringe Symptome, Knochendichte erhalten"
+    }, {
+      name: "Osteomalazie mäßig",
+      beschreibung: "Knochenschmerzen, proximale Muskelschwäche, Gang unsicher"
+    }, {
+      name: "Osteomalazie schwer",
+      beschreibung: "Looser-Umbauzonen, Stressfrakturen (Rippen, Metatarsalia), Gehunfähigkeit"
+    }, {
+      name: "Hochrisiko-Indikator",
+      beschreibung: "≥ 3 Ferric-Carboxymaltose-Infusionen (Ferinject®) ODER kumulative Dosis > 3 g/12 Monate → Phosphat-Monitoring zwingend erforderlich"
+    }]
+  },
+  mtx_osteopathie: {
+    titel: "Methotrexat-Osteopathie – Risikostratifizierung nach kumulativer Dosis",
+    quelle: "Zonneveld IM et al. Dermatology 1996; Braun J et al. Ann Rheum Dis 2010; DGRh",
+    url: "https://doi.org/10.1159/000246975",
+    stufen: [{
+      name: "Niedrigrisiko",
+      beschreibung: "MTX < 6 Monate ODER kumulative Dosis < 1,5 g – Osteopathie selten; DXA-Baseline empfohlen"
+    }, {
+      name: "Moderates Risiko",
+      beschreibung: "MTX 6–24 Monate ODER kum. Dosis 1,5–6 g – DXA-Monitoring, Folsäuresubstitution sicherstellen"
+    }, {
+      name: "Hochrisiko",
+      beschreibung: "MTX > 24 Monate ODER kum. Dosis > 6 g – erhöhtes Frakturrisiko (Tibia, Metatarsalia); DXA jährlich; ggf. Bisphosphonat-Prophylaxe"
+    }, {
+      name: "Klinisches Bild",
+      beschreibung: "Periartikuläre Knochenschmerzen (Knöchel, Füße), Stressfrakturen ohne adäquates Trauma; Laborbefunde oft unauffällig"
+    }]
   }
 };
 const SEK_SCORING_KEY = "osteo_sekscoring_overrides_v1";
@@ -4774,6 +4865,67 @@ const SEK_PROFILE = {
     }, {
       name: "Überweisung Humangenetik / Stoffwechselzentrum",
       icd: "E74.0"
+    }]
+  },
+  eisen_osteomalazie: {
+    label: "Eisen-Infusionsbedingte Osteomalazie",
+    hinweis: "Ferrioxid-haltige Eisenpräparate – insbesondere Ferric Carboxymaltose (Ferinject®) – können über eine FGF-23-vermittelte Phosphaturie eine Hypophosphatämie und Osteomalazie auslösen. Das Risiko steigt mit der Anzahl der Infusionen und vorbestehender Niereninsuffizienz. Phosphat und FGF-23 sollten bei regelmäßigen Eisen-Infusionen routinemäßig kontrolliert werden.",
+    untersuchungen: [{
+      name: "Phosphat im Serum (Zielwert: 0,87–1,45 mmol/l)",
+      icd: "E83.30"
+    }, {
+      name: "FGF-23 (Fibroblast Growth Factor 23, intakt)",
+      icd: "E83.30"
+    }, {
+      name: "Kalzium, Albumin (korrigiertes Kalzium)",
+      icd: "E83.30"
+    }, {
+      name: "Vitamin D (25-OH-D3)",
+      icd: "E55.9"
+    }, {
+      name: "Parathormon (PTH)",
+      icd: "E83.30"
+    }, {
+      name: "Alkalische Phosphatase (AP), Knochen-AP",
+      icd: "E83.30"
+    }, {
+      name: "Kalzium und Phosphat im 24h-Urin (TmP/GFR berechnen)",
+      icd: "E83.30"
+    }, {
+      name: "Röntgen / MRT: Stress- und Ermüdungsfrakturen (Rippen, Metatarsalia)?",
+      icd: "M83.8"
+    }, {
+      name: "DXA Knochendichte (Hüfte + LWS) bei symptomatischen Patienten",
+      icd: "E83.30"
+    }]
+  },
+  mtx_osteopathie: {
+    label: "Methotrexat-Induzierte Osteopathie",
+    hinweis: "Methotrexat (MTX) inhibiert die Dihydrofolatreduktase und hemmt Osteoblasten-Proliferation sowie Knochenmineralisierung. Bei kumulativen Dosen > 6 g oder Therapiedauer > 6 Monate treten periartikuläre Knochenschmerzen und Stressfrakturen (bevorzugt Tibia, Metatarsalia) auf – laborchemisch oft unauffällig. Folsäuresubstitution reduziert die MTX-Toxizität.",
+    untersuchungen: [{
+      name: "DXA Knochendichte (Hüfte + LWS)",
+      icd: "M81.4"
+    }, {
+      name: "Alkalische Phosphatase (AP), Knochen-AP (Osteocalcin)",
+      icd: "M81.4"
+    }, {
+      name: "Vitamin D (25-OH-D3), Kalzium",
+      icd: "E55.9"
+    }, {
+      name: "Homocystein im Serum (MTX-Toxizitätsmarker)",
+      icd: "M81.4"
+    }, {
+      name: "Folsäure im Serum (Substitution ausreichend?)",
+      icd: "M81.4"
+    }, {
+      name: "Röntgen Tibia / Metatarsalia (Looser-Umbauzonen?, Periostreaktion?)",
+      icd: "M83.8"
+    }, {
+      name: "MRT betroffene Region (Knochenmarködem, Stressfraktur?)",
+      icd: "M81.4"
+    }, {
+      name: "Kumulative MTX-Dosis dokumentieren und evaluieren (Risikoschwelle > 6 g)",
+      icd: "M81.4"
     }]
   }
 };
@@ -6578,7 +6730,10 @@ function SecondaryPanel({
   answers,
   sekProfileDb,
   sekUntersDb,
-  sekQsDb
+  sekQsDb,
+  sekScoringDb,
+  sekStatus,
+  onSekStatus
 }) {
   const sek = computeSecondary(answers);
   return /*#__PURE__*/React.createElement("div", {
@@ -6640,7 +6795,134 @@ function SecondaryPanel({
       alignSelf: "flex-start",
       marginTop: 2
     }
-  }, "Ja")))), /*#__PURE__*/React.createElement("div", {
+  }, "Ja")))), (() => {
+    const st = sekStatus[sym] || {};
+    const upd = (field, val) => onSekStatus && onSekStatus(prev => ({
+      ...prev,
+      [sym]: {
+        ...(prev[sym] || {}),
+        bekannt: st.bekannt || "",
+        [field]: val
+      }
+    }));
+    const updB = val => onSekStatus && onSekStatus(prev => ({
+      ...prev,
+      [sym]: {
+        ...(prev[sym] || {}),
+        bekannt: val
+      }
+    }));
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        margin: "10px 0",
+        padding: "10px 12px",
+        background: "#f0f9f4",
+        border: "1px solid #86efac",
+        borderRadius: 7
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: "#166534",
+        marginBottom: 8
+      }
+    }, "\uD83D\uDCCB Ist diese Erkrankung bereits bekannt und diagnostiziert?"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 12,
+        alignItems: "center",
+        flexWrap: "wrap",
+        marginBottom: st.bekannt === "ja" ? 8 : 0
+      }
+    }, [{
+      v: "ja",
+      l: "Ja, bekannt"
+    }, {
+      v: "nein",
+      l: "Nein / unklar"
+    }, {
+      v: "verdacht",
+      l: "Klinischer Verdacht"
+    }].map(opt => /*#__PURE__*/React.createElement("label", {
+      key: opt.v,
+      style: {
+        display: "flex",
+        gap: 5,
+        alignItems: "center",
+        cursor: "pointer",
+        fontSize: 13
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "radio",
+      name: "sek_bekannt_" + sym,
+      value: opt.v,
+      checked: st.bekannt === opt.v,
+      onChange: () => updB(opt.v)
+    }), opt.l))), st.bekannt === "ja" && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 10,
+        flexWrap: "wrap",
+        alignItems: "flex-end",
+        marginTop: 6
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 3
+      }
+    }, /*#__PURE__*/React.createElement("label", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 600,
+        color: "#166534"
+      }
+    }, "Bekannt seit (Jahr / Monat)"), /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      placeholder: "z.B. 2019, M\xE4rz 2022",
+      style: {
+        padding: "5px 8px",
+        border: "1px solid #86efac",
+        borderRadius: 5,
+        fontSize: 12,
+        fontFamily: "inherit",
+        background: "white",
+        width: 140
+      },
+      value: st.seitWann || "",
+      onChange: e => upd("seitWann", e.target.value)
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 3,
+        flex: 1,
+        minWidth: 160
+      }
+    }, /*#__PURE__*/React.createElement("label", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 600,
+        color: "#166534"
+      }
+    }, "Aktuelle Behandlung / Therapie"), /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      placeholder: "z.B. Vitamin D, keine Therapie, Calcitriol + Phosphat",
+      style: {
+        padding: "5px 8px",
+        border: "1px solid #86efac",
+        borderRadius: 5,
+        fontSize: 12,
+        fontFamily: "inherit",
+        background: "white",
+        width: "100%"
+      },
+      value: st.behandlung || "",
+      onChange: e => upd("behandlung", e.target.value)
+    }))));
+  })(), /*#__PURE__*/React.createElement("div", {
     className: "sek-hinweis"
   }, /*#__PURE__*/React.createElement("strong", null, "Klinischer Hinweis:"), " ", sekProfileDb && sekProfileDb[sym] && sekProfileDb[sym].hinweis || profile.hinweis), /*#__PURE__*/React.createElement("div", {
     className: "sek-unt-title"
@@ -8638,6 +8920,7 @@ function App() {
   const [painMaps, setPainMaps] = useState({});
   const [openAnam, setOpenAnam] = useState(true);
   const [openPain, setOpenPain] = useState(true);
+  const [sekStatus, setSekStatus] = useState({}); // {[sym]: {bekannt:'ja'|'nein'|'', seitWann:'', behandlung:''}}
   const [answers, setAnswers] = useState({});
   const [patient, setPatient] = useState({
     name: "",
@@ -8849,6 +9132,7 @@ function App() {
       kinder: []
     });
     setPainMaps({});
+    setSekStatus({});
     setPatient({
       name: "",
       geburtsdatum: "",
@@ -8927,13 +9211,48 @@ function App() {
     className: "disclaimer-gate-title"
   }, disclaimerOk ? "✅" : "⚠️", " Nutzungshinweis"), /*#__PURE__*/React.createElement("div", {
     className: "disclaimer-gate-text"
-  }, "Basierend auf der DVO-Leitlinie 2023 zur Prophylaxe, Diagnostik und Therapie der Osteoporose (AWMF-Register 183-001, Version 2.1, November 2023 / Juni 2024). Medikamentennamen sind Beispiele in Deutschland zugelassener Pr\xE4parate (ohne Gew\xE4hr auf Vollst\xE4ndigkeit).", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("strong", null, "Dieses Instrument dient der Veranschaulichung und Schulung von strukturierter Dokumentation bereits bestehender Befunde und ist keine Unterst\xFCtzung klinischer Entscheidungen und ersetzt keine individuelle \xE4rztliche Beurteilung.")), /*#__PURE__*/React.createElement("label", {
+  }, /*#__PURE__*/React.createElement("strong", {
+    style: {
+      display: "block",
+      marginBottom: 6
+    }
+  }, "Medizinisch-fachlicher Hinweis"), "Basierend auf der DVO-Leitlinie 2023 zur Prophylaxe, Diagnostik und Therapie der Osteoporose (AWMF-Register 183-001, Version 2.1, November 2023 / Juni 2024). Medikamentennamen sind Beispiele in Deutschland zugelassener Pr\xE4parate (ohne Gew\xE4hr auf Vollst\xE4ndigkeit).", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("strong", null, "Dieses Instrument dient der Veranschaulichung und Schulung von strukturierter Dokumentation bereits bestehender Befunde. Es ist keine Unterst\xFCtzung klinischer Entscheidungen und ersetzt keine individuelle \xE4rztliche Beurteilung."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 12,
+      padding: "8px 10px",
+      background: "#fff8f0",
+      borderRadius: 5,
+      borderLeft: "3px solid #d4a060",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Datenschutz (DSGVO)"), /*#__PURE__*/React.createElement("br", null), "Alle eingegebenen Daten verbleiben ausschlie\xDFlich auf dem Ger\xE4t des Nutzers. Es findet ", /*#__PURE__*/React.createElement("strong", null, "keine \xDCbertragung"), " von Patientendaten an externe Server, Datenbanken oder Dritte statt. Daten werden im lokalen Browserspeicher (localStorage / IndexedDB) des verwendeten Endger\xE4ts gespeichert und k\xF6nnen jederzeit gel\xF6scht werden.", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("br", null), "Die Verarbeitung personenbezogener Patientendaten im Rahmen der \xE4rztlichen Dokumentation erfolgt auf Grundlage von ", /*#__PURE__*/React.createElement("strong", null, "Art. 6 Abs. 1 lit. c DSGVO"), " (rechtliche Verpflichtung) in Verbindung mit ", /*#__PURE__*/React.createElement("strong", null, "Art. 9 Abs. 2 lit. h DSGVO"), " (Gesundheitsversorgung) sowie \xA7 22 Abs. 1 Nr. 1 lit. b BDSG. Der f\xFCr die Verarbeitung Verantwortliche im Sinne von ", /*#__PURE__*/React.createElement("strong", null, "Art. 4 Nr. 7 DSGVO"), " ist die das Programm einsetzende medizinische Einrichtung bzw. die behandelnde \xC4rztin / der behandelnde Arzt.", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("br", null), "Das Instrument verarbeitet keine Daten auf eigene Veranlassung. Bei dauerhafter klinischer Nutzung mit Patientenbezug ist eine Aufnahme in das Verfahrensverzeichnis gem\xE4\xDF ", /*#__PURE__*/React.createElement("strong", null, "Art. 30 DSGVO"), " zu empfehlen."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      padding: "8px 10px",
+      background: "#f0f8ff",
+      borderRadius: 5,
+      borderLeft: "3px solid #7ab0d4",
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Externe Ressourcen, die beim Laden des Programms genutzt werden:"), /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "block",
+      marginTop: 4
+    }
+  }, "\u2022 ", /*#__PURE__*/React.createElement("strong", null, "Google Fonts API"), " (fonts.googleapis.com / fonts.gstatic.com): Schriftarten \u201EPlayfair Display\" und \u201ESource Sans 3\" \u2013 Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA. Datenschutzerkl\xE4rung: ", /*#__PURE__*/React.createElement("a", {
+    href: "https://policies.google.com/privacy",
+    target: "_blank",
+    rel: "noopener noreferrer",
+    style: {
+      color: "#4a7ab0"
+    }
+  }, "policies.google.com/privacy"), ". Beim Laden werden IP-Adresse und Browser-Informationen an Google \xFCbermittelt.", /*#__PURE__*/React.createElement("br", null), "\u2022 ", /*#__PURE__*/React.createElement("strong", null, "jsQR via jsDelivr CDN"), " (cdn.jsdelivr.net): JavaScript-Bibliothek zur QR-Code-Erkennung im Medikamenten-Scanner (wird nur bei Kameranutzung geladen) \u2013 jsDelivr, Prosperous Net Claymoor, 9 Castle Street, Castletown, IM9 1LF, Isle of Man."), "Die React-Bibliotheken (react, react-dom) und alle \xFCbrigen Programmbestandteile sind direkt in das Dokument eingebettet und erfordern nach dem erstmaligen Laden keine externe Verbindung.")), /*#__PURE__*/React.createElement("label", {
     className: "disclaimer-gate-check"
   }, /*#__PURE__*/React.createElement("input", {
     type: "checkbox",
     checked: disclaimerOk,
     onChange: e => setDisclaimerOk(e.target.checked)
-  }), /*#__PURE__*/React.createElement("span", null, "Ich habe den Hinweis gelesen und verstanden. Dieses Tool wird ausschlie\xDFlich zu Dokumentations-, Schulungs- oder Veranschaulichungszwecken verwendet.")), !disclaimerOk && /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("span", null, "Ich habe den Nutzungshinweis sowie den Datenschutzhinweis gelesen und verstanden. Dieses Tool wird ausschlie\xDFlich zu Dokumentations-, Schulungs- oder Veranschaulichungszwecken verwendet und ich bin f\xFCr die datenschutzkonforme Nutzung verantwortlich.")), !disclaimerOk && /*#__PURE__*/React.createElement("div", {
     className: "disclaimer-gate-blocked"
   }, "\u26D4 Bitte best\xE4tigen Sie den Hinweis, um das Formular auszuf\xFCllen.")), /*#__PURE__*/React.createElement("div", {
     className: "pat-card",
@@ -9165,7 +9484,9 @@ function App() {
     sekProfileDb: sekProfileDb,
     sekUntersDb: sekUntersDb,
     sekQsDb: sekQsDb,
-    sekScoringDb: sekScoringDb
+    sekScoringDb: sekScoringDb,
+    sekStatus: sekStatus,
+    onSekStatus: setSekStatus
   }), /*#__PURE__*/React.createElement("div", {
     className: "disclaimer",
     style: {
