@@ -427,6 +427,17 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 .cam-status.scanning{color:#fbbf24}
 .cam-status.success{color:#4ade80}
 .cam-status.error{color:#f87171}
+/* ─── Anamnese & Pain Drawing ─── */
+.anam-section{background:white;border-radius:10px;border:1px solid #e0d0bc;margin-bottom:12px;overflow:hidden}
+.anam-header{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:linear-gradient(90deg,#fdf6ee,#faf0e4);cursor:pointer;user-select:none}
+.anam-header:hover{background:linear-gradient(90deg,#f7efe2,#f4ebd8)}
+.pain-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 14px;background:#f7f0e6;border-bottom:1px solid #e8d8c0}
+.pain-tabs{display:flex;gap:4px;padding:8px 14px 0;flex-wrap:wrap}
+.pain-tab{padding:5px 12px;border-radius:6px 6px 0 0;border:1px solid #d8c8b0;font-size:11.5px;font-family:inherit;cursor:pointer}
+.pain-canvas-area{display:flex;justify-content:center;gap:16px;padding:12px 14px 14px;border-top:1px solid #d8c8b0;background:white;flex-wrap:wrap}
+.pain-legend{font-size:11.5px;color:#9b8a7a;line-height:1.9;max-width:150px;padding-top:4px}
+@media print{.pain-print-grid{display:grid!important;grid-template-columns:repeat(3,1fr);gap:6px;padding:6px}.pain-no-print{display:none!important}}
+.pain-print-grid{display:none}
 `;
 
 /* ═══════════════════════ THRESHOLD TABLES (DVO 2023, Tabelle 3.2) ═══ */
@@ -2629,7 +2640,7 @@ function getIcdArray(entry, gender, answers){
 }
 
 /* ═══════════════════════════════════════════════ TEXT EXPORT ═══ */
-function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb){
+function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamnese){
   const db=diagDb||DIAG_DB_DEFAULTS;
   const d=new Date().toLocaleDateString("de-DE");
   const lines=[];
@@ -2654,6 +2665,53 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb){
   if(bmi)lines.push(`BMI            : ${bmi.toFixed(1)} kg/m²`);
   lines.push(`Ausfülldatum   : ${patient.fillDate||d}`);
   lines.push("");
+  // ─ Anamnese ─
+  const an=anamnese||{};
+  if((an.fractures||[]).length>0||(an.ops||[]).length>0||an.menarche||an.menoPause||(an.kinder||[]).length>0){
+    lines.push("PERSÖNLICHE KRANKENGESCHICHTE");lines.push(sub);
+    if((an.fractures||[]).length>0){
+      lines.push("Frühere Knochenbrüche:");
+      an.fractures.forEach(function(fr,i){
+        var parts=[fr.ort||"–"];
+        if(fr.seite)parts.push(fr.seite);
+        if(fr.jahr)parts.push("ca. "+fr.jahr);
+        if(fr.ursache)parts.push("("+fr.ursache+")");
+        lines.push("  "+(i+1)+". "+parts.join(" · "));
+      });
+      lines.push("");
+    }
+    if((an.ops||[]).length>0){
+      lines.push("Frühere Operationen:");
+      an.ops.forEach(function(op,i){
+        var parts=[op.art||"–"];
+        if(op.jahr)parts.push(""+op.jahr);
+        if(op.klinik)parts.push(op.klinik);
+        lines.push("  "+(i+1)+". "+parts.join(" · "));
+      });
+      lines.push("");
+    }
+    if(gender==="f"){
+      if(an.menarche)lines.push("Menarche           : "+an.menarche+" Jahre");
+      if(an.menoPause==="ja")lines.push("Regelblutung       : Vorhanden (regelmäßig)");
+      else if(an.menoPause==="unregelmaessig")lines.push("Regelblutung       : Vorhanden (unregelmäßig)");
+      else if(an.menoPause==="nein"){
+        lines.push("Menopause          : Ja (keine Regelblutung)");
+        if(an.menoYear)lines.push("Letzte Blutung     : "+an.menoYear);
+        var gMap={natuerlich:"Natürliche Wechseljahre",op:"Ovarektomie (OP)",medikamentoes:"Medikamentöse Unterdrückung",strahlen:"Strahlentherapie",pof:"Vorzeitige Ovarialinsuffizienz (<40. LJ)",sonstige:an.menoSonstige||"Sonstiges"};
+        if(an.menoGrund)lines.push("Ursache Menopause  : "+(gMap[an.menoGrund]||an.menoGrund));
+      }
+      if((an.kinder||[]).length>0){
+        lines.push("Kinder             : "+an.kinder.length);
+        an.kinder.forEach(function(k,i){
+          var s="  "+(i+1)+". Geburtsjahr "+(k.geburtsjahr||"–");
+          if(k.gestillt==="ja")s+=", gestillt "+(k.stilldauer||"?")+" Monate";
+          else if(k.gestillt==="nein")s+=", nicht gestillt";
+          lines.push(s);
+        });
+      }
+      lines.push("");
+    }
+  }
   if(answers.dxa_hip){
     lines.push("DXA-KNOCHENDICHTEMESSUNG");lines.push(sub);
     lines.push(`T-Score Gesamthüfte  : ${answers.dxa_hip}`);
@@ -3091,6 +3149,429 @@ function ResultCard({gender,answers,patient,diff}){
     </div>
   );
 }
+
+/* ─── SVG BODY TEMPLATES (inline, keine externen Ressourcen) ──────────────── */
+const BODY_SVG = {
+front:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 460"><defs><style>.bp{fill:#fdf6ee;stroke:#9b7a5a;stroke-width:1.6;stroke-linejoin:round}.bl{stroke:#e4d0b0;stroke-width:.8;fill:none;stroke-dasharray:4,3}.bt{font:7px Arial;fill:#a08060;text-anchor:middle}</style></defs><ellipse cx="100" cy="33" rx="27" ry="31" class="bp"/><path d="M77,22 Q100,8 123,22" fill="none" stroke="#c4a882" stroke-width="1.2"/><circle cx="89" cy="29" r="3.2" fill="#9b7a5a"/><circle cx="111" cy="29" r="3.2" fill="#9b7a5a"/><path d="M96,42 Q100,46 104,42" stroke="#c4a882" stroke-width="1" fill="none"/><path d="M88,62 L88,80 L112,80 L112,62 Z" class="bp"/><path d="M30,79 Q18,84 15,94 Q13,102 22,105 L48,101 L88,82 Z" class="bp"/><path d="M170,79 Q182,84 185,94 Q187,102 178,105 L152,101 L112,82 Z" class="bp"/><path d="M48,101 Q40,113 38,163 L36,252 Q36,267 52,268 L148,268 Q164,267 164,252 L162,163 Q160,113 152,101 Z" class="bp"/><line x1="100" y1="101" x2="100" y2="222" class="bl"/><line x1="52" y1="145" x2="148" y2="145" class="bl"/><circle cx="100" cy="212" r="3" fill="none" stroke="#c4a882" stroke-width="1.1"/><path d="M22,107 Q7,120 3,160 L1,209 Q-1,222 10,225 L25,225 L45,169 L50,103 Z" class="bp"/><path d="M178,107 Q193,120 197,160 L199,209 Q201,222 190,225 L175,225 L155,169 L150,103 Z" class="bp"/><path d="M1,225 L25,225 L21,263 L-1,261 Z" class="bp"/><path d="M199,225 L175,225 L179,263 L201,261 Z" class="bp"/><ellipse cx="10" cy="272" rx="12" ry="9" class="bp"/><path d="M3,266 Q1,254 4,250 Q7,246 9,250 L10,264" class="bp"/><path d="M11,264 Q10,252 13,248 Q16,244 18,248 L18,263" class="bp"/><path d="M18,265 Q19,253 22,249 Q25,246 26,250 L25,263" class="bp"/><ellipse cx="190" cy="272" rx="12" ry="9" class="bp"/><path d="M197,266 Q199,254 196,250 Q193,246 191,250 L190,264" class="bp"/><path d="M189,264 Q190,252 187,248 Q184,244 182,248 L182,263" class="bp"/><path d="M182,265 Q181,253 178,249 Q175,246 174,250 L175,263" class="bp"/><path d="M38,270 Q30,292 34,315 L68,319 L100,301 L132,319 L166,315 Q170,292 162,270 Z" class="bp"/><path d="M34,317 L66,321 L58,397 L26,393 Z" class="bp"/><path d="M166,317 L134,321 L142,397 L174,393 Z" class="bp"/><ellipse cx="42" cy="397" rx="18" ry="10" class="bp"/><ellipse cx="158" cy="397" rx="18" ry="10" class="bp"/><path d="M26,405 L58,405 L54,449 L30,449 Z" class="bp"/><path d="M174,405 L142,405 L146,449 L170,449 Z" class="bp"/><path d="M24,449 L57,449 L61,458 L18,458 Z" class="bp"/><path d="M176,449 L143,449 L139,458 L182,458 Z" class="bp"/><text x="100" y="38" class="bt">Kopf</text><text x="18" y="165" class="bt">re.Arm</text><text x="182" y="165" class="bt">li.Arm</text><text x="100" y="150" class="bt">Brust</text><text x="100" y="202" class="bt">Bauch</text><text x="100" y="292" class="bt">Becken</text><text x="38" y="358" class="bt">re.Ob.Schenkel</text><text x="162" y="358" class="bt">li.Ob.Schenkel</text><text x="38" y="430" class="bt">re.Un.Schenkel</text><text x="162" y="430" class="bt">li.Un.Schenkel</text></svg>`,
+
+back:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 460"><defs><style>.bp{fill:#fdf6ee;stroke:#9b7a5a;stroke-width:1.6;stroke-linejoin:round}.bl{stroke:#e4d0b0;stroke-width:.8;fill:none;stroke-dasharray:4,3}.bt{font:7px Arial;fill:#a08060;text-anchor:middle}</style></defs><ellipse cx="100" cy="33" rx="27" ry="31" class="bp"/><path d="M77,22 Q100,8 123,22" fill="none" stroke="#c4a882" stroke-width="1.5"/><path d="M88,62 L88,80 L112,80 L112,62 Z" class="bp"/><path d="M30,79 Q18,84 15,94 Q13,102 22,105 L48,101 L88,82 Z" class="bp"/><path d="M170,79 Q182,84 185,94 Q187,102 178,105 L152,101 L112,82 Z" class="bp"/><path d="M48,101 Q40,113 38,163 L36,252 Q36,267 52,268 L148,268 Q164,267 164,252 L162,163 Q160,113 152,101 Z" class="bp"/><path d="M97,82 Q98,180 97,262 M100,82 Q101,180 100,262 M103,82 Q102,180 103,262" class="bl"/><line x1="52" y1="145" x2="148" y2="145" class="bl"/><ellipse cx="72" cy="128" rx="16" ry="20" fill="none" stroke="#c4a882" stroke-width=".9"/><ellipse cx="128" cy="128" rx="16" ry="20" fill="none" stroke="#c4a882" stroke-width=".9"/><path d="M22,107 Q7,120 3,160 L1,209 Q-1,222 10,225 L25,225 L45,169 L50,103 Z" class="bp"/><path d="M178,107 Q193,120 197,160 L199,209 Q201,222 190,225 L175,225 L155,169 L150,103 Z" class="bp"/><path d="M1,225 L25,225 L21,263 L-1,261 Z" class="bp"/><path d="M199,225 L175,225 L179,263 L201,261 Z" class="bp"/><ellipse cx="10" cy="272" rx="12" ry="9" class="bp"/><path d="M3,266 Q1,254 4,250 Q7,246 9,250 L10,264" class="bp"/><path d="M11,264 Q10,252 13,248 Q16,244 18,248 L18,263" class="bp"/><path d="M18,265 Q19,253 22,249 Q25,246 26,250 L25,263" class="bp"/><ellipse cx="190" cy="272" rx="12" ry="9" class="bp"/><path d="M197,266 Q199,254 196,250 Q193,246 191,250 L190,264" class="bp"/><path d="M189,264 Q190,252 187,248 Q184,244 182,248 L182,263" class="bp"/><path d="M182,265 Q181,253 178,249 Q175,246 174,250 L175,263" class="bp"/><path d="M38,270 Q30,292 34,315 L68,319 L100,301 L132,319 L166,315 Q170,292 162,270 Z" class="bp"/><path d="M100,272 Q100,302 100,302" class="bl"/><path d="M34,317 L66,321 L58,397 L26,393 Z" class="bp"/><path d="M166,317 L134,321 L142,397 L174,393 Z" class="bp"/><ellipse cx="42" cy="397" rx="18" ry="10" class="bp"/><ellipse cx="158" cy="397" rx="18" ry="10" class="bp"/><path d="M26,405 L58,405 L54,449 L30,449 Z" class="bp"/><path d="M174,405 L142,405 L146,449 L170,449 Z" class="bp"/><path d="M24,449 L57,449 L61,458 L18,458 Z" class="bp"/><path d="M176,449 L143,449 L139,458 L182,458 Z" class="bp"/><text x="100" y="38" class="bt">Kopf/Hinterkopf</text><text x="71" y="120" class="bt">Schulterblatt</text><text x="129" y="120" class="bt">Schulterblatt</text><text x="100" y="150" class="bt">Ob.Rücken/BWS</text><text x="100" y="210" class="bt">LWS/Lendenrücken</text><text x="100" y="294" class="bt">Gesäß</text><text x="38" y="358" class="bt">re.Ob.Schenkel</text><text x="162" y="358" class="bt">li.Ob.Schenkel</text><text x="38" y="430" class="bt">re.Un.Schenkel</text><text x="162" y="430" class="bt">li.Un.Schenkel</text></svg>`,
+
+handRD:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 230"><defs><style>.hp{fill:#fdf6ee;stroke:#9b7a5a;stroke-width:1.5;stroke-linejoin:round}.hj{stroke:#d4b890;stroke-width:.8;fill:none}.ht{font:8px Arial;fill:#7a5a3a;text-anchor:middle}</style></defs><text x="80" y="13" class="ht">Rechte Hand (Handrücken)</text><path d="M42,185 Q30,177 28,152 L30,112 Q32,98 46,96 L114,96 Q128,98 130,112 L132,152 Q130,177 118,185 Z" class="hp"/><path d="M44,187 L116,187 L118,216 L42,216 Z" class="hp"/><line x1="44" y1="200" x2="116" y2="200" class="hj"/><line x1="44" y1="208" x2="116" y2="208" class="hj"/><path d="M28,124 Q15,115 14,103 Q12,90 22,86 Q33,82 38,92 L38,118 Z" class="hp"/><path d="M52,96 L52,44 Q52,36 60,36 Q68,36 68,44 L68,96 Z" class="hp"/><line x1="52" y1="71" x2="68" y2="71" class="hj"/><line x1="52" y1="58" x2="68" y2="58" class="hj"/><path d="M72,96 L72,36 Q72,28 80,28 Q88,28 88,36 L88,96 Z" class="hp"/><line x1="72" y1="63" x2="88" y2="63" class="hj"/><line x1="72" y1="50" x2="88" y2="50" class="hj"/><path d="M92,96 L92,44 Q92,36 100,36 Q108,36 108,44 L108,96 Z" class="hp"/><line x1="92" y1="71" x2="108" y2="71" class="hj"/><line x1="92" y1="58" x2="108" y2="58" class="hj"/><path d="M112,96 L112,56 Q112,48 118,48 Q124,48 124,56 L126,96 Z" class="hp"/><line x1="113" y1="75" x2="125" y2="75" class="hj"/><line x1="113" y1="64" x2="125" y2="64" class="hj"/><text x="60" y="45" class="ht">Zeigefinger</text><text x="80" y="37" class="ht">Mittelfinger</text><text x="100" y="45" class="ht">Ringfinger</text><text x="119" y="57" class="ht">Kleiner</text><text x="22" y="102" class="ht">Daumen</text><text x="80" y="206" class="ht">Handgelenk</text></svg>`,
+
+handLD:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 230"><defs><style>.hp{fill:#fdf6ee;stroke:#9b7a5a;stroke-width:1.5;stroke-linejoin:round}.hj{stroke:#d4b890;stroke-width:.8;fill:none}.ht{font:8px Arial;fill:#7a5a3a;text-anchor:middle}</style></defs><text x="80" y="13" class="ht">Linke Hand (Handrücken)</text><path d="M42,185 Q30,177 28,152 L30,112 Q32,98 46,96 L114,96 Q128,98 130,112 L132,152 Q130,177 118,185 Z" class="hp"/><path d="M44,187 L116,187 L118,216 L42,216 Z" class="hp"/><line x1="44" y1="200" x2="116" y2="200" class="hj"/><line x1="44" y1="208" x2="116" y2="208" class="hj"/><path d="M132,124 Q145,115 146,103 Q148,90 138,86 Q127,82 122,92 L122,118 Z" class="hp"/><path d="M34,96 L36,56 Q36,48 42,48 Q48,48 48,56 L48,96 Z" class="hp"/><line x1="35" y1="75" x2="47" y2="75" class="hj"/><line x1="35" y1="64" x2="47" y2="64" class="hj"/><path d="M52,96 L52,44 Q52,36 60,36 Q68,36 68,44 L68,96 Z" class="hp"/><line x1="52" y1="71" x2="68" y2="71" class="hj"/><line x1="52" y1="58" x2="68" y2="58" class="hj"/><path d="M72,96 L72,36 Q72,28 80,28 Q88,28 88,36 L88,96 Z" class="hp"/><line x1="72" y1="63" x2="88" y2="63" class="hj"/><line x1="72" y1="50" x2="88" y2="50" class="hj"/><path d="M92,96 L92,44 Q92,36 100,36 Q108,36 108,44 L108,96 Z" class="hp"/><line x1="92" y1="71" x2="108" y2="71" class="hj"/><line x1="92" y1="58" x2="108" y2="58" class="hj"/><text x="41" y="57" class="ht">Kleiner</text><text x="60" y="45" class="ht">Ringfinger</text><text x="80" y="37" class="ht">Mittelfinger</text><text x="100" y="45" class="ht">Zeigefinger</text><text x="138" y="102" class="ht">Daumen</text><text x="80" y="206" class="ht">Handgelenk</text></svg>`,
+
+handRP:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 230"><defs><style>.hp{fill:#faeee0;stroke:#9b7a5a;stroke-width:1.5;stroke-linejoin:round}.hj{stroke:#d4b890;stroke-width:.8;fill:none}.hp2{stroke:#c4a882;stroke-width:.9;fill:none}.ht{font:8px Arial;fill:#7a5a3a;text-anchor:middle}</style></defs><text x="80" y="13" class="ht">Rechte Hand (Handfläche)</text><path d="M42,185 Q30,177 28,152 L30,112 Q32,98 46,96 L114,96 Q128,98 130,112 L132,152 Q130,177 118,185 Z" class="hp"/><path d="M44,187 L116,187 L118,216 L42,216 Z" class="hp"/><path d="M40,133 Q65,122 96,130 Q112,135 122,145" class="hp2"/><path d="M36,155 Q60,143 92,147 Q112,151 128,162" class="hp2"/><path d="M50,102 Q56,117 52,130" class="hp2"/><path d="M132,124 Q145,115 146,103 Q148,90 138,86 Q127,82 122,92 L122,118 Z" class="hp"/><path d="M52,96 L52,44 Q52,36 60,36 Q68,36 68,44 L68,96 Z" class="hp"/><line x1="52" y1="71" x2="68" y2="71" class="hj"/><line x1="52" y1="58" x2="68" y2="58" class="hj"/><path d="M72,96 L72,36 Q72,28 80,28 Q88,28 88,36 L88,96 Z" class="hp"/><line x1="72" y1="63" x2="88" y2="63" class="hj"/><line x1="72" y1="50" x2="88" y2="50" class="hj"/><path d="M92,96 L92,44 Q92,36 100,36 Q108,36 108,44 L108,96 Z" class="hp"/><line x1="92" y1="71" x2="108" y2="71" class="hj"/><line x1="92" y1="58" x2="108" y2="58" class="hj"/><path d="M112,96 L112,56 Q112,48 118,48 Q124,48 124,56 L126,96 Z" class="hp"/><line x1="113" y1="75" x2="125" y2="75" class="hj"/><line x1="113" y1="64" x2="125" y2="64" class="hj"/><text x="138" y="102" class="ht">Daumen</text><text x="80" y="206" class="ht">Handgelenk</text></svg>`,
+
+handLP:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 230"><defs><style>.hp{fill:#faeee0;stroke:#9b7a5a;stroke-width:1.5;stroke-linejoin:round}.hj{stroke:#d4b890;stroke-width:.8;fill:none}.hp2{stroke:#c4a882;stroke-width:.9;fill:none}.ht{font:8px Arial;fill:#7a5a3a;text-anchor:middle}</style></defs><text x="80" y="13" class="ht">Linke Hand (Handfläche)</text><path d="M42,185 Q30,177 28,152 L30,112 Q32,98 46,96 L114,96 Q128,98 130,112 L132,152 Q130,177 118,185 Z" class="hp"/><path d="M44,187 L116,187 L118,216 L42,216 Z" class="hp"/><path d="M40,133 Q65,122 96,130 Q112,135 122,145" class="hp2"/><path d="M36,155 Q60,143 92,147 Q112,151 128,162" class="hp2"/><path d="M50,102 Q56,117 52,130" class="hp2"/><path d="M28,124 Q15,115 14,103 Q12,90 22,86 Q33,82 38,92 L38,118 Z" class="hp"/><path d="M34,96 L36,56 Q36,48 42,48 Q48,48 48,56 L48,96 Z" class="hp"/><line x1="35" y1="75" x2="47" y2="75" class="hj"/><line x1="35" y1="64" x2="47" y2="64" class="hj"/><path d="M52,96 L52,44 Q52,36 60,36 Q68,36 68,44 L68,96 Z" class="hp"/><line x1="52" y1="71" x2="68" y2="71" class="hj"/><line x1="52" y1="58" x2="68" y2="58" class="hj"/><path d="M72,96 L72,36 Q72,28 80,28 Q88,28 88,36 L88,96 Z" class="hp"/><line x1="72" y1="63" x2="88" y2="63" class="hj"/><line x1="72" y1="50" x2="88" y2="50" class="hj"/><path d="M92,96 L92,44 Q92,36 100,36 Q108,36 108,44 L108,96 Z" class="hp"/><line x1="92" y1="71" x2="108" y2="71" class="hj"/><line x1="92" y1="58" x2="108" y2="58" class="hj"/><text x="22" y="102" class="ht">Daumen</text><text x="80" y="206" class="ht">Handgelenk</text></svg>`
+};
+
+const PAIN_VIEWS=[
+  {id:"front",  label:"Vorderseite",       short:"Vorne",        w:200,h:460},
+  {id:"back",   label:"Rückseite",          short:"Hinten",       w:200,h:460},
+  {id:"handRD", label:"Re. Hand – Rücken", short:"Re.Handrücken",w:160,h:230},
+  {id:"handLD", label:"Li. Hand – Rücken", short:"Li.Handrücken",w:160,h:230},
+  {id:"handRP", label:"Re. Hand – Fläche", short:"Re.Handfläche",w:160,h:230},
+  {id:"handLP", label:"Li. Hand – Fläche", short:"Li.Handfläche",w:160,h:230},
+];
+
+/* ─── PAIN BODY SECTION ──────────────────────────────────────────────────── */
+function PainBodySection({painMaps,setPainMaps,open,onToggle}){
+  const [activeView,setActiveView]=useState("front");
+  const [brushColor,setBrushColor]=useState("#e63946");
+  const [brushSize,setBrushSize]=useState(10);
+  const [erasing,setErasing]=useState(false);
+  const refs=useRef({});
+  PAIN_VIEWS.forEach(v=>{if(!refs.current[v.id])refs.current[v.id]=React.createRef();});
+  const drawing=useRef(false);
+  const lastPos=useRef(null);
+
+  const drawTemplate=useCallback((vid)=>{
+    const canvas=refs.current[vid]?.current;
+    if(!canvas) return;
+    const v=PAIN_VIEWS.find(x=>x.id===vid);
+    const ctx=canvas.getContext("2d");
+    const svgBlob=new Blob([BODY_SVG[vid]],{type:"image/svg+xml"});
+    const url=URL.createObjectURL(svgBlob);
+    const img=new Image();
+    img.onload=()=>{
+      ctx.clearRect(0,0,v.w,v.h);
+      ctx.fillStyle="#fffdf8";ctx.fillRect(0,0,v.w,v.h);
+      ctx.drawImage(img,0,0,v.w,v.h);
+      const saved=painMaps[vid];
+      if(saved){const p=new Image();p.onload=()=>ctx.drawImage(p,0,0);p.src=saved;}
+      URL.revokeObjectURL(url);
+    };
+    img.src=url;
+  },[painMaps]);
+
+  useEffect(()=>{
+    if(!open) return;
+    PAIN_VIEWS.forEach(v=>setTimeout(()=>drawTemplate(v.id),60));
+  },[open]);
+
+  useEffect(()=>{
+    if(open) setTimeout(()=>drawTemplate(activeView),30);
+  },[activeView,open]);
+
+  const getPos=(e,canvas)=>{
+    const r=canvas.getBoundingClientRect();
+    const sx=canvas.width/r.width, sy=canvas.height/r.height;
+    if(e.touches){const t=e.touches[0];return{x:(t.clientX-r.left)*sx,y:(t.clientY-r.top)*sy};}
+    return{x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy};
+  };
+  const startDraw=(e,vid)=>{
+    e.preventDefault();drawing.current=true;
+    const canvas=refs.current[vid].current;
+    const pos=getPos(e,canvas);lastPos.current=pos;
+    const ctx=canvas.getContext("2d");
+    ctx.beginPath();ctx.arc(pos.x,pos.y,brushSize/2,0,Math.PI*2);
+    ctx.fillStyle=erasing?"#fffdf8":brushColor;ctx.globalAlpha=erasing?1:0.72;ctx.fill();ctx.globalAlpha=1;
+  };
+  const doDraw=(e,vid)=>{
+    if(!drawing.current) return;e.preventDefault();
+    const canvas=refs.current[vid].current;
+    const pos=getPos(e,canvas);
+    const ctx=canvas.getContext("2d");
+    ctx.beginPath();ctx.moveTo(lastPos.current.x,lastPos.current.y);ctx.lineTo(pos.x,pos.y);
+    ctx.strokeStyle=erasing?"#fffdf8":brushColor;ctx.lineWidth=brushSize;
+    ctx.lineCap="round";ctx.lineJoin="round";ctx.globalAlpha=erasing?1:0.72;ctx.stroke();ctx.globalAlpha=1;
+    lastPos.current=pos;
+  };
+  const endDraw=(vid)=>{
+    if(!drawing.current) return;drawing.current=false;
+    const canvas=refs.current[vid]?.current;
+    if(canvas) setPainMaps(pm=>({...pm,[vid]:canvas.toDataURL()}));
+  };
+  const clearView=(vid)=>{
+    setPainMaps(pm=>({...pm,[vid]:null}));setTimeout(()=>drawTemplate(vid),20);
+  };
+
+  const hasDrawing=Object.values(painMaps).some(Boolean);
+  const COLORS=[{c:"#e63946",l:"Starker Schmerz"},{c:"#f4a261",l:"Mäßiger Schmerz"},{c:"#2a9d8f",l:"Gelegentlich"},{c:"#6a0dad",l:"Taubheit/Kribbeln"}];
+
+  return(
+    <div className="section-card pain-section" style={{overflow:"hidden",marginBottom:12}}>
+      <div className="section-header" onClick={onToggle} style={{cursor:"pointer",userSelect:"none"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:18}}>✏️</span>
+          <div>
+            <div style={{fontWeight:700,fontSize:15}}>Schmerzzeichnung</div>
+            <div style={{fontSize:12,color:"#9b8a7a",fontWeight:400}}>
+              Schmerzbereiche mit Finger oder Stift einzeichnen – Körpervorder-/rückseite und Hände
+              {hasDrawing&&<span style={{marginLeft:8,color:"#e63946",fontWeight:600,fontSize:11}}>● Eingezeichnet</span>}
+            </div>
+          </div>
+        </div>
+        <span style={{fontSize:18,color:"var(--P)"}}>{open?"▲":"▼"}</span>
+      </div>
+
+      {open&&(
+        <div>
+          {/* Toolbar */}
+          <div className="pain-toolbar pain-no-print">
+            <span style={{fontSize:12,fontWeight:700,color:"#6b5a4a"}}>Farbe:</span>
+            {COLORS.map(({c,l})=>(
+              <button key={c} title={l} onClick={()=>{setBrushColor(c);setErasing(false);}}
+                style={{width:26,height:26,borderRadius:"50%",background:c,cursor:"pointer",
+                  border:brushColor===c&&!erasing?"3px solid #444":"2px solid #ccc",flexShrink:0}}/>
+            ))}
+            <span style={{marginLeft:6,fontSize:12,fontWeight:700,color:"#6b5a4a"}}>Größe:</span>
+            {[6,11,20].map((sz,i)=>(
+              <button key={sz} onClick={()=>setBrushSize(sz)}
+                style={{padding:"3px 8px",borderRadius:5,fontFamily:"inherit",cursor:"pointer",fontSize:12,
+                  border:brushSize===sz?"2px solid #9b7a5a":"1px solid #ccc",
+                  background:brushSize===sz?"#f7efe0":"white"}}>
+                {["S","M","L"][i]}
+              </button>
+            ))}
+            <button onClick={()=>setErasing(e=>!e)}
+              style={{padding:"3px 10px",borderRadius:5,fontFamily:"inherit",cursor:"pointer",fontSize:12,marginLeft:4,
+                border:erasing?"2px solid #e63946":"1px solid #ccc",background:erasing?"#fee2e2":"white"}}>
+              🧹 Radieren{erasing?" (aktiv)":""}
+            </button>
+            <button onClick={()=>clearView(activeView)}
+              style={{padding:"3px 10px",borderRadius:5,fontFamily:"inherit",cursor:"pointer",fontSize:12,
+                border:"1px solid #d8c8b0",background:"white",color:"#8b5a3a"}}>
+              ✕ Diese Ansicht löschen
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="pain-tabs pain-no-print">
+            {PAIN_VIEWS.map(v=>(
+              <button key={v.id} onClick={()=>setActiveView(v.id)}
+                className="pain-tab"
+                style={{borderBottom:activeView===v.id?"none":"1px solid #d8c8b0",
+                  background:activeView===v.id?"white":"#f7f0e6",
+                  fontWeight:activeView===v.id?700:400,
+                  color:activeView===v.id?"var(--P)":"#9b8a7a",
+                  position:"relative",zIndex:activeView===v.id?2:1}}>
+                {v.short}
+                {painMaps[v.id]&&<span style={{marginLeft:3,color:"#e63946",fontSize:9}}>●</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* Active canvas – screen only */}
+          <div className="pain-canvas-area pain-no-print">
+            {PAIN_VIEWS.map(v=>{
+              const isBody=v.w===200;
+              const dispW=isBody?220:200, dispH=isBody?506:288;
+              return(
+                <div key={v.id} style={{display:activeView===v.id?"flex":"none",gap:14,alignItems:"flex-start"}}>
+                  <div style={{width:dispW,height:dispH,border:"1px solid #d8c8b0",borderRadius:8,
+                    overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,.09)",flexShrink:0}}>
+                    <canvas ref={refs.current[v.id]} width={v.w} height={v.h}
+                      style={{width:"100%",height:"100%",display:"block",
+                        touchAction:"none",cursor:erasing?"cell":"crosshair"}}
+                      onMouseDown={e=>startDraw(e,v.id)} onMouseMove={e=>doDraw(e,v.id)}
+                      onMouseUp={()=>endDraw(v.id)} onMouseLeave={()=>endDraw(v.id)}
+                      onTouchStart={e=>startDraw(e,v.id)} onTouchMove={e=>doDraw(e,v.id)}
+                      onTouchEnd={()=>endDraw(v.id)}/>
+                  </div>
+                  <div className="pain-legend">
+                    <div style={{fontWeight:700,color:"#5a3e2a",marginBottom:6,fontSize:12}}>{v.label}</div>
+                    <div>Bitte <strong>mit Finger oder Stift</strong> alle Schmerzbereiche einmalen.</div>
+                    <div style={{marginTop:8}}>
+                      {COLORS.map(({c,l})=>(
+                        <div key={c} style={{display:"flex",gap:5,alignItems:"center",marginBottom:2}}>
+                          <span style={{width:12,height:12,borderRadius:"50%",background:c,flexShrink:0,opacity:.85,display:"inline-block"}}/>
+                          <span>{l}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Print layout: all 6 views */}
+          <div className="pain-print-grid">
+            {PAIN_VIEWS.map(v=>(
+              <div key={v.id} style={{textAlign:"center"}}>
+                <div style={{fontWeight:700,fontSize:10,marginBottom:3,color:"#5a3e2a"}}>{v.label}</div>
+                <canvas ref={refs.current[v.id]} width={v.w} height={v.h}
+                  style={{width:"100%",maxWidth:v.w===200?140:110,border:"1px solid #d8c8b0",borderRadius:5,display:"block",margin:"0 auto"}}/>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── ANAMNESE SECTION ───────────────────────────────────────────────────── */
+function AnamneseSection({gender,data,onChange,open,onToggle}){
+  const DEF={fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]};
+  const d={...DEF,...data};
+
+  const updFrac=(i,f,v)=>{const r=[...d.fractures];r[i]={...r[i],[f]:v};onChange({...d,fractures:r});};
+  const addFrac=()=>onChange({...d,fractures:[...d.fractures,{ort:"",seite:"",jahr:"",ursache:""}]});
+  const delFrac=(i)=>onChange({...d,fractures:d.fractures.filter((_,j)=>j!==i)});
+
+  const updOp=(i,f,v)=>{const r=[...d.ops];r[i]={...r[i],[f]:v};onChange({...d,ops:r});};
+  const addOp=()=>onChange({...d,ops:[...d.ops,{art:"",jahr:"",klinik:""}]});
+  const delOp=(i)=>onChange({...d,ops:d.ops.filter((_,j)=>j!==i)});
+
+  const updKind=(i,f,v)=>{const r=[...d.kinder];r[i]={...r[i],[f]:v};onChange({...d,kinder:r});};
+  const addKind=()=>onChange({...d,kinder:[...d.kinder,{geburtsjahr:"",gestillt:"",stilldauer:""}]});
+  const delKind=(i)=>onChange({...d,kinder:d.kinder.filter((_,j)=>j!==i)});
+
+  const FRAKTUR_ORTE=["Wirbelsäule","Hüfte / Oberschenkelhals","Unterarm / Handgelenk","Oberarm","Rippe(n)","Becken","Fuß","Hand / Finger","Sprunggelenk","Schulter","Sonstiges"];
+  const MENOGRUNDE=[
+    {v:"natuerlich",l:"Natürliche Wechseljahre"},
+    {v:"op",l:"Operative Entfernung der Eierstöcke (Ovarektomie)"},
+    {v:"medikamentoes",l:"Medikamentöse Unterdrückung (z.B. GnRH-Analoga bei Endometriose)"},
+    {v:"strahlen",l:"Strahlentherapie im Beckenbereich"},
+    {v:"pof",l:"Vorzeitige Ovarialinsuffizienz (vor dem 40. Lebensjahr)"},
+    {v:"sonstige",l:"Sonstiger Grund"},
+  ];
+
+  const iSt={padding:"5px 8px",border:"1px solid #d8c8b0",borderRadius:6,fontSize:13,fontFamily:"inherit",background:"white",outline:"none"};
+  const selSt={...iSt,cursor:"pointer"};
+  const lblSt={fontSize:12,color:"#6b5a4a",fontWeight:600,whiteSpace:"nowrap"};
+  const addBSt={padding:"5px 14px",borderRadius:6,border:"1px dashed #9b7a5a",background:"white",color:"#6b5040",cursor:"pointer",fontSize:12,fontFamily:"inherit",fontWeight:600};
+  const delBSt={padding:"4px 9px",borderRadius:5,border:"1px solid #fca5a5",background:"#fee2e2",color:"#dc2626",cursor:"pointer",fontSize:13,fontFamily:"inherit",flexShrink:0,alignSelf:"flex-end"};
+  const rowSt={display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",padding:"8px 10px",background:"white",border:"1px solid #ede4d4",borderRadius:7,marginBottom:5};
+  const grpTSt={fontSize:13,fontWeight:700,color:"#5a3e2a",marginBottom:8,paddingBottom:4,borderBottom:"1px solid #e8d8c0"};
+  const fld=(label,children)=>(<div style={{display:"flex",flexDirection:"column",gap:3}}><label style={lblSt}>{label}</label>{children}</div>);
+
+  const hasData=d.fractures.length>0||d.ops.length>0||d.menarche||(gender==="f"&&(d.menoPause||d.kinder.length>0));
+
+  return(
+    <div className="section-card anam-section" style={{marginBottom:12,overflow:"hidden"}}>
+      <div className="section-header" onClick={onToggle} style={{cursor:"pointer",userSelect:"none"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:18}}>📋</span>
+          <div>
+            <div style={{fontWeight:700,fontSize:15}}>Persönliche Krankengeschichte</div>
+            <div style={{fontSize:12,color:"#9b8a7a",fontWeight:400}}>
+              Frühere Knochenbrüche · Operationen{gender==="f"?" · Gynäkologische Anamnese":""}
+              {hasData&&<span style={{marginLeft:8,color:"#4a8f3a",fontWeight:600,fontSize:11}}>✓ Ausgefüllt</span>}
+            </div>
+          </div>
+        </div>
+        <span style={{fontSize:18,color:"var(--P)"}}>{open?"▲":"▼"}</span>
+      </div>
+
+      {open&&(
+        <div style={{padding:"14px 18px"}}>
+
+          {/* ── Frakturen ── */}
+          <div style={{marginBottom:18}}>
+            <div style={grpTSt}>🦴 Frühere Knochenbrüche</div>
+            {d.fractures.length===0&&<div style={{fontSize:12,color:"#a09080",fontStyle:"italic",marginBottom:8}}>Noch keine Knochenbrüche eingetragen.</div>}
+            {d.fractures.map((fr,i)=>(
+              <div key={i} style={rowSt}>
+                <span style={{fontSize:13,fontWeight:700,color:"#9b7a5a",minWidth:20,alignSelf:"flex-end",paddingBottom:6}}>{i+1}.</span>
+                {fld("Knochen / Lokalisation",
+                  <select style={{...selSt,minWidth:180}} value={fr.ort||""} onChange={e=>updFrac(i,"ort",e.target.value)}>
+                    <option value="">Bitte wählen…</option>
+                    {FRAKTUR_ORTE.map(o=><option key={o} value={o}>{o}</option>)}
+                  </select>
+                )}
+                {fld("Seite",
+                  <select style={{...selSt,width:88}} value={fr.seite||""} onChange={e=>updFrac(i,"seite",e.target.value)}>
+                    <option value="">–</option>
+                    <option value="rechts">Rechts</option>
+                    <option value="links">Links</option>
+                    <option value="beidseitig">Beidseitig</option>
+                    <option value="mittig">Mittig</option>
+                  </select>
+                )}
+                {fld("Jahr (ca.)",
+                  <input type="number" min="1920" max="2025" placeholder="z.B. 2018"
+                    style={{...iSt,width:88}} value={fr.jahr||""} onChange={e=>updFrac(i,"jahr",e.target.value)}/>
+                )}
+                {fld("Ursache (opt.)",
+                  <input placeholder="z.B. Sturz, spontan, Unfall"
+                    style={{...iSt,minWidth:140,flex:1}} value={fr.ursache||""} onChange={e=>updFrac(i,"ursache",e.target.value)}/>
+                )}
+                <button onClick={()=>delFrac(i)} style={delBSt}>✕</button>
+              </div>
+            ))}
+            <button onClick={addFrac} style={addBSt}>+ Knochenbruch hinzufügen</button>
+          </div>
+
+          {/* ── Operationen ── */}
+          <div style={{marginBottom:18}}>
+            <div style={grpTSt}>🏥 Frühere Operationen</div>
+            {d.ops.length===0&&<div style={{fontSize:12,color:"#a09080",fontStyle:"italic",marginBottom:8}}>Noch keine Operationen eingetragen.</div>}
+            {d.ops.map((op,i)=>(
+              <div key={i} style={rowSt}>
+                <span style={{fontSize:13,fontWeight:700,color:"#9b7a5a",minWidth:20,alignSelf:"flex-end",paddingBottom:6}}>{i+1}.</span>
+                {fld("Art der Operation",
+                  <input placeholder="z.B. Hüftprothese rechts, Wirbelsäulen-OP, Magenbypass, Gastrektomie"
+                    style={{...iSt,minWidth:220,flex:1}} value={op.art||""} onChange={e=>updOp(i,"art",e.target.value)}/>
+                )}
+                {fld("Jahr",
+                  <input type="number" min="1920" max="2025" placeholder="Jahr"
+                    style={{...iSt,width:80}} value={op.jahr||""} onChange={e=>updOp(i,"jahr",e.target.value)}/>
+                )}
+                {fld("Klinik / Ort (opt.)",
+                  <input placeholder="z.B. UKE Hamburg"
+                    style={{...iSt,minWidth:130,flex:1}} value={op.klinik||""} onChange={e=>updOp(i,"klinik",e.target.value)}/>
+                )}
+                <button onClick={()=>delOp(i)} style={delBSt}>✕</button>
+              </div>
+            ))}
+            <button onClick={addOp} style={addBSt}>+ Operation hinzufügen</button>
+          </div>
+
+          {/* ── Gynäkologische Anamnese (nur Frauen) ── */}
+          {gender==="f"&&(
+            <div>
+              <div style={grpTSt}>♀ Gynäkologische Anamnese</div>
+
+              <div style={{display:"flex",gap:18,flexWrap:"wrap",marginBottom:14,alignItems:"flex-start"}}>
+                {fld("Erste Regelblutung (Menarche) – Alter in Jahren",
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <input type="number" min="8" max="22" placeholder="z.B. 13"
+                      style={{...iSt,width:80}} value={d.menarche||""} onChange={e=>onChange({...d,menarche:e.target.value})}/>
+                    <span style={{fontSize:12,color:"#9b8a7a"}}>Jahre</span>
+                  </div>
+                )}
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  <label style={lblSt}>Aktuelle Regelblutung vorhanden?</label>
+                  <div style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
+                    {[{v:"ja",l:"Ja, regelmäßig"},{v:"unregelmaessig",l:"Unregelmäßig"},{v:"nein",l:"Nein (Menopause / Ausbleiben)"}].map(opt=>(
+                      <label key={opt.v} style={{display:"flex",gap:5,alignItems:"center",cursor:"pointer",fontSize:13}}>
+                        <input type="radio" name="am_menopause" value={opt.v}
+                          checked={d.menoPause===opt.v} onChange={()=>onChange({...d,menoPause:opt.v})}/>
+                        {opt.l}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {d.menoPause==="nein"&&(
+                <div style={{padding:"12px 14px",background:"#fdf6f0",border:"1px solid #e8d4b8",borderRadius:8,marginBottom:14}}>
+                  <div style={{fontWeight:700,fontSize:12,color:"#6b5a4a",marginBottom:10}}>Details zum Ende der Regelblutung</div>
+                  <div style={{display:"flex",gap:14,flexWrap:"wrap",alignItems:"flex-start"}}>
+                    {fld("Jahr der letzten Regelblutung",
+                      <input type="number" min="1950" max="2025" placeholder="z.B. 2016"
+                        style={{...iSt,width:110}} value={d.menoYear||""} onChange={e=>onChange({...d,menoYear:e.target.value})}/>
+                    )}
+                    {fld("Ursache des Endes der Regelblutung",
+                      <select style={{...selSt,minWidth:280}} value={d.menoGrund||""} onChange={e=>onChange({...d,menoGrund:e.target.value})}>
+                        <option value="">Bitte wählen…</option>
+                        {MENOGRUNDE.map(g=><option key={g.v} value={g.v}>{g.l}</option>)}
+                      </select>
+                    )}
+                    {d.menoGrund==="sonstige"&&fld("Sonstige Ursache (bitte beschreiben)",
+                      <input placeholder="Bitte beschreiben…"
+                        style={{...iSt,minWidth:180}} value={d.menoSonstige||""} onChange={e=>onChange({...d,menoSonstige:e.target.value})}/>
+                    )}
+                  </div>
+                  <div style={{marginTop:10,fontSize:11.5,color:"#9b7a5a",background:"#fff8f0",borderRadius:5,padding:"5px 9px",borderLeft:"3px solid #e0b07a"}}>
+                    <strong>Hinweis:</strong> Eine frühe Menopause (vor 45 J.) oder vorzeitige Ovarialinsuffizienz (vor 40 J.) ist ein eigenständiger Osteoporose-Risikofaktor (DVO 2023).
+                  </div>
+                </div>
+              )}
+
+              {/* Kinder */}
+              <div style={{marginBottom:4}}>
+                <div style={{fontWeight:700,fontSize:12,color:"#6b5a4a",marginBottom:8}}>
+                  Schwangerschaften / Kinder
+                </div>
+                {d.kinder.length===0&&<div style={{fontSize:12,color:"#a09080",fontStyle:"italic",marginBottom:8}}>Noch keine Kinder eingetragen (oder keine Kinder / keine Schwangerschaften).</div>}
+                {d.kinder.map((k,i)=>(
+                  <div key={i} style={rowSt}>
+                    <span style={{fontSize:13,fontWeight:700,color:"#9b7a5a",minWidth:20,alignSelf:"flex-end",paddingBottom:6}}>{i+1}.</span>
+                    {fld("Geburtsjahr des Kindes",
+                      <input type="number" min="1950" max="2025" placeholder="z.B. 1988"
+                        style={{...iSt,width:100}} value={k.geburtsjahr||""} onChange={e=>updKind(i,"geburtsjahr",e.target.value)}/>
+                    )}
+                    {fld("Gestillt?",
+                      <select style={{...selSt,width:100}} value={k.gestillt||""} onChange={e=>updKind(i,"gestillt",e.target.value)}>
+                        <option value="">–</option>
+                        <option value="nein">Nein</option>
+                        <option value="ja">Ja</option>
+                      </select>
+                    )}
+                    {k.gestillt==="ja"&&fld("Stilldauer (Monate)",
+                      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                        <input type="number" min="0" max="36" placeholder="0"
+                          style={{...iSt,width:64}} value={k.stilldauer||""} onChange={e=>updKind(i,"stilldauer",e.target.value)}/>
+                        <span style={{fontSize:12,color:"#9b8a7a"}}>Monate</span>
+                      </div>
+                    )}
+                    <button onClick={()=>delKind(i)} style={delBSt}>✕</button>
+                  </div>
+                ))}
+                <button onClick={addKind} style={addBSt}>+ Kind / Geburt hinzufügen</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 /* ─── SECONDARY OSTEOPOROSIS PANEL ─── */
 function SecondaryPanel({answers,sekProfileDb,sekUntersDb,sekQsDb}){
@@ -4513,7 +4994,7 @@ function App(){
     await saveSession();
     const r=computeRisk(answers,gender);
     const d=prevSession?computeDiff(answers,prevSession,gender):null;
-    const text=buildTextExport(patient,gender,answers,r,d,lh,diagDb,sekDiagDb);
+    const text=buildTextExport(patient,gender,answers,r,d,lh,diagDb,sekDiagDb,anamnese);
     const fname=makeFilename("txt");
     // Try native File System Access API (shows real "Speichern unter" dialog)
     if(typeof window.showSaveFilePicker==="function"){
@@ -4553,6 +5034,8 @@ function App(){
 
   const handleReset=()=>{
     setAnswers({});setShowResult(false);setOpenSec({});
+    setAnamnese({fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]});
+    setPainMaps({});
     setPatient({name:"",geburtsdatum:"",fillDate:today});setGender(null);setDisclaimerOk(false);
     storageSet(STORE_DRAFT,null);
   };
@@ -4705,6 +5188,23 @@ function App(){
           <div style={{textAlign:"center",padding:"30px 20px",color:"#8b7a68",fontSize:14,background:"white",borderRadius:8,border:"1px dashed var(--P)"}}>
             Bitte oben das biologische Geschlecht auswählen, um den Fragebogen zu starten.
           </div>
+        )}
+
+        {/* ── Anamnese + Schmerzzeichnung (vor Fragebogen) ── */}
+        {disclaimerOk&&gender&&(
+          <>
+            <AnamneseSection
+              gender={gender}
+              data={anamnese}
+              onChange={setAnamnese}
+              open={openAnam}
+              onToggle={()=>setOpenAnam(v=>!v)}/>
+            <PainBodySection
+              painMaps={painMaps}
+              setPainMaps={setPainMaps}
+              open={openPain}
+              onToggle={()=>setOpenPain(v=>!v)}/>
+          </>
         )}
 
         {/* ── Questionnaire Sections (DXA is last section) ── */}
