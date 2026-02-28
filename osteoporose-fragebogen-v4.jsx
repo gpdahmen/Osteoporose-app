@@ -2739,8 +2739,22 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
   lines.push("");
   // ─ Anamnese ─
   const an=anamnese||{};
-  if((an.fractures||[]).length>0||(an.ops||[]).length>0||an.menarche||an.menoPause||(an.kinder||[]).length>0){
+  if((an.diagnosen||[]).length>0||(an.fractures||[]).length>0||(an.ops||[]).length>0||an.menarche||an.menoPause||(an.kinder||[]).length>0){
     lines.push("PERSÖNLICHE KRANKENGESCHICHTE");lines.push(sub);
+    if((an.diagnosen||[]).length>0){
+      lines.push("Bekannte Diagnosen / Vorerkrankungen:");
+      an.diagnosen.forEach(function(dx,i){
+        var flags=[];
+        if(dx.vitdRisiko)flags.push("VitD↓-Risiko");
+        if(dx.phosphatRisiko)flags.push("PO₄↑-Risiko");
+        var s="  "+(i+1)+". "+(dx.name||"–");
+        if(dx.seitJahr)s+=" (seit "+dx.seitJahr+")";
+        if(flags.length)s+=" ["+flags.join(", ")+"]";
+        lines.push(s);
+        if(dx.medikation)lines.push("     Medikation: "+dx.medikation);
+      });
+      lines.push("");
+    }
     if((an.fractures||[]).length>0){
       lines.push("Frühere Knochenbrüche:");
       an.fractures.forEach(function(fr,i){
@@ -3436,7 +3450,7 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
 
 /* ─── ANAMNESE SECTION ───────────────────────────────────────────────────── */
 function AnamneseSection({gender,data,onChange,open,onToggle}){
-  const DEF={fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]};
+  const DEF={diagnosen:[],fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]};
   const d={...DEF,...data};
 
   const updFrac=(i,f,v)=>{const r=[...d.fractures];r[i]={...r[i],[f]:v};onChange({...d,fractures:r});};
@@ -3450,6 +3464,10 @@ function AnamneseSection({gender,data,onChange,open,onToggle}){
   const updKind=(i,f,v)=>{const r=[...d.kinder];r[i]={...r[i],[f]:v};onChange({...d,kinder:r});};
   const addKind=()=>onChange({...d,kinder:[...d.kinder,{geburtsjahr:"",gestillt:"",stilldauer:""}]});
   const delKind=(i)=>onChange({...d,kinder:d.kinder.filter((_,j)=>j!==i)});
+
+  const updDiag=(i,f,v)=>{const r=[...d.diagnosen];r[i]={...r[i],[f]:v};onChange({...d,diagnosen:r});};
+  const addDiag=(vorschlag)=>onChange({...d,diagnosen:[...d.diagnosen,{name:vorschlag||"",seitJahr:"",medikation:"",vitdRisiko:false,phosphatRisiko:false}]});
+  const delDiag=(i)=>onChange({...d,diagnosen:d.diagnosen.filter((_,j)=>j!==i)});
 
   const FRAKTUR_ORTE=["Wirbelsäule","Hüfte / Oberschenkelhals","Unterarm / Handgelenk","Oberarm","Rippe(n)","Becken","Fuß","Hand / Finger","Sprunggelenk","Schulter","Sonstiges"];
   const MENOGRUNDE=[
@@ -3470,7 +3488,7 @@ function AnamneseSection({gender,data,onChange,open,onToggle}){
   const grpTSt={fontSize:13,fontWeight:700,color:"#5a3e2a",marginBottom:8,paddingBottom:4,borderBottom:"1px solid #e8d8c0"};
   const fld=(label,children)=>(<div style={{display:"flex",flexDirection:"column",gap:3}}><label style={lblSt}>{label}</label>{children}</div>);
 
-  const hasData=d.fractures.length>0||d.ops.length>0||d.menarche||(gender==="f"&&(d.menoPause||d.kinder.length>0));
+  const hasData=d.diagnosen.length>0||d.fractures.length>0||d.ops.length>0||d.menarche||(gender==="f"&&(d.menoPause||d.kinder.length>0));
 
   return(
     <div className="section-card anam-section" style={{marginBottom:12,overflow:"hidden"}}>
@@ -3480,7 +3498,7 @@ function AnamneseSection({gender,data,onChange,open,onToggle}){
           <div>
             <div style={{fontWeight:700,fontSize:15}}>Persönliche Krankengeschichte</div>
             <div style={{fontSize:12,color:"#9b8a7a",fontWeight:400}}>
-              Frühere Knochenbrüche · Operationen{gender==="f"?" · Gynäkologische Anamnese":""}
+              Vorerkrankungen · Frühere Knochenbrüche · Operationen{gender==="f"?" · Gynäkologische Anamnese":""}
               {hasData&&<span style={{marginLeft:8,color:"#4a8f3a",fontWeight:600,fontSize:11}}>✓ Ausgefüllt</span>}
             </div>
           </div>
@@ -3490,6 +3508,214 @@ function AnamneseSection({gender,data,onChange,open,onToggle}){
 
       {open&&(
         <div style={{padding:"14px 18px"}}>
+
+          {/* ── Bekannte Diagnosen & Vorerkrankungen ── */}
+          {(()=>{
+            // Diagnosen mit direktem Einfluss auf Vitamin D / Phosphathaushalt
+            const VITD_RISIKO_DIAG = [
+              "Epilepsie / Krampfanfälle (Antiepileptika)",
+              "Tuberkulose (Rifampicin-Therapie)",
+              "HIV-Infektion (Tenofovir / TDF / TAF)",
+              "Chronische Niereninsuffizienz (CKD, GFR < 60)",
+              "Dialysepflichtigkeit (Hämodialyse / Peritonealdialyse)",
+              "Leberzirrhose / Chronische Lebererkrankung",
+              "Zöliakie / Glutenunverträglichkeit",
+              "Morbus Crohn / Colitis ulcerosa (CED)",
+              "Kurzdarmsyndrom / Dünndarmresektion",
+              "Zustand nach Magenbypass / Bariatrische Operation",
+              "Adipositas (BMI > 35)",
+              "Malabsorptionssyndrom (andere Ursache)",
+              "Primärer Hyperparathyreoidismus (pHPT)",
+              "Hypoparathyreoidismus",
+              "Sarkoidose / Granulomatöse Erkrankung",
+              "Hyperthyreose / Morbus Basedow",
+              "Morbus Cushing / Langzeit-Kortikosteroid-Einnahme",
+              "Psoriasis (Vitamin-D-Metabolismus verändert)",
+              "Rachitis in der Kindheit",
+              "X-linked Hypophosphatämie (XLH)",
+              "Tumorinduzierte Osteomalazie (TIO)",
+              "Fanconi-Syndrom",
+              "Chronisch entzündliche Erkrankung (Rheuma, Vaskulitis u.a.)",
+              "Regelmäßige Eiseninfusionen (Ferric Carboxymaltose / Ferinject®)",
+            ];
+            const PHOSPHAT_RISIKO_DIAG = [
+              "Regelmäßige Eiseninfusionen (Ferric Carboxymaltose / Ferinject®)",
+              "X-linked Hypophosphatämie (XLH)",
+              "Tumorinduzierte Osteomalazie (TIO)",
+              "Fanconi-Syndrom (proximale tubuläre Dysfunktion)",
+              "HIV-Infektion (Tenofovir-Nephropathie)",
+              "Chronische Niereninsuffizienz (CKD, GFR < 30)",
+              "Primärer Hyperparathyreoidismus (PTH-bedingte Phosphaturie)",
+              "Dent-Erkrankung / Lowe-Syndrom",
+            ];
+            // Medikamente mit Einfluss auf Vitamin D oder Phosphat
+            const VITD_RISIKO_MEDI = [
+              "Antiepileptika: Carbamazepin (Tegretol®, Tegretal®)",
+              "Antiepileptika: Phenytoin (Phenhydan®)",
+              "Antiepileptika: Valproat (Depakine®, Ergenyl®)",
+              "Antiepileptika: Oxcarbazepin, Primidon",
+              "Rifampicin (Tuberkulostatikum) – CYP3A4-Induktor",
+              "Isoniazid (INH) – hemmt 25-Hydroxylierung",
+              "Glucocortikoide (Prednisolon, Dexamethason ≥ 3 Monate)",
+              "Protonenpumpenhemmer (PPI): Omeprazol, Pantoprazol (Langzeit)",
+              "Cholestyramin (Gallensäurebinder) – reduziert Vitamin D-Resorption",
+              "Orlistat (Xenical®) – Fettverdauungshemmer",
+              "Phenobarbital – CYP-Induktor",
+              "Ketoconazol – hemmt 1α-Hydroxylase",
+              "Antifungale Azole (Fluconazol, Itraconazol bei Langzeittherapie)",
+              "Antiretrovirale Therapie (HAART): Efavirenz, Nevirapine",
+              "Thiaziddiuretika (Wechselwirkung mit Kalzium- / Vitamin-D-Haushalt)",
+              "Lithium (Einfluss auf PTH / Kalziumhomöostase)",
+              "Methotrexat (MTX) – beeinträchtigt Folatstoffwechsel / Knochenmineralisierung",
+            ];
+            const PHOSPHAT_RISIKO_MEDI = [
+              "Ferric Carboxymaltose (Ferinject®) – FGF-23-vermittelte Phosphaturie",
+              "Tenofovir (TDF / TAF, z.B. Viread®, Descovy®) – renale Phosphatverluste",
+              "Aluminiumhaltige Antazida (Aludrox®, Maaloxan® u.a.) – Phosphatbinder",
+              "Sevelamer (Renvela®, Renagel®) – Phosphatbinder (Dialyse)",
+              "Calciumbindende Phosphatbinder (Calciumacetat-Brenzcatechin)",
+              "Saccharated Iron Oxide / andere iv.-Eisenpräparate (Monofer®, Cosmofer®)",
+              "SGLT2-Inhibitoren (Dapagliflozin, Empagliflozin) – milde Phosphaturie",
+              "Acetazolamid – proximale Tubulusdysfunktion",
+              "Cisplatin / Ifosfamid – Fanconi-Syndrom-Auslöser",
+              "Aminoglykoside (Tobramycin, Gentamicin) – tubuläre Toxizität",
+              "Valproat – Fanconi-ähnliche tubuläre Dysfunktion",
+              "Tacrolimus / Ciclosporin (Calcineurin-Inhibitoren) – Phosphaturie",
+            ];
+
+            const hasDiag = d.diagnosen.length>0;
+            const vitdWarn = d.diagnosen.filter(x=>x.vitdRisiko||x.phosphatRisiko);
+
+            return(
+              <div style={{marginBottom:20}}>
+                <div style={grpTSt}>🏥 Bekannte Diagnosen und Vorerkrankungen</div>
+
+                {/* Info-Box VitD/Phosphat */}
+                <div style={{marginBottom:12,padding:"9px 12px",background:"#fff8f0",border:"1px solid #e8c880",borderRadius:7,fontSize:12,lineHeight:1.6}}>
+                  <strong style={{color:"#7a5010"}}>⚠ Vitamin D & Phosphat-Risiko-Marker</strong><br/>
+                  Bestimmte Erkrankungen und Medikamente können Vitamin D vermindern oder die Phosphatausscheidung fördern und dadurch eine
+                  <strong> Osteomalazie oder sekundäre Osteoporose</strong> begünstigen – unabhängig von anderen Risikofaktoren.
+                  Bitte alle bekannten Diagnosen eintragen und die Markierungen (VitD↓ / PO₄↑) setzen, wo zutreffend.
+                </div>
+
+                {d.diagnosen.length===0&&(
+                  <div style={{fontSize:12,color:"#a09080",fontStyle:"italic",marginBottom:8}}>
+                    Noch keine Diagnosen eingetragen. Bitte alle bekannten Erkrankungen angeben.
+                  </div>
+                )}
+                {d.diagnosen.map((dx,i)=>(
+                  <div key={i} style={{...rowSt,flexDirection:"column",alignItems:"stretch",gap:6,background:"#fffcf8",borderLeft:dx.vitdRisiko||dx.phosphatRisiko?"3px solid #f4a261":"3px solid #e8e0d0"}}>
+                    <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap"}}>
+                      <span style={{fontSize:13,fontWeight:700,color:"#9b7a5a",minWidth:20,alignSelf:"flex-end",paddingBottom:6}}>{i+1}.</span>
+                      {fld("Diagnose / Erkrankung",
+                        <input list={"diag-list-vitd"} placeholder="z.B. Epilepsie, CKD Stadium 3, Zöliakie…"
+                          style={{...iSt,minWidth:240,flex:1}} value={dx.name||""} onChange={e=>updDiag(i,"name",e.target.value)}/>
+                      )}
+                      {fld("Bekannt seit (Jahr)",
+                        <input type="number" min="1940" max="2025" placeholder="Jahr"
+                          style={{...iSt,width:82}} value={dx.seitJahr||""} onChange={e=>updDiag(i,"seitJahr",e.target.value)}/>
+                      )}
+                      {fld("Aktuelle Medikation / Therapie (opt.)",
+                        <input list={"medi-list-vitd"} placeholder="z.B. Carbamazepin 200 mg/d, Tenofovir…"
+                          style={{...iSt,minWidth:200,flex:2}} value={dx.medikation||""} onChange={e=>updDiag(i,"medikation",e.target.value)}/>
+                      )}
+                      <button onClick={()=>delDiag(i)} style={delBSt}>✕</button>
+                    </div>
+                    <div style={{display:"flex",gap:14,alignItems:"center",paddingLeft:28,flexWrap:"wrap"}}>
+                      <label style={{display:"flex",gap:6,alignItems:"center",cursor:"pointer",
+                        padding:"3px 10px",borderRadius:5,fontSize:12,fontWeight:600,
+                        background:dx.vitdRisiko?"#fef3c7":"#f9f4ee",border:dx.vitdRisiko?"1px solid #f59e0b":"1px solid #e0d0b0",
+                        color:dx.vitdRisiko?"#92400e":"#7a6050"}}>
+                        <input type="checkbox" checked={!!dx.vitdRisiko} onChange={e=>updDiag(i,"vitdRisiko",e.target.checked)}
+                          style={{width:14,height:14,accentColor:"#f59e0b",cursor:"pointer"}}/>
+                        ☀ Vitamin D↓ Risiko
+                      </label>
+                      <label style={{display:"flex",gap:6,alignItems:"center",cursor:"pointer",
+                        padding:"3px 10px",borderRadius:5,fontSize:12,fontWeight:600,
+                        background:dx.phosphatRisiko?"#fce7f3":"#f9f4ee",border:dx.phosphatRisiko?"1px solid #db2777":"1px solid #e0d0b0",
+                        color:dx.phosphatRisiko?"#831843":"#7a6050"}}>
+                        <input type="checkbox" checked={!!dx.phosphatRisiko} onChange={e=>updDiag(i,"phosphatRisiko",e.target.checked)}
+                          style={{width:14,height:14,accentColor:"#db2777",cursor:"pointer"}}/>
+                        🔴 Phosphatverlust↑ Risiko
+                      </label>
+                      {(dx.vitdRisiko||dx.phosphatRisiko)&&(
+                        <span style={{fontSize:11,color:"#9b7a5a",fontStyle:"italic"}}>
+                          → Phosphat, FGF-23 und 25-OH-D₃ im Labor kontrollieren
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Vorschläge-Listen (datalist) */}
+                <datalist id="diag-list-vitd">
+                  {[...VITD_RISIKO_DIAG,...PHOSPHAT_RISIKO_DIAG].filter((x,i,a)=>a.indexOf(x)===i).map(d=><option key={d} value={d}/>)}
+                </datalist>
+                <datalist id="medi-list-vitd">
+                  {[...VITD_RISIKO_MEDI,...PHOSPHAT_RISIKO_MEDI].filter((x,i,a)=>a.indexOf(x)===i).map(m=><option key={m} value={m}/>)}
+                </datalist>
+
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:4}}>
+                  <button onClick={()=>addDiag()} style={addBSt}>+ Diagnose hinzufügen</button>
+                  <div style={{position:"relative"}}>
+                    <button
+                      style={{...addBSt,background:"#fff8f0",borderColor:"#f4a261",color:"#7a4010"}}
+                      onClick={()=>{
+                        const n=prompt("Diagnose mit Vitamin-D-Risiko (aus Liste oder eigene Eingabe):\n\n"+VITD_RISIKO_DIAG.slice(0,8).join("\n")+"\n...");
+                        if(n&&n.trim())addDiag(n.trim());
+                      }}>
+                      ☀ + VitD↓ Risiko-Diagnose
+                    </button>
+                  </div>
+                  <button
+                    style={{...addBSt,background:"#fff0f8",borderColor:"#db2777",color:"#831843"}}
+                    onClick={()=>{
+                      const n=prompt("Diagnose mit Phosphatverlust-Risiko (aus Liste oder eigene Eingabe):\n\n"+PHOSPHAT_RISIKO_DIAG.slice(0,6).join("\n")+"\n...");
+                      if(n&&n.trim())addDiag(n.trim());
+                    }}>
+                    🔴 + PO₄-Verlust-Diagnose
+                  </button>
+                </div>
+
+                {/* Referenz-Box ausklappbar */}
+                {(()=>{
+                  const [showRef,setShowRef]=React.useState(false);
+                  return(
+                    <div style={{marginTop:10}}>
+                      <button onClick={()=>setShowRef(v=>!v)}
+                        style={{fontSize:11.5,color:"#7a6050",background:"none",border:"none",cursor:"pointer",padding:"2px 0",textDecoration:"underline",fontFamily:"inherit"}}>
+                        {showRef?"▲ Referenzlisten ausblenden":"▼ Referenzlisten: Erkrankungen & Medikamente mit Vitamin-D↓ / PO₄↑ Risiko einblenden"}
+                      </button>
+                      {showRef&&(
+                        <div style={{marginTop:8,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,fontSize:11.5}}>
+                          <div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:7,padding:"8px 10px"}}>
+                            <div style={{fontWeight:700,color:"#92400e",marginBottom:5}}>☀ Erkrankungen → Vitamin D↓</div>
+                            {VITD_RISIKO_DIAG.map(x=><div key={x} style={{color:"#78350f",marginBottom:2}}>• {x}</div>)}
+                          </div>
+                          <div style={{background:"#fdf2f8",border:"1px solid #f9a8d4",borderRadius:7,padding:"8px 10px"}}>
+                            <div style={{fontWeight:700,color:"#831843",marginBottom:5}}>🔴 Erkrankungen → Phosphatverlust↑</div>
+                            {PHOSPHAT_RISIKO_DIAG.map(x=><div key={x} style={{color:"#701a47",marginBottom:2}}>• {x}</div>)}
+                          </div>
+                          <div style={{background:"#fef9eb",border:"1px solid #fcd34d",borderRadius:7,padding:"8px 10px"}}>
+                            <div style={{fontWeight:700,color:"#92400e",marginBottom:5}}>☀ Medikamente → Vitamin D↓</div>
+                            {VITD_RISIKO_MEDI.map(x=><div key={x} style={{color:"#78350f",marginBottom:2}}>• {x}</div>)}
+                          </div>
+                          <div style={{background:"#fdf2f8",border:"1px solid #f9a8d4",borderRadius:7,padding:"8px 10px"}}>
+                            <div style={{fontWeight:700,color:"#831843",marginBottom:5}}>🔴 Medikamente → Phosphatverlust↑</div>
+                            {PHOSPHAT_RISIKO_MEDI.map(x=><div key={x} style={{color:"#701a47",marginBottom:2}}>• {x}</div>)}
+                          </div>
+                          <div style={{gridColumn:"1/-1",fontSize:11,color:"#9b7a5a",borderTop:"1px solid #e8d0b0",paddingTop:6,marginTop:2}}>
+                            Quellen: DVO-Leitlinie 2023 · KDIGO 2017 · Schaefer B et al. J Hepatol 2021 · Bhatt DL et al. NEJM 2020 ·
+                            Munns CF et al. J Clin Endocrinol Metab 2016 (Rachitis-Konsensus) · Fachinformationen der genannten Präparate
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            );
+          })()}
 
           {/* ── Frakturen ── */}
           <div style={{marginBottom:18}}>
@@ -5150,7 +5376,7 @@ function App(){
 
   const handleReset=()=>{
     setAnswers({});setShowResult(false);setOpenSec({});
-    setAnamnese({fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]});
+    setAnamnese({diagnosen:[],fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]});
     setPainMaps({});
     setSekStatus({});
     setPatient({name:"",geburtsdatum:"",fillDate:today});setGender(null);setDisclaimerOk(false);
