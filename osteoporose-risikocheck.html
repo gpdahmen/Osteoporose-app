@@ -521,6 +521,13 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 .sek-unt-item{display:flex;align-items:flex-start;gap:6px;padding:5px 8px;background:white;border:1px solid #e8dfc8;border-radius:5px;font-size:12px}
 .sek-unt-item::before{content:"🔬";font-size:11px;flex-shrink:0;margin-top:1px}
 .sek-unt-icd{font-family:monospace;font-size:10px;color:#a08060;margin-left:auto;white-space:nowrap}
+.sek-scoring-box{margin-top:14px;background:#f4f0fa;border:1px solid #d8c8f0;border-radius:8px;overflow:hidden}
+.sek-scoring-title{padding:8px 14px;background:#ede4fa;font-size:12px;font-weight:700;color:#3a1a6a;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sek-scoring-src{font-size:10px;color:#6a4a9a;text-decoration:underline;font-weight:400}
+.sek-scoring-grid{padding:8px 10px;display:flex;flex-direction:column;gap:5px}
+.sek-scoring-row{display:grid;grid-template-columns:190px 1fr;gap:8px;align-items:baseline;padding:4px 6px;background:white;border:1px solid #e4d8f8;border-radius:5px}
+.sek-scoring-name{font-weight:700;color:#4a2a8a;font-size:11px;line-height:1.4}
+.sek-scoring-desc{color:#3a3050;line-height:1.5;font-size:11.5px}
 .sek-none{padding:20px;text-align:center;color:#8b7a68;font-style:italic;font-size:13px}
 .sek-triggers{background:#f8f2e8;border:1px solid #e8d8b8;border-radius:6px;padding:8px 12px;margin-bottom:10px}
 .sek-triggers-title{font-size:10px;font-weight:700;color:#8b6a3a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;display:flex;align-items:center;gap:5px}
@@ -2163,10 +2170,1403 @@ const SEK_DIAG_DB_DEFAULTS = {
     icd5: "E74.0G"
   }
 };
+// ══════════════════════════════════════════════════════════════════════
+// SEK_SCORES_DEFAULTS  –  Klinische Scores & Stadieneinteilungen
+// je Erkrankung: Array von Scoring-Systemen
+// Jeder Eintrag: { name, quelle, stufen: [{label, info}] }
+// ══════════════════════════════════════════════════════════════════════
+const SEK_SCORES_DEFAULTS = {
+  hpth: [{
+    name: "5th Intl. Workshop PHPT 2022 – Klinische Phänotypen",
+    quelle: "Bilezikian JP et al. J Bone Miner Res 2022;37(11):2293",
+    stufen: [{
+      label: "Symptomatisch",
+      info: "Skelettkomplikationen (Osteitis fibrosa cystica, Frakturen) und/oder Nierenbeteiligung (Nephrolithiasis, Nephrokalzinose)"
+    }, {
+      label: "Asymptomatisch",
+      info: "Biochemisch auffällig (Ca ↑, PTH ↑), keine klinischen Organkomplikationen; Zufallsbefund"
+    }, {
+      label: "Normokalzämisch",
+      info: "Normales Albumin-korr. Ca + normales ionisiertes Ca, aber PTH ↑ – mind. 2× gemessen über 3–6 Monate nach Ausschluss aller Sekundärursachen"
+    }]
+  }, {
+    name: "OP-Indikationen bei asymptomatischem pHPT (5th Workshop 2022)",
+    quelle: "Bilezikian JP et al. J Bone Miner Res 2022;37(11):2293",
+    stufen: [{
+      label: "Serum-Ca",
+      info: "> 1 mg/dl (0,25 mmol/l) über oberer Normwertgrenze"
+    }, {
+      label: "Niere",
+      info: "eGFR < 60 ml/min, Nephrolithiasis/Nephrokalzinose in Bildgebung, Hyperkalziurie > 400 mg/24 h mit erhöhtem Steinrisiko"
+    }, {
+      label: "Skelett",
+      info: "T-Score ≤ −2,5 (LWS, Schenkelhals, Gesamthüfte oder dist. 1/3 Radius), morphometrische Wirbelkörperfraktur (VFA/Röntgen)"
+    }, {
+      label: "Alter < 50 Jahre",
+      info: "Operationsindikation unabhängig von weiteren Kriterien"
+    }]
+  }],
+  cushing: [{
+    name: "Nieman 2008 – Endocrine Society Diagnosekriterien",
+    quelle: "Nieman LK et al. J Clin Endocrinol Metab 2008;93(5):1526",
+    stufen: [{
+      label: "Initial-Screening",
+      info: "UFC > Norm, Spätnacht-Speichelkortisol > 145 ng/dl (4 nmol/l), Serum-Kortisol nach 1 mg Dex > 1,8 µg/dl (50 nmol/l)"
+    }, {
+      label: "Konfirmation",
+      info: "≥2 pathologische Tests → Endokrinologie; bei Diskordanz: Mitternachts-Serumkortisol oder Dex-CRH-Test"
+    }, {
+      label: "Ursachendiagnostik",
+      info: "ACTH (ACTH-abhängig vs. ACTH-unabhängig), IPSS bei V.a. M. Cushing, MRT Hypophyse / CT Nebenniere"
+    }]
+  }, {
+    name: "Cushing Syndrome Severity Index (CSI) – Sonino et al.",
+    quelle: "Sonino N et al. J Intern Med 2000;247(5):623",
+    stufen: [{
+      label: "Leicht (0–5)",
+      info: "Wenige diskrete Zeichen; minimale Alltagseinschränkung"
+    }, {
+      label: "Mittelschwer (6–10)",
+      info: "Deutliche Körperveränderungen, metabolische Störungen (Hyperglykämie, Hypertonie)"
+    }, {
+      label: "Schwer (11–16)",
+      info: "Ausgeprägte Symptomatik, schwere Komplikationen (Myopathie, Frakturen, Psychose)"
+    }],
+    note: "8 Merkmale (Körperfett, Haut, Hypertonie, Muskeln, Knochen, Sexualsphäre, Psyche, Glucose), je 0–2 Punkte; Gesamt 0–16"
+  }],
+  hypogonadismus: [{
+    name: "EAU / Endocrine Society – Hypogonadismus-Definition (Mann)",
+    quelle: "Bhasin S et al. J Clin Endocrinol Metab 2018;103(5):1715",
+    stufen: [{
+      label: "Gesamt-Testosteron < 300 ng/dl (10,4 nmol/l)",
+      info: "Grenzwert für hypogonadalen Bereich; gilt für 2 Morgenmessungen (nüchtern, 8–10 Uhr)"
+    }, {
+      label: "Symptome erforderlich",
+      info: "Niedrige Libido, erektile Dysfunktion, verminderter Bartwuchs, Müdigkeit, Abnahme Muskelmasse oder -kraft"
+    }, {
+      label: "Primär (hypergonadotrop)",
+      info: "LH/FSH ↑ → testikuläre Ursache (z.B. Klinefelter)"
+    }, {
+      label: "Sekundär (hypogonadotrop)",
+      info: "LH/FSH niedrig/normal → hypophysär/hypothalamisch"
+    }]
+  }],
+  hypogonadismus_f: [{
+    name: "ESE/ASRM – Amenorrhoe-Klassifikation (Frau, prämenopausal)",
+    quelle: "Gordon CM et al. J Clin Endocrinol Metab 2017;102(5):1413",
+    stufen: [{
+      label: "Hypoth. Amenorrhoe (FHA)",
+      info: "LH/FSH niedrig oder normal, Östradiol niedrig – Stress, Untergewicht, Leistungssport, PCOS-ähnlich"
+    }, {
+      label: "Hyperprolaktinämisch",
+      info: "Prolaktin ↑, LH/FSH supprimiert → Prolaktinom ausschließen"
+    }, {
+      label: "Hypergonadotrop",
+      info: "LH/FSH ↑, Östradiol ↓ → Ovarialinsuffizienz; bei < 40 J. = prämature Ovarialinsuffizienz (POI)"
+    }]
+  }],
+  hyperthyreose: [{
+    name: "ATA Guidelines 2016 – Schweregrad Hyperthyreose",
+    quelle: "Ross DS et al. Thyroid 2016;26(10):1343",
+    stufen: [{
+      label: "Subklinisch",
+      info: "TSH < 0,4 mU/l, fT3/fT4 im Referenzbereich; erhöhtes Osteoporoserisiko, insbes. bei TSH < 0,1 mU/l"
+    }, {
+      label: "Manifest",
+      info: "TSH < 0,1 mU/l, fT3 und/oder fT4 ↑; Symptome: Herzrasen, Gewichtsverlust, Tremor, Wärmeintoleranz"
+    }, {
+      label: "Thyreotoxische Krise",
+      info: "Burch-Wartofsky-Score ≥ 45 Punkte – lebensbedrohlich"
+    }]
+  }],
+  akromegalie: [{
+    name: "Giustina Consensus 2020 – Diagnose- und Aktivitätskriterien",
+    quelle: "Giustina A et al. J Clin Endocrinol Metab 2020;105(4):dgz048",
+    stufen: [{
+      label: "Aktiv",
+      info: "IGF-1 > alters-/geschlechtsspezifische Obergrenze UND/ODER GH-Nadir im oGTT ≥ 0,4 µg/l (nach modernen Assays)"
+    }, {
+      label: "Biochemisch kontrolliert (Medikament)",
+      info: "IGF-1 normal UND GH < 1,0 µg/l unter Medikation"
+    }, {
+      label: "Remission (postoperativ)",
+      info: "IGF-1 normalisiert UND GH < 0,4 µg/l (oGTT-Nadir) in spezifischem Assay"
+    }]
+  }],
+  prolaktinom: [{
+    name: "Melmed 2011 – Hyperprolaktinämie-Schweregrad (Endocrine Society)",
+    quelle: "Melmed S et al. J Clin Endocrinol Metab 2011;96(2):273",
+    stufen: [{
+      label: "Milde Hyperprolaktinämie (< 100 ng/ml)",
+      info: "Häufig medikamentös oder Stress; selten Mikroprolaktinom"
+    }, {
+      label: "Moderate (100–250 ng/ml)",
+      info: "Prolaktinom-verdächtig; MRT Hypophyse indiziert"
+    }, {
+      label: "Ausgeprägt (> 250 ng/ml)",
+      info: "Sehr wahrscheinlich Makroprolaktinom; typische Werte > 500–1000 ng/ml bei Makroprolaktinom"
+    }]
+  }],
+  zoeliakie: [{
+    name: "Marsh-Oberhuber-Klassifikation 1999",
+    quelle: "Oberhuber G et al. Eur J Gastroenterol Hepatol 1999;11(10):1185",
+    stufen: [{
+      label: "Typ 0",
+      info: "Normal – Zöliakie unwahrscheinlich"
+    }, {
+      label: "Typ 1",
+      info: "Intraepitheliale Lymphozytose (IEL ≥ 25/100 Enterozyten), Krypten normal, Zotten normal"
+    }, {
+      label: "Typ 2",
+      info: "IEL ↑ + Kryptenhyperplasie, Zotten normal (sehr selten)"
+    }, {
+      label: "Typ 3a",
+      info: "Milde Zottenatrophie + IEL ↑ + Kryptenhyperplasie"
+    }, {
+      label: "Typ 3b",
+      info: "Ausgeprägte Zottenatrophie"
+    }, {
+      label: "Typ 3c",
+      info: "Vollständige Zottenatrophie (flat mucosa) – klassische Zöliakie"
+    }]
+  }, {
+    name: "Corazza-Villanacci-Klassifikation (vereinfacht)",
+    quelle: "Corazza GR, Villanacci V. J Clin Pathol 2005;58(6):573",
+    stufen: [{
+      label: "Grad A",
+      info: "IEL ↑, keine Atrophie"
+    }, {
+      label: "Grad B1",
+      info: "Zottenatrophie, Zotten noch erkennbar (Vh:Kd-Ratio < 3)"
+    }, {
+      label: "Grad B2",
+      info: "Totale Zottenatrophie"
+    }]
+  }],
+  ced: [{
+    name: "Harvey-Bradshaw-Index (HBI) – Morbus Crohn Aktivität",
+    quelle: "Harvey RF, Bradshaw JM. Lancet 1980;1(8167):514",
+    stufen: [{
+      label: "Remission (0–4)",
+      info: "Keine oder minimale Symptome"
+    }, {
+      label: "Leicht aktiv (5–7)",
+      info: "Geringe Beschwerden, keine systemische Beeinträchtigung"
+    }, {
+      label: "Mäßig aktiv (8–16)",
+      info: "Deutliche Symptome; Therapieanpassung indiziert"
+    }, {
+      label: "Schwer aktiv (≥ 17)",
+      info: "Schwere Beschwerden, Krankenhausaufnahme erwägen"
+    }]
+  }, {
+    name: "Mayo-Score – Colitis ulcerosa Aktivität",
+    quelle: "Schroeder KW et al. N Engl J Med 1987;317(26):1625",
+    stufen: [{
+      label: "Remission (0–2)",
+      info: "Keine wesentliche Krankheitsaktivität"
+    }, {
+      label: "Leicht aktiv (3–5)",
+      info: "Geringe rektale Blutung, leichte Endoskopieveränderungen"
+    }, {
+      label: "Mäßig aktiv (6–10)",
+      info: "Häufige Blutung, moderate Endoskopieveränderungen"
+    }, {
+      label: "Schwer aktiv (11–12)",
+      info: "Kontinuierliche Blutung, schwere Endoskopieveränderungen"
+    }]
+  }],
+  vit_d: [{
+    name: "Holick 2011 – Vitamin-D-Status nach 25-OH-D3",
+    quelle: "Holick MF et al. J Clin Endocrinol Metab 2011;96(7):1911",
+    stufen: [{
+      label: "Ausreichend",
+      info: "25-OH-D3 ≥ 30 ng/ml (75 nmol/l)"
+    }, {
+      label: "Insuffizient",
+      info: "25-OH-D3 20–29 ng/ml (50–74 nmol/l) – erhöhtes Frakturrisiko"
+    }, {
+      label: "Defizient",
+      info: "25-OH-D3 < 20 ng/ml (50 nmol/l) – signifikant erhöhtes Osteoporoserisiko"
+    }, {
+      label: "Schwerer Mangel",
+      info: "25-OH-D3 < 10 ng/ml (25 nmol/l) – Osteomalazie-Risiko"
+    }]
+  }],
+  malabsorption: [{
+    name: "Klinisches Schweregrad-Schema Malabsorption",
+    quelle: "Klinische Einteilung nach internationalem Konsens (keine formal standardisierte Skala)",
+    stufen: [{
+      label: "Leicht",
+      info: "Gelegentliche Steatorrhoe, leichte Mikronährstoffmängel"
+    }, {
+      label: "Mäßig",
+      info: "Regelmäßige Steatorrhoe, Gewichtsverlust, Eisenmangel/Anämie"
+    }, {
+      label: "Schwer",
+      info: "Ausgeprägte Steatorrhoe, Gewichtsverlust > 10%, multiple Mängel (Vit. D, A, E, K, Kalzium, Zink)"
+    }]
+  }],
+  lebererkrankung: [{
+    name: "Child-Pugh-Klassifikation – Leberzirrhose-Schweregrad",
+    quelle: "Child CG, Turcotte JG. Surgery 1964;65:14 – modifiziert Pugh RN et al. Br J Surg 1973;60(9):646",
+    stufen: [{
+      label: "Child A (5–6 Pkt.)",
+      info: "Gute Leberfunktion; 1-Jahres-Überleben ca. 95%"
+    }, {
+      label: "Child B (7–9 Pkt.)",
+      info: "Mäßig eingeschränkte Leberfunktion; 1-Jahres-Überleben ca. 75%"
+    }, {
+      label: "Child C (10–15 Pkt.)",
+      info: "Schwere Leberzirrhose; 1-Jahres-Überleben < 50%"
+    }],
+    note: "Kriterien: Aszites, Enzephalopathie, Bilirubin, Albumin, Quick/INR – je 1–3 Punkte"
+  }, {
+    name: "MELD-Score – Mortalitätsprädiktion",
+    quelle: "Kamath PS et al. Hepatology 2001;33(2):464",
+    stufen: [{
+      label: "MELD < 10",
+      info: "Geringe 90-Tages-Mortalität (ca. 2%)"
+    }, {
+      label: "MELD 10–19",
+      info: "Mäßig erhöhtes Risiko (ca. 6–20%)"
+    }, {
+      label: "MELD 20–29",
+      info: "Erhöhtes Risiko (ca. 20%)"
+    }, {
+      label: "MELD ≥ 30",
+      info: "Hohes Risiko (> 50% Mortalität ohne Transplantation)"
+    }],
+    note: "MELD = 10 × (0,957 × ln(Kreatinin) + 0,378 × ln(Bilirubin) + 1,12 × ln(INR)) + 6,43"
+  }],
+  nieren: [{
+    name: "KDIGO 2012/2017 – CKD-Stadien nach eGFR (CKD-EPI)",
+    quelle: "KDIGO CKD-MBD Update Work Group. Kidney Int Suppl 2017;7:1",
+    stufen: [{
+      label: "G1  (≥ 90 ml/min)",
+      info: "Normales Filtrat, CKD nur bei Strukturschaden/Proteinurie"
+    }, {
+      label: "G2  (60–89 ml/min)",
+      info: "Leicht eingeschränkt"
+    }, {
+      label: "G3a (45–59 ml/min)",
+      info: "Leicht-mäßig eingeschränkt – MBD-Monitoring beginnen!"
+    }, {
+      label: "G3b (30–44 ml/min)",
+      info: "Mäßig-schwer eingeschränkt – PTH, Phosphat, Ca halbjährlich"
+    }, {
+      label: "G4  (15–29 ml/min)",
+      info: "Schwer eingeschränkt – Vitamin-D-Aktivierung gestört, sek. HPT"
+    }, {
+      label: "G5  (< 15 ml/min)",
+      info: "Nierenversagen / Dialyse (G5D) – CKD-MBD komplex"
+    }]
+  }],
+  rta_bartter: [{
+    name: "RTA-Typen-Klassifikation nach Pathomechanismus",
+    quelle: "Rodriguez Soriano J. Pediatr Nephrol 2002;17(3):187",
+    stufen: [{
+      label: "RTA Typ 1 (distale RTA)",
+      info: "Unfähigkeit zur Urinansäuerung; Urin-pH > 5,5; Hyperkalziurie, Nephrolithiasis, Osteopenie"
+    }, {
+      label: "RTA Typ 2 (proximale RTA)",
+      info: "Bikarbonat-Verlust; hypokaliämisch; Fanconi-Syndrom möglich"
+    }, {
+      label: "RTA Typ 4 (hyperkaliämisch)",
+      info: "Aldosteron-Mangel/-Resistenz; häufig bei CKD, Diabetes"
+    }, {
+      label: "Bartter-Syndrom",
+      info: "Chlorid-Kanal-Defekt; Hypokaliämie, metabolische Alkalose, Hyperkalziurie"
+    }, {
+      label: "Gitelman-Syndrom",
+      info: "Mildes Salzverlust-Syndrom; Hypomagnesiämie, Hypokalziurie"
+    }]
+  }],
+  hypercalciurie: [{
+    name: "Definition Hyperkalziurie – internationale Schwellenwerte",
+    quelle: "Worcester EM, Coe FL. N Engl J Med 2010;363(10):954",
+    stufen: [{
+      label: "Normal (♂)",
+      info: "< 300 mg/d (7,5 mmol/d) im 24h-Urin"
+    }, {
+      label: "Normal (♀)",
+      info: "< 250 mg/d (6,2 mmol/d) im 24h-Urin"
+    }, {
+      label: "Hyperkalziurie",
+      info: "♂ ≥ 300 mg/d oder ♀ ≥ 250 mg/d – Osteoporoserisiko erhöht"
+    }, {
+      label: "Schwere Hyperkalziurie",
+      info: "≥ 400 mg/d – OP-Indikation bei pHPT; Nierensteinrisiko sehr hoch"
+    }]
+  }],
+  myelom: [{
+    name: "R-ISS – Revised International Staging System (IMWG 2015)",
+    quelle: "Palumbo A et al. J Clin Oncol 2015;33(26):2863",
+    stufen: [{
+      label: "R-ISS I",
+      info: "ISS I + Standard-Risiko-Zytogenetik (iFISH, kein Hochrisiko) + LDH ≤ ULN; 5-JÜL ~82%"
+    }, {
+      label: "R-ISS II",
+      info: "Weder I noch III; heterogene Gruppe; 5-JÜL ~62%"
+    }, {
+      label: "R-ISS III",
+      info: "ISS III + Hochrisiko-Zytogenetik (del17p, t(4;14), t(14;16)) ODER LDH > ULN; 5-JÜL ~40%"
+    }]
+  }, {
+    name: "ISS – International Staging System (IMWG 2005)",
+    quelle: "Greipp PR et al. J Clin Oncol 2005;23(15):3412",
+    stufen: [{
+      label: "ISS I",
+      info: "β2-Mikroglobulin < 3,5 mg/l UND Albumin ≥ 3,5 g/dl; medianes Überleben 62 Monate"
+    }, {
+      label: "ISS II",
+      info: "Weder I noch III; medianes Überleben 44 Monate"
+    }, {
+      label: "ISS III",
+      info: "β2-Mikroglobulin ≥ 5,5 mg/l; medianes Überleben 29 Monate"
+    }]
+  }, {
+    name: "IMWG CRAB-Kriterien – Symptomatisches Myelom",
+    quelle: "Rajkumar SV et al. Lancet Oncol 2014;15(12):e538",
+    stufen: [{
+      label: "C – Hyperkalzämie",
+      info: "Serumkalzium > 0,25 mmol/l über ULN ODER > 2,75 mmol/l"
+    }, {
+      label: "R – Niereninsuffizienz",
+      info: "Kreatinin-Clearance < 40 ml/min ODER Kreatinin > 177 µmol/l"
+    }, {
+      label: "A – Anämie",
+      info: "Hb < 100 g/l ODER > 20 g/l unter Untergrenze"
+    }, {
+      label: "B – Bone lesions",
+      info: "≥1 osteolytische Läsion (Röntgen, CT, PET-CT)"
+    }]
+  }],
+  mastozytose: [{
+    name: "WHO 2022 – Klassifikation der Mastozytose",
+    quelle: "Swerdlow SH et al. WHO Classification of Tumours of Haematopoietic Tissue 2022",
+    stufen: [{
+      label: "Kutane Mastozytose (CM)",
+      info: "Nur Hautbeteiligung; Urticaria pigmentosa häufigste Form"
+    }, {
+      label: "Indolente SM (ISM)",
+      info: "Systemische Beteiligung, keine Organschäden; Tryptase oft > 20 ng/ml"
+    }, {
+      label: "Smouldering SM (SSM)",
+      info: "Hohes Knochenmarksbefalls (≥ 30%), aber keine Organdysfunktion"
+    }, {
+      label: "Aggressive SM (ASM)",
+      info: "Organdysfunktion (Zytopenie, Malabsorption, Leberdysfunktion)"
+    }, {
+      label: "SM-AHN",
+      info: "SM + assoziierte hämatologische Neoplasie"
+    }, {
+      label: "Mastzellleukämie (MCL)",
+      info: "Mastzellen > 20% im Blutausstrich; sehr selten, sehr aggressiv"
+    }]
+  }],
+  haemochromatose: [{
+    name: "EASL 2022 – Hereditäre Hämochromatose Stadieneinteilung",
+    quelle: "EASL Clinical Practice Guidelines – Haemochromatosis 2022. J Hepatol 2022;77(2):479",
+    stufen: [{
+      label: "Stadium 0",
+      info: "Genetisch positiv (HFE C282Y homozygot), Transferrinsättigung und Ferritin normal"
+    }, {
+      label: "Stadium 1",
+      info: "Transferrinsättigung > 45% (♂) / > 40% (♀), Ferritin normal – Eisenüberladung ohne Schaden"
+    }, {
+      label: "Stadium 2",
+      info: "Ferritin ↑ (> 300 µg/l ♂ / > 200 µg/l ♀), keine Organkomplikationen"
+    }, {
+      label: "Stadium 3",
+      info: "Leberfibrose und/oder Arthropathie, Diabetes, Kardiomyopathie möglich"
+    }, {
+      label: "Stadium 4",
+      info: "Leberzirrhose – irreversibel; erhöhtes HCC-Risiko; Osteoporose durch Hypogonadismus/Lebererkrankung"
+    }]
+  }],
+  sarkoidose: [{
+    name: "Scadding 1961 – Radiologisches Staging (Thorax-Röntgen)",
+    quelle: "Scadding JG. Br Med J 1961;2(5261):1165",
+    stufen: [{
+      label: "Stadium 0",
+      info: "Keine intrathorakalen Veränderungen"
+    }, {
+      label: "Stadium I",
+      info: "Bihiläre Lymphadenopathie ohne Lungenparenchymbefall"
+    }, {
+      label: "Stadium II",
+      info: "Bihiläre LAP + Lungenparenchymveränderungen"
+    }, {
+      label: "Stadium III",
+      info: "Lungenparenchymveränderungen ohne LAP"
+    }, {
+      label: "Stadium IV",
+      info: "Pulmonale Fibrose – irreversibel; Cor pulmonale möglich"
+    }]
+  }],
+  psa: [{
+    name: "CASPAR-Kriterien – Psoriasis-Arthritis-Diagnose 2006",
+    quelle: "Taylor W et al. Arthritis Rheum 2006;54(8):2665",
+    stufen: [{
+      label: "Diagnose bestätigt (≥ 3 Punkte)",
+      info: "Entzündliche Gelenkerkrankung + ≥3 Punkte aus: Psoriasis (aktuell=2/anamnestisch=1/familiär=1), Nagelveränderungen (1), neg. RF (1), Daktylitis (1), juxta-artikuläre Knochenneubildung (1)"
+    }, {
+      label: "DAS28 Remission",
+      info: "DAS28 < 2,6 (kein aktives Gelenk)"
+    }, {
+      label: "Niedrige Aktivität",
+      info: "DAS28 2,6–3,2"
+    }, {
+      label: "Mittlere Aktivität",
+      info: "DAS28 3,2–5,1"
+    }, {
+      label: "Hohe Aktivität",
+      info: "DAS28 > 5,1 – stark erhöhtes Osteoporoserisiko durch Inflammation"
+    }]
+  }],
+  vaskulitis: [{
+    name: "Birmingham Vasculitis Activity Score (BVAS) v3 – Aktivität",
+    quelle: "Mukhtyar C et al. Ann Rheum Dis 2009;68(12):1827",
+    stufen: [{
+      label: "Remission",
+      info: "BVAS = 0; keine aktiven Vaskulitis-Manifestationen"
+    }, {
+      label: "Geringe Aktivität",
+      info: "BVAS 1–5; wenige Organbeteiligungen"
+    }, {
+      label: "Moderate Aktivität",
+      info: "BVAS 6–15; mehrere Organe betroffen"
+    }, {
+      label: "Schwere Aktivität",
+      info: "BVAS > 15; lebensbedrohliche Organbeteiligung (Nieren, ZNS, Lunge)"
+    }],
+    note: "BVAS: 9 Organsysteme, 56 Items; max. 63 Punkte"
+  }],
+  hiv_ost: [{
+    name: "WHO HIV-Klinisches Staging – Immunsuppression",
+    quelle: "WHO Clinical Staging of HIV Disease 2006",
+    stufen: [{
+      label: "Stadium 1",
+      info: "Asymptomatisch oder persistierende generalisierte Lymphadenopathie"
+    }, {
+      label: "Stadium 2",
+      info: "Milde Symptome (Gewichtsverlust < 10%, Herpes zoster, Mundpilz etc.)"
+    }, {
+      label: "Stadium 3",
+      info: "Fortgeschrittene Erkrankung: Gewichtsverlust > 10%, chronische Diarrhoe, rezid. Infektionen"
+    }, {
+      label: "Stadium 4 (AIDS)",
+      info: "Schwere Immunsuppression, AIDS-definierende Erkrankungen (CD4 < 200/µl)"
+    }]
+  }],
+  immo_neuro: [{
+    name: "Immobilisationsgrad – klinische Einstufung",
+    quelle: "Kortebein P et al. JAMA 2007;297(16):1772 / Frostick SP. Bone Jt J 2010",
+    stufen: [{
+      label: "Bettruhe 1–3 Tage",
+      info: "Gering; schnell reversibel; BMD-Verlust < 1%"
+    }, {
+      label: "Bettruhe 1–4 Wochen",
+      info: "Mäßig; ca. 1–2% BMD-Verlust/Woche im trabekulären Knochen"
+    }, {
+      label: "Bettruhe > 4 Wochen",
+      info: "Erheblich; bis 40% BMD-Verlust p.a. bei Querschnittlähmung; Osteoporoseprophylaxe dringend"
+    }, {
+      label: "Permanente Immobilisation",
+      info: "Vollständige Denervierung (Querschnitt): Verlust vorwiegend sublesional; Bisphosphonate erwägen"
+    }]
+  }],
+  essstoerung: [{
+    name: "DSM-5 – Schweregrad Anorexia nervosa nach BMI",
+    quelle: "American Psychiatric Association. DSM-5 2013",
+    stufen: [{
+      label: "Leicht   (BMI ≥ 17 kg/m²)",
+      info: "Deutliche Unterernährung; Knochendichteverlust beginnend"
+    }, {
+      label: "Mittel   (BMI 16–17 kg/m²)",
+      info: "Signifikante Einschränkung; DXA dringend empfohlen"
+    }, {
+      label: "Schwer   (BMI 15–16 kg/m²)",
+      info: "Erhebliche Unterernährung; irreversibler Knochenverlust wahrscheinlich"
+    }, {
+      label: "Extrem   (BMI < 15 kg/m²)",
+      info: "Lebensbedrohlich; schwere Osteoporose; hormonelle Achse supprimiert"
+    }]
+  }],
+  alkohol_ost: [{
+    name: "AUDIT-C – Alkohol-Screening (WHO)",
+    quelle: "Bush K et al. Arch Intern Med 1998;158(16):1789",
+    stufen: [{
+      label: "Kein Risiko (0–3 ♂ / 0–2 ♀)",
+      info: "Kein problematischer Konsum"
+    }, {
+      label: "Riskanter Konsum (4–7)",
+      info: "Erhöhtes Risiko für alkoholbedingte Probleme; Beratung empfohlen"
+    }, {
+      label: "Schädlicher Konsum (8–12)",
+      info: "Deutlich erhöhtes Risiko; Leberschaden möglich; direkte Osteoblastentoxizität"
+    }, {
+      label: "Wahrscheinliche Abhängigkeit (≥ 13)",
+      info: "Schwerer Alkoholmissbrauch; Osteoporose oft ausgeprägt; Sturz-/Frakturrisiko stark erhöht"
+    }]
+  }],
+  oi: [{
+    name: "Sillence-Klassifikation 1979 (klassisch, klinisch-genetisch)",
+    quelle: "Sillence DO et al. J Med Genet 1979;16(2):101",
+    stufen: [{
+      label: "Typ I (mild)",
+      info: "Mildeste Form; blaue Skleren; autosomal dominant; Frakturen durch Bagatelltrauma; keine Deformitäten; Schwerhörigkeit möglich"
+    }, {
+      label: "Typ II (letal)",
+      info: "Perinatal letal; schwerste Knochenverformungen; meist de-novo-Mutation in COL1A1/COL1A2"
+    }, {
+      label: "Typ III (schwer)",
+      info: "Progrediente Knochendeformität; schwerste überlebende Form; Kleinwuchs; Rollierpflichtigkeit möglich"
+    }, {
+      label: "Typ IV (mäßig)",
+      info: "Moderate Schwere; variabler Phänotyp; weiße/blaugraue Skleren; Dentinogenesis imperfecta möglich"
+    }, {
+      label: "Typ V (Glorieux)",
+      info: "Hyperplastische Kallusse, Verkalkung Membrana interossea; IFITM5-Mutation – keine Kollagen-I-Mutation"
+    }]
+  }],
+  xlh: [{
+    name: "XLH-Klinischer Schweregrad – Erwachsene",
+    quelle: "Linglart A et al. Endocrine 2014;47(2):333 / Ruppe MD. GeneReviews 2023",
+    stufen: [{
+      label: "Laborchemisch (nur Phosphat ↓)",
+      info: "Hypophosphatämie ohne klinische Manifestation"
+    }, {
+      label: "Mäßig",
+      info: "Enthesiopathien, Zahnabszesse, diffuse Knochen-/Gelenkschmerzen; GdB 30–50% möglich"
+    }, {
+      label: "Schwer",
+      info: "Pseudofrakturen (Looser-Umbauzonen), Osteomalazie, Muskelschwäche, GdB > 50%"
+    }]
+  }],
+  hpp: [{
+    name: "HPP – Klinische Formen nach Manifestationsalter (Whyte 2016)",
+    quelle: "Whyte MP. Calcif Tissue Int 2016;98(4):329",
+    stufen: [{
+      label: "Perinatal-letal",
+      info: "Schwerste Form; Hydrops, Atemsuffizienz, kaum ossifiziertes Skelett bei Geburt"
+    }, {
+      label: "Prenatal benigne",
+      info: "In utero Rachitis-Zeichen, postnatal Spontanremission möglich"
+    }, {
+      label: "Infantil (< 6 Mo.)",
+      info: "Frühzeitiger Fontanellenverschluss, Rachitis, respiratorisch kompromittiert; hohe Mortalität ohne Therapie"
+    }, {
+      label: "Kindheit",
+      info: "Milchzahnverlust < 5 Jahre mit Wurzel; Rachitis, Skelettschmerzen"
+    }, {
+      label: "Adulte Form",
+      info: "Metatarsalstressfrakturen, chronische Schmerzen, Chondrokalzinose; AP dauerhaft erniedrigt"
+    }, {
+      label: "Odonto-HPP",
+      info: "Nur Zahnmanifestation (Hypozementose, frühzeitiger Zahnverlust)"
+    }]
+  }],
+  tio: [{
+    name: "TIO – Biochemische Diagnosekriterien",
+    quelle: "Jan de Beur SM et al. JBMR Plus 2021;5(8):e10475",
+    stufen: [{
+      label: "FGF-23 erhöht",
+      info: "Intaktes FGF-23 > 100 pg/ml (altersabhängig); bei TIO oft massiv erhöht (500–10.000 pg/ml)"
+    }, {
+      label: "Phosphat erniedrigt",
+      info: "Serum-Phosphat < 0,6–0,8 mmol/l nüchtern; TmP/GFR erniedrigt"
+    }, {
+      label: "Vitamin-D-Aktivierung gestört",
+      info: "1,25-OH2-D3 ↓ trotz normalem 25-OH-D3 – pathognomisch für FGF-23-Exzess"
+    }, {
+      label: "Tumorsuche",
+      info: "DOTATATE-PET/CT oder 68Ga-DOTATOC als sensitivste Methode; konventionelle Bildgebung insuffizient"
+    }]
+  }],
+  paget: [{
+    name: "Paget-Aktivitätsmarker – Biochemische Einteilung",
+    quelle: "Singer FR et al. J Bone Miner Res 2014;29(12):2536 (Endocrine Society Guideline)",
+    stufen: [{
+      label: "Inaktiv",
+      info: "Knochenspezifische AP (BSAP) + P1NP im Normbereich; asymptomatisch"
+    }, {
+      label: "Leicht aktiv",
+      info: "BSAP oder Gesamt-AP leicht erhöht (< 2× ULN); wenig befallene Knochen"
+    }, {
+      label: "Mäßig aktiv",
+      info: "AP 2–5× ULN; mehrere Skelettregionen befallen"
+    }, {
+      label: "Stark aktiv",
+      info: "AP > 5× ULN; ausgedehnter Befall; Fraktur- und Kompressionsrisiko hoch"
+    }]
+  }],
+  marfan: [{
+    name: "Ghent-Nosologie 2010 – Revised Ghent Criteria",
+    quelle: "Loeys BL et al. J Med Genet 2010;47(7):476",
+    stufen: [{
+      label: "Diagnose (ohne Familienanamnese)",
+      info: "Aortenwurzelerweiterung Z-Score ≥ 2 + Ektopia lentis ODER Aortenwurzelerweiterung Z-Score ≥ 2 + FBN1-Mutation ODER Aortenwurzelerweiterung Z-Score ≥ 2 + Systemscore ≥ 7"
+    }, {
+      label: "Diagnose (mit pos. Familienanamnese)",
+      info: "Familienanamnese MFS + Ektopia lentis ODER Familienanamnese + Systemscore ≥ 7 ODER Familienanamnese + Aortenwurzelerweiterung Z-Score ≥ 2 (< 20 J.) / Z-Score ≥ 3 (≥ 20 J.)"
+    }, {
+      label: "Systemscore-Elemente",
+      info: "Daumen-/Handgelenkszeichen, Pectus, Fußgewölbe, Pneumothorax, Durektasie, Protrusio acetabuli, Augenlinse, Gesichtsmerkmale"
+    }]
+  }],
+  eds: [{
+    name: "Beighton-Score – Hypermobilitätsbeurteilung",
+    quelle: "Beighton P et al. Ann Rheum Dis 1973;32(5):413",
+    stufen: [{
+      label: "Positiv (≥ 6/9 Kinder, ≥ 5/9 Frauen, ≥ 4/9 Männer)",
+      info: "Klinisch signifikante Hypermobilität"
+    }, {
+      label: "Grenzwertig",
+      info: "3–5 Punkte – leichte Hypermobilität, individuelle Abklärung"
+    }, {
+      label: "Normal (0–2)",
+      info: "Keine klinisch relevante Hypermobilität"
+    }],
+    note: "5 Tests (2× Kleinfinger, 2× Daumen, 2× Ellbogen, 2× Knie, 1× Rumpf), Gesamtpunkte 0–9"
+  }, {
+    name: "EDS-Typen-Klassifikation (ICOGS 2017)",
+    quelle: "Malfait F et al. Am J Med Genet C 2017;175(1):8",
+    stufen: [{
+      label: "Hypermobiles EDS (hEDS)",
+      info: "Häufigste Form; kein bekanntes Gendefekt; Diagnose klinisch-kriteriologisch; niedrigere BMD"
+    }, {
+      label: "Klassisches EDS",
+      info: "COL5A1/COL5A2; Haut überdehnbar + schlechte Wundheilung; Papyrusnarbigkeit"
+    }, {
+      label: "Vaskuläres EDS",
+      info: "COL3A1; Arteriendissektion/-ruptur; lebensbedrohlich; BMD erniedrigt"
+    }]
+  }],
+  gaucher: [{
+    name: "Zimran Severity Score Index (SSI) – Morbus Gaucher",
+    quelle: "Zimran A et al. Blood 1992;79(9):2229",
+    stufen: [{
+      label: "Leicht (SSI < 9)",
+      info: "Keine oder minimale Organmanifestation"
+    }, {
+      label: "Mäßig (SSI 9–18)",
+      info: "Hepatosplenomegalie, Anämie, geringe Knochenbeteiligung"
+    }, {
+      label: "Schwer (SSI 19–30)",
+      info: "Schwere Organbeteiligung, Knochennekrosen, Wachstumsstörung"
+    }],
+    note: "SSI: Milz, Leber, Blutbild, Knochen, Neurologie bewertet; Gesamt 0–30"
+  }],
+  turner: [{
+    name: "Turner-Syndrom – Karyotyp-Varianten und klinische Relevanz",
+    quelle: "Gravholt CH et al. Nat Rev Dis Primers 2019;5(1):41",
+    stufen: [{
+      label: "45,X (klassisch)",
+      info: "Häufigstes Muster (50%); schwerer primärer Hypogonadismus; ausgeprägteste Osteoporose"
+    }, {
+      label: "Mosaik 45,X/46,XX",
+      info: "Variablerer Phänotyp; partielle Ovarfunktion möglich; Knochendichte besser als 45,X"
+    }, {
+      label: "46,X,i(Xq)",
+      info: "Isochromosom; ähnlich scherer Phänotyp wie 45,X"
+    }, {
+      label: "46,XY-Mosaik",
+      info: "Gonaden-Dysgenesie; erhöhtes Gonadoblastomrisiko; Gonadektomie empfohlen"
+    }]
+  }],
+  klinefelter: [{
+    name: "Klinefelter-Syndrom – Karyotyp und endokrine Relevanz",
+    quelle: "Gravholt CH et al. Nat Rev Endocrinol 2018;14(8):475",
+    stufen: [{
+      label: "47,XXY (klassisch, 80%)",
+      info: "Primärer Hypogonadismus; Testosteron ↓, LH/FSH ↑; Osteoporoserisiko moderat bis hoch"
+    }, {
+      label: "Polysomie (48,XXXY / 49,XXXXY)",
+      info: "Schwererer Phänotyp; ausgeprägtere kognitive Defizite; Osteoporoserisiko höher"
+    }, {
+      label: "Mosaik 46,XY/47,XXY",
+      info: "Mildererer Phänotyp; partielle Hodenfunktion möglich; Fertilität eingeschränkt"
+    }]
+  }],
+  seltene_metabolisch: [{
+    name: "Überblick seltene Stoffwechselerkrankungen mit Knochenbeteiligung",
+    quelle: "Kliegman RM (eds). Nelson Textbook of Pediatrics 2020 / Orpha.net",
+    stufen: [{
+      label: "Pompe (M. Pompe / GSDII)",
+      info: "Glykogen-Abbaudefekt; progrediente Myopathie; Knochendichte ↓ durch Immobilität"
+    }, {
+      label: "Mukopolysaccharidosen (MPS)",
+      info: "Lysosomale Ablagerungen; Skelettdysplasie, Gelenksteife, Knochennekrosen"
+    }, {
+      label: "Mitochondriale Myopathien",
+      info: "Variable Knochenmanifestationen; MELAS, MERRF, Leigh-Syndrom"
+    }, {
+      label: "Homozystinurie",
+      info: "CBS-Defekt; Osteoporose + Gefäßkomplikationen + Marfan-ähnlicher Habitus"
+    }]
+  }]
+};
+
+// ── SEK_SCORES storage ────────────────────────────────────────────────
+const SEK_SCORES_KEY = "osteo_sekscores_overrides_v1";
+function loadSekScores() {
+  return loadSekDb(SEK_SCORES_KEY, () => JSON.parse(JSON.stringify(SEK_SCORES_DEFAULTS)));
+}
+function saveSekScores(db) {
+  saveSekDb(SEK_SCORES_KEY, db, () => JSON.parse(JSON.stringify(SEK_SCORES_DEFAULTS)));
+}
 const SEK_DIAG_DB_KEY = "osteo_sekdb_overrides_v1";
 const SEK_PROFILE_KEY = "osteo_sekprofile_overrides_v1";
 const SEK_UNTERS_KEY = "osteo_sekunters_overrides_v1";
 const SEK_QS_KEY = "osteo_sekqs_overrides_v1";
+
+/* ─── SCORING / STADIENEINTEILUNG für Sekundäre Osteoporose ─────────────── */
+// Struktur: { [sym]: { titel, quelle, url, stufen:[{name, beschreibung}] } }
+const SEK_SCORING_DEFAULTS = {
+  // ── HORMONELL ──────────────────────────────────────────────────────────────
+  hpth: {
+    titel: "Grenzwerte pHPT-Diagnose (AWMF / Endocrine Society)",
+    quelle: "Bilezikian JP et al. J Bone Miner Res 2022; AWMF S2k-Leitlinie",
+    url: "https://www.awmf.org",
+    stufen: [{
+      name: "Serumkalzium (Gesamt)",
+      beschreibung: "Normal: 2,15–2,55 mmol/l | Hyperkalzämie: >2,55 mmol/l (Wiederholung nüchtern)"
+    }, {
+      name: "PTH intakt",
+      beschreibung: "Normal: 10–65 pg/ml | pHPT: PTH erhöht bei gleichzeitiger Hyperkalzämie"
+    }, {
+      name: "Vitamin D (25-OH-D3)",
+      beschreibung: "Ausreichend: >50 nmol/l (>20 ng/ml) | Mangel: <30 nmol/l (<12 ng/ml)"
+    }, {
+      name: "24h-Kalzium im Urin",
+      beschreibung: "Normal: <7,5 mmol/d | FHH-Ausschluss: Kalzium/Kreatinin-Clearance-Ratio >0,01"
+    }]
+  },
+  cushing: {
+    titel: "Stufendiagnostik Cushing-Syndrom (Endocrine Society 2021)",
+    quelle: "Lacroix A et al. Lancet Diabetes Endocrinol 2021; Nieman LK JCEM 2008",
+    url: "https://doi.org/10.1016/S2213-8587(21)00235-7",
+    stufen: [{
+      name: "Stufe 1: Screening",
+      beschreibung: "Mindestens 2 von 3 Tests pathologisch: (1) 1-mg-Dexamethason-Hemmtest: Cortisol nächsten Morgen >50 nmol/l (>1,8 μg/dl); (2) Freies Cortisol im 24h-Urin: >2× obere Norm; (3) Mitternacht-Speichelcortisol: >2× Normwert"
+    }, {
+      name: "Stufe 2: ACTH",
+      beschreibung: "ACTH-abhängig (zentral/ektop): ACTH >10 pg/ml | ACTH-unabhängig (adrenal): ACTH <5 pg/ml"
+    }, {
+      name: "Stufe 3: Differenzierung",
+      beschreibung: "Hochdosierter Dexamethason (8 mg): Morbus Cushing → Suppression >50%; Ektop / Adrenal → keine Suppression | CRH-Test, Sinus-petrosus-Katheter"
+    }]
+  },
+  hypogonadismus: {
+    titel: "Hypogonadismus Mann – Diagnosegrenzen (EAU / EAU-Leitlinie 2024)",
+    quelle: "EAU Guidelines on Male Hypogonadism 2024",
+    url: "https://uroweb.org/guideline/male-hypogonadism",
+    stufen: [{
+      name: "Testosteron gesamt",
+      beschreibung: "Normal: ≥12,1 nmol/l (≥350 ng/dl) | Hypogonadismus-Grenze: <12,1 nmol/l | Eindeutig symptomatisch: <8 nmol/l (<230 ng/dl)"
+    }, {
+      name: "Freies Testosteron",
+      beschreibung: "Berechnet über SHBG: Hypogonadismus bei <220 pmol/l"
+    }, {
+      name: "LH / FSH",
+      beschreibung: "Primärer Hypogonadismus (Klinefelter): LH/FSH ↑↑ | Sekundär (hypophysär): LH/FSH normal oder ↓"
+    }]
+  },
+  hypogonadismus_f: {
+    titel: "Hypogonadismus Frau / Amenorrhoe (ESHRE/DGGG 2023)",
+    quelle: "ESHRE Guideline Amenorrhea 2023",
+    url: "https://www.eshre.eu",
+    stufen: [{
+      name: "Östradiol",
+      beschreibung: "Prämenopausal normal: 100–400 pmol/l | Hypogonadismus: <100 pmol/l | Postmenopause: <80 pmol/l"
+    }, {
+      name: "FSH/LH",
+      beschreibung: "Primäre Ovarialinsuffizienz (POI): FSH >25 IU/l (2× im Abstand von 4 Wo.) | Hypothalamisch: FSH/LH niedrig-normal"
+    }, {
+      name: "Prolaktin",
+      beschreibung: "Normal: <530 mIU/l (<25 ng/ml) | Makroprolaktinom: oft >3000 mIU/l | Prolaktinom-Schwelle für MRT: >1000 mIU/l"
+    }]
+  },
+  hyperthyreose: {
+    titel: "TSH-basierte Klassifikation Hyperthyreose (ETA / AWMF 2023)",
+    quelle: "ETA Guidelines 2023; DGIM/AWMF S2k Schilddrüse",
+    url: "https://www.awmf.org",
+    stufen: [{
+      name: "Subklinische Hyperthyreose",
+      beschreibung: "TSH <0,4 mIU/l bei normalem fT3 + fT4 | Grad 1: TSH 0,1–0,4 mIU/l | Grad 2: TSH <0,1 mIU/l – erhöhtes Osteoporoserisiko!"
+    }, {
+      name: "Manifeste Hyperthyreose",
+      beschreibung: "TSH <0,1 mIU/l + fT4 >22 pmol/l oder fT3 >6,8 pmol/l"
+    }, {
+      name: "Schilddrüsenhormon-Substitution",
+      beschreibung: "Supprimiertes TSH <0,4 mIU/l unter L-Thyroxin: erhöhtes Frakturrisiko; Ziel-TSH postmenopausal: 0,5–2,0 mIU/l"
+    }]
+  },
+  akromegalie: {
+    titel: "Akromegalie-Diagnose (Endocrine Society 2014, revidiert 2020)",
+    quelle: "Katznelson L et al. JCEM 2014; Fleseriu M et al. JCEM 2020",
+    url: "https://doi.org/10.1210/jc.2014-2700",
+    stufen: [{
+      name: "IGF-1",
+      beschreibung: "Diagnose bei alters- und geschlechtsnormiertem IGF-1 >2 SD über Normalwert"
+    }, {
+      name: "GH-Nadir (oGTT)",
+      beschreibung: "Goldstandard: 75g oGTT – GH-Nadir >0,4 ng/ml (moderner Assay) bestätigt Akromegalie | Normal: GH-Nadir <0,4 ng/ml"
+    }, {
+      name: "Remissionskriterien",
+      beschreibung: "Remission: IGF-1 normal + GH-Nadir <0,4 ng/ml nach Therapie"
+    }]
+  },
+  prolaktinom: {
+    titel: "Prolaktinom-Diagnose (EES / Endocrine Society 2011)",
+    quelle: "Melmed S et al. JCEM 2011; EES Clinical Practice Guideline",
+    url: "https://doi.org/10.1210/jc.2010-1692",
+    stufen: [{
+      name: "Prolaktin-Grenzwerte",
+      beschreibung: "Normal: <530 mIU/l (♀) / <400 mIU/l (♂) | Mikroprolaktinom: 500–4000 mIU/l | Makroprolaktinom: oft >4000 mIU/l | Wert >6000 mIU/l → Mikroprolaktinom sehr unwahrscheinlich"
+    }, {
+      name: "Hook-Effekt",
+      beschreibung: "Bei sehr großen Tumoren kann Prolaktin falsch-niedrig gemessen werden → 1:100-Verdünnung bei Makroadenom"
+    }, {
+      name: "MRT-Grenzwerte",
+      beschreibung: "Mikroprolaktinom: <10 mm | Makroprolaktinom: ≥10 mm"
+    }]
+  },
+  // ── GASTRO / ABSORPTION ────────────────────────────────────────────────────
+  zoeliakie: {
+    titel: "Marsh-Oberhuber-Klassifikation (mod. 2001) · DGVS S2k 2022",
+    quelle: "DGVS S2k-Leitlinie Zöliakie 2022; Oberhuber et al. Virchows Arch 1999",
+    url: "https://www.awmf.org/leitlinien",
+    stufen: [{
+      name: "Marsh 0",
+      beschreibung: "Normal: <25 IEL/100 Enterozyten, Zotten normal → kein Hinweis auf Zöliakie"
+    }, {
+      name: "Marsh 1",
+      beschreibung: "Infiltrativ: ≥25 IEL/100 Enterozyten, Zotten normal → unspezifisch, viele Differentialdiagnosen (PPV für Zöliakie nur 15%)"
+    }, {
+      name: "Marsh 2",
+      beschreibung: "Hyperplastisch: ≥25 IEL + Kryptenhyperplasie, Zotten normal → selten; Übergang zu Marsh 3"
+    }, {
+      name: "Marsh 3a",
+      beschreibung: "Destruktiv partiell: ≥25 IEL + Kryptenhyperplasie + partielle Zottenatrophie → typisch aktive Zöliakie"
+    }, {
+      name: "Marsh 3b",
+      beschreibung: "Destruktiv subtotal: subtotale Zottenatrophie → klassische Zöliakie"
+    }, {
+      name: "Marsh 3c",
+      beschreibung: "Destruktiv total: totale Zottenatrophie (Flat mucosa) → schwere Zöliakie; Komplikationsrisiko ↑"
+    }]
+  },
+  ced: {
+    titel: "Aktivitätsscores CED: Harvey-Bradshaw (Crohn) / Mayo-Score (CU)",
+    quelle: "Harvey RF, Bradshaw JM. Lancet 1980; Schroeder KW et al. NEJM 1987",
+    url: "https://www.ecco-ibd.eu",
+    stufen: [{
+      name: "Harvey-Bradshaw-Index (Morbus Crohn)",
+      beschreibung: "Remission: ≤4 | Leicht aktiv: 5–7 | Mäßig aktiv: 8–16 | Schwer aktiv: ≥17 | Parameter: Wohlbefinden, Bauchschmerz, Stuhlfrequenz, Bauchbefund, Komplikationen"
+    }, {
+      name: "Mayo-Score (Colitis ulcerosa)",
+      beschreibung: "Remission: 0–2 | Leicht aktiv: 3–5 | Mäßig aktiv: 6–10 | Schwer aktiv: 11–12 | Parameter: Stuhlfrequenz, rektale Blutung, Endoskopie-Befund, Arzturteil"
+    }]
+  },
+  vit_d: {
+    titel: "Vitamin-D-Status-Klassifikation (DVO 2023 / DACH-Liga 2012)",
+    quelle: "DVO-Leitlinie Osteoporose 2023; DACH-Liga Vitamin D 2012",
+    url: "https://dvo-osteologie.de",
+    stufen: [{
+      name: "Schwerer Mangel / Osteomalazie",
+      beschreibung: "25-OH-D3 <30 nmol/l (<12 ng/ml): Risiko für Osteomalazie; PTH sekundär erhöht"
+    }, {
+      name: "Mangel",
+      beschreibung: "25-OH-D3 30–50 nmol/l (12–20 ng/ml): erhöhtes Osteoporoserisiko, erhöhtes PTH"
+    }, {
+      name: "Insuffizienz",
+      beschreibung: "25-OH-D3 50–75 nmol/l (20–30 ng/ml): suboptimaler Status"
+    }, {
+      name: "Ausreichend",
+      beschreibung: "25-OH-D3 >75 nmol/l (>30 ng/ml): optimal für Knochen und Muskel"
+    }]
+  },
+  malabsorption: {
+    titel: "Steatorrhoe-Klassifikation (klinisch)",
+    quelle: "Siegmund B, Zeitz M. Innere Medizin 2012; Gastroenterologie-Leitlinien",
+    url: "https://www.awmf.org",
+    stufen: [{
+      name: "Leichte Malabsorption",
+      beschreibung: "Fettstuhl: 7–15 g/d (Normal: <7 g/d); geringe Gewichtsabnahme"
+    }, {
+      name: "Mäßige Malabsorption",
+      beschreibung: "Fettstuhl: 15–30 g/d; BMI-Abfall, Mikronährstoffmängel"
+    }, {
+      name: "Schwere Malabsorption",
+      beschreibung: "Fettstuhl: >30 g/d; Kachexie, multiple Mangelzustände (Vit. A, D, E, K, Ca, Mg, Zn)"
+    }]
+  },
+  lebererkrankung: {
+    titel: "Child-Pugh-Score + MELD-Score (Leberzirrhose)",
+    quelle: "Child CG, Turcotte JG 1964; Malinchoc M et al. Hepatology 2000",
+    url: "https://www.easl.eu",
+    stufen: [{
+      name: "Child-Pugh A (5–6 Punkte)",
+      beschreibung: "Gut kompensiert; 1-JÜR: ~100% | Parameter: Bilirubin, Albumin, Quick/INR, Aszites, Enzephalopathie"
+    }, {
+      name: "Child-Pugh B (7–9 Punkte)",
+      beschreibung: "Mäßig kompensiert; 1-JÜR: ~80%"
+    }, {
+      name: "Child-Pugh C (10–15 Punkte)",
+      beschreibung: "Dekompensiert; 1-JÜR: ~45%; Transplantationsindikation prüfen"
+    }, {
+      name: "MELD-Score",
+      beschreibung: "Formel: 9,6 × ln(Kreatinin) + 3,78 × ln(Bilirubin) + 11,2 × ln(INR) + 6,4 | MELD >20: erhöhte 3-Monats-Mortalität; MELD >25: Transplantationslistung empfohlen"
+    }]
+  },
+  // ── NIEREN ────────────────────────────────────────────────────────────────
+  nieren: {
+    titel: "KDIGO 2024 CKD-Klassifikation (CGA-System)",
+    quelle: "KDIGO CKD Guideline 2024 (Kidney International Vol. 105, Suppl. 4)",
+    url: "https://kdigo.org/guidelines/ckd-evaluation-and-management/",
+    stufen: [{
+      name: "G1: GFR ≥90 ml/min",
+      beschreibung: "Normal/hoch – nur mit Nierenschaden (Proteinurie, Hämaturie, Bildgebung) diagnostizierbar"
+    }, {
+      name: "G2: GFR 60–89",
+      beschreibung: "Leicht erniedrigt – nur mit Nierenschaden diagnostizierbar"
+    }, {
+      name: "G3a: GFR 45–59",
+      beschreibung: "Leicht bis mäßig erniedrigt – Vitamin-D-Aktivierung beginnt zu sinken"
+    }, {
+      name: "G3b: GFR 30–44",
+      beschreibung: "Mäßig bis stark erniedrigt – sek. HPT häufig; Nephrologe einbeziehen"
+    }, {
+      name: "G4: GFR 15–29",
+      beschreibung: "Stark erniedrigt – Dialyseplanung; CKD-MBD ausgeprägt"
+    }, {
+      name: "G5: GFR <15 ml/min",
+      beschreibung: "Nierenversagen – Nierenersatztherapie oder Transplantation"
+    }, {
+      name: "Albuminurie A1–A3",
+      beschreibung: "A1: <30 mg/g (normal–mild) | A2: 30–300 mg/g (mäßig erhöht) | A3: >300 mg/g (stark erhöht) → zusätzlicher Risikomarker"
+    }]
+  },
+  rta_bartter: {
+    titel: "Klassifikation renaler tubulärer Azidosen (RTA Typ 1–4)",
+    quelle: "Rodriguez Soriano J. Pediatr Nephrol 2002",
+    url: "https://doi.org/10.1007/s004670100009",
+    stufen: [{
+      name: "RTA Typ 1 (distal)",
+      beschreibung: "Unfähigkeit, Urin anzusäuern (pH >5,5); Hypokaliämie; Nephrolithiasis; stärkster Knocheneffekt"
+    }, {
+      name: "RTA Typ 2 (proximal)",
+      beschreibung: "Bikarbonatverlust im Urin; Hypokaliämie; Fanconi-Syndrom möglich; Rachitis/Osteomalazie"
+    }, {
+      name: "RTA Typ 4",
+      beschreibung: "Hyperkaliämie; Aldosteronmangel oder -resistenz; Diabetes häufigste Ursache"
+    }, {
+      name: "Bartter/Gitelman",
+      beschreibung: "Bartter: Hypokaliämie, Hyperaldosteronismus, normaler Blutdruck | Gitelman: Hypokaliämie + Hypomagnesiämie; Knochen- und Muskelbeteiligung"
+    }]
+  },
+  hypercalciurie: {
+    titel: "Grenzwerte Hyperkalziurie",
+    quelle: "KDIGO; Pak CY. Kidney Int 1998",
+    url: "https://kdigo.org",
+    stufen: [{
+      name: "Kalzium im 24h-Urin",
+      beschreibung: "Hyperkalziurie: >7,5 mmol/d (♂) | >6,25 mmol/d (♀) | Entspricht: >300 mg/d (♂) / >250 mg/d (♀)"
+    }, {
+      name: "Typ 1 (absortiv)",
+      beschreibung: "Erhöhte intestinale Ca-Absorption; Serum-Ca normal; häufigster Typ (~50%)"
+    }, {
+      name: "Typ 2 (renaler Leak)",
+      beschreibung: "Primär renaler Kalziumverlust; sekundär ↑ PTH; Nierensteine + Osteoporose"
+    }]
+  },
+  // ── HÄMATOLOGIE ───────────────────────────────────────────────────────────
+  myelom: {
+    titel: "R-ISS / R2-ISS Staging Multiples Myelom (IMWG 2015/2022)",
+    quelle: "Palumbo A et al. JCO 2015; D'Agostino M et al. JCO 2022",
+    url: "https://doi.org/10.1200/JCO.21.02614",
+    stufen: [{
+      name: "ISS I",
+      beschreibung: "β2-Mikroglobulin <3,5 mg/l + Albumin ≥35 g/l"
+    }, {
+      name: "ISS II",
+      beschreibung: "Weder I noch III"
+    }, {
+      name: "ISS III",
+      beschreibung: "β2-Mikroglobulin ≥5,5 mg/l"
+    }, {
+      name: "R-ISS I",
+      beschreibung: "ISS I + Standardrisiko-Zytogenetik + LDH normal → medianes OS: 8–10 Jahre"
+    }, {
+      name: "R-ISS II",
+      beschreibung: "Weder R-ISS I noch III → medianes OS: 5–7 Jahre"
+    }, {
+      name: "R-ISS III",
+      beschreibung: "ISS III + Hochrisikozyto [t(4;14), t(14;16), del(17p)] ODER erhöhte LDH → medianes OS: 3–5 Jahre"
+    }, {
+      name: "R2-ISS (2022)",
+      beschreibung: "Additivsystem: ISS II (+1 Pt), ISS III (+1,5 Pt), del(17p) (+1 Pt), LDH↑ (+1 Pt), t(4;14) (+1 Pt), +1q21 (+0,5 Pt) → 4 Risikoklassen I–IV"
+    }]
+  },
+  mastozytose: {
+    titel: "WHO 2022 Klassifikation Mastozytose",
+    quelle: "WHO Classification of Haematolymphoid Tumours 2022 (Blue Book 5th ed.)",
+    url: "https://www.who.int",
+    stufen: [{
+      name: "Kutane Mastozytose (CM)",
+      beschreibung: "Nur Haut betroffen; Urticaria pigmentosa, diffuse CM, Mastozytom"
+    }, {
+      name: "Indolente systemische Mastozytose (ISM)",
+      beschreibung: "Häufigste Form; Osteoporose/Osteopenie häufig; normale Lebenserwartung; Tryptase meist 20–100 ng/ml"
+    }, {
+      name: "Aggressive systemische Mastozytose (ASM)",
+      beschreibung: "Organfunktionsstörungen (Knochenmark, Leber, GI); Tryptase meist >100 ng/ml"
+    }, {
+      name: "Systemische Mastozytose mit hämatol. Neoplasie (SM-AHN)",
+      beschreibung: "SM + assoziierte hämatologische Neoplasie (z.B. AML, MDS)"
+    }, {
+      name: "Mastzellleukämie (MCL)",
+      beschreibung: "Seltenste Form; >20% Mastzellen im KM-Ausstrich; schlechteste Prognose"
+    }, {
+      name: "Diagnosekriterien ISM",
+      beschreibung: "1 Hauptkriterium + 1 Nebenkriterium ODER 3 Nebenkriterien | Hauptkrit.: multifokale Mastzellinfiltrate im KM ≥15 Zellen | Nebenkriterien: atypische Mastzellmorphologie, cKIT-D816V-Mutation, CD25/CD2-Expression, Tryptase >20 ng/ml"
+    }]
+  },
+  haemochromatose: {
+    titel: "EASL Hämochromatose Staging I–IV (2022)",
+    quelle: "EASL Clinical Practice Guideline Haemochromatosis 2022",
+    url: "https://doi.org/10.1016/j.jhep.2022.03.033",
+    stufen: [{
+      name: "Stadium I",
+      beschreibung: "Genetisch, keine Eisenüberladung: Ferritin normal, TS normal"
+    }, {
+      name: "Stadium II",
+      beschreibung: "Eisenüberladung ohne Symptome: Ferritin ↑, Transferrinsättigung >45%; Organschäden noch nicht nachweisbar"
+    }, {
+      name: "Stadium III",
+      beschreibung: "Symptome (Müdigkeit, Gelenkschmerzen, Libidoverlust): Ferritin oft 500–1000 µg/l; Beginn der Organschäden"
+    }, {
+      name: "Stadium IV",
+      beschreibung: "Schwere Endorganschäden: Leberzirrhose, Herzinsuffizienz, Diabetes, Hypogonadismus, Arthropathie; irreversibel"
+    }, {
+      name: "Screening",
+      beschreibung: "Transferrinsättigung >45% (nüchtern, morgens) → HFE-Genotyp prüfen (C282Y/H63D). Ferritin: Grenzwert ♂ 300 µg/l, ♀ 200 µg/l"
+    }]
+  },
+  // ── IMMUNSYSTEM ───────────────────────────────────────────────────────────
+  sarkoidose: {
+    titel: "Scadding-Staging (Röntgen-Thorax) · Sarkoidose",
+    quelle: "Scadding JG. BMJ 1961; ERS Statement Sarcoidosis 2021",
+    url: "https://doi.org/10.1183/13993003.00353-2021",
+    stufen: [{
+      name: "Stadium 0",
+      beschreibung: "Normaler Röntgen-Thorax-Befund"
+    }, {
+      name: "Stadium I",
+      beschreibung: "Bilaterale hiläre Lymphadenopathie ohne Parenchymveränderungen"
+    }, {
+      name: "Stadium II",
+      beschreibung: "Bilaterale hiläre Lymphadenopathie + Parenchymveränderungen"
+    }, {
+      name: "Stadium III",
+      beschreibung: "Parenchymveränderungen ohne hiläre Lymphadenopathie"
+    }, {
+      name: "Stadium IV",
+      beschreibung: "Fibrose, Honigwabenlunge; irreversibel"
+    }]
+  },
+  psa: {
+    titel: "CASPAR-Kriterien Psoriasis-Arthritis (2006)",
+    quelle: "Taylor W et al. Arthritis Rheum 2006;54:2665",
+    url: "https://doi.org/10.1002/art.21972",
+    stufen: [{
+      name: "CASPAR-Kriterien (≥3 Punkte → PsA)",
+      beschreibung: "Entzündliche Gelenkerkrankung + ≥3 Punkte aus: (1) aktive Psoriasis (+2P), Psoriasis in Anamnese (+1P), Psoriasis familienanamnestisch (+1P); (2) psoriasistypische Nagelveränderungen (+1P); (3) neg. Rheumafaktor (+1P); (4) aktive Daktylyitis (+1P); (5) juxtaartikuläre Knochenneubildung im Röntgenbild (+1P)"
+    }]
+  },
+  vaskulitis: {
+    titel: "ANCA-Vaskulitis: BVAS-Score + ACR/EULAR 2022-Klassifikation",
+    quelle: "Suppiah R et al. ARD 2011 (BVAS); Robson JC et al. ACR 2022",
+    url: "https://doi.org/10.1136/ard.2011.150235",
+    stufen: [{
+      name: "BVAS (Birmingham Vasculitis Activity Score)",
+      beschreibung: "Aktivitätsscore 0–63 | Remission: BVAS=0 | Aktive Erkrankung: BVAS>0 | Schwere Aktivität: BVAS>20"
+    }, {
+      name: "ACR/EULAR 2022 GPA-Klassifikation",
+      beschreibung: "≥5 Punkte aus: c-ANCA/Anti-PR3 (+3P), obere Atemwegsbeteiligung (+3P), Lungenbeteiligung (+2P), Granulome in Biopsie (+2P), ENT-Symptome (+1P) minus: p-ANCA/Anti-MPO (-1P)"
+    }]
+  },
+  hiv_ost: {
+    titel: "HIV-Staging (CDC/WHO) + Knochenrisiko-Faktoren",
+    quelle: "CDC HIV Classification 2014; Cotter AG et al. Osteoporos Int 2015",
+    url: "https://doi.org/10.1007/s00198-015-3109-5",
+    stufen: [{
+      name: "Tenofovirdiphosphat (TDF)",
+      beschreibung: "TDF-enthaltende Regime erhöhen Knochenverlust um 2–3% pro Jahr vs. TAF-basierte Alternativen"
+    }, {
+      name: "DXA-Screening-Empfehlung",
+      beschreibung: "Alle HIV-Patienten: DXA ab Diagnosestellung wenn >40 J. (♂) / postmenopausal (♀) oder weitere Risikofaktoren"
+    }, {
+      name: "Vitamin-D-Monitoring",
+      beschreibung: "Ziel: 25-OH-D3 >50 nmol/l; Mangel sehr häufig (~75%) bei HIV-Patienten"
+    }]
+  },
+  // ── NEUROLOGIE / LEBENSSTIL ───────────────────────────────────────────────
+  immo_neuro: {
+    titel: "Immobilisations-Knochenverlust (quantitativ)",
+    quelle: "de Roos EW et al. Osteoporos Int 2020; Biering-Sørensen et al.",
+    url: "https://doi.org/10.1007/s00198-020-05460-5",
+    stufen: [{
+      name: "Vollimmobilisation",
+      beschreibung: "Knochenverlust bis 4% BMD/Monat (Querschnittgelähmte); 1%/Woche Bettruhe"
+    }, {
+      name: "Teilimmobilisation",
+      beschreibung: "Knochenverlust ca. 1–2% BMD/Monat; stark abhängig von Restbelastung"
+    }, {
+      name: "Rehabilitation",
+      beschreibung: "Remineralisation langsamer als Verlust; oft kein vollständiger Ausgleich"
+    }]
+  },
+  essstoerung: {
+    titel: "Anorexia nervosa – Klassifikation (ICD-11 / DSM-5)",
+    quelle: "DSM-5 2013; Arcelus J et al. Arch Gen Psychiatry 2011",
+    url: "https://doi.org/10.1001/archgenpsychiatry.2011.74",
+    stufen: [{
+      name: "BMI-basierte Schwere (DSM-5)",
+      beschreibung: "Leicht: BMI ≥17 kg/m² | Mäßig: 16–16,99 | Schwer: 15–15,99 | Extrem schwer: <15 kg/m²"
+    }, {
+      name: "Knochendichte-Verlust",
+      beschreibung: "BMD-Verlust proportional zu Dauer und Schwere; Z-Score oft <-2 SD; häufig irreversibel"
+    }, {
+      name: "Endpunkt Amenorrhoe",
+      beschreibung: "Amenorrhoe ≥6 Monate → hypothalamisch; Östradiol ↓ → rascher Knochenverlust"
+    }]
+  },
+  alkohol_ost: {
+    titel: "AUDIT-Score (Alkohol-Screening) + Knochenschwelle",
+    quelle: "Saunders JB et al. WHO 1993 AUDIT; Maurel DB et al. Osteoporos Int 2012",
+    url: "https://doi.org/10.1007/s00198-012-1975-0",
+    stufen: [{
+      name: "AUDIT-Risikozonen",
+      beschreibung: "Zone I: 0–7 (risikoarm) | Zone II: 8–15 (gefährlicher Konsum) | Zone III: 16–19 (schädlicher Konsum) | Zone IV: 20–40 (Abhängigkeit)"
+    }, {
+      name: "Knochenwirksame Schwelle",
+      beschreibung: "Ab >30 g Alkohol/d (♂) / >20 g/d (♀): signifikant erhöhter Knochenverlust | 1 Standardglas ≈ 10–15 g Alkohol (DE)"
+    }]
+  },
+  // ── GENETISCH / SELTEN ────────────────────────────────────────────────────
+  oi: {
+    titel: "Sillence-Klassifikation OI (erweitert, klinisch; mod. 2014)",
+    quelle: "Van Dijk FS, Sillence DO. Am J Med Genet 2014;164:1470",
+    url: "https://doi.org/10.1002/ajmg.a.36545",
+    stufen: [{
+      name: "Typ I (mild)",
+      beschreibung: "Häufigste Form (~50%); keine Knochendeformitäten; blaue Skleren; Hörverlust möglich; Frakturen selten; Diagnose oft erst im Erwachsenenalter"
+    }, {
+      name: "Typ II (letal)",
+      beschreibung: "Perinatale Letalität; multiple Rippenfrakturen bei Geburt; dunkle Skleren"
+    }, {
+      name: "Typ III (schwer)",
+      beschreibung: "Progressiver Kleinwuchs, schwere Kyphoskoliose, Beindeformitäten; intensive Bisphosphonat-Therapie"
+    }, {
+      name: "Typ IV (mäßig)",
+      beschreibung: "Variable Schwere; weiße/graue Skleren; Frakturen vor Pubertät häufig"
+    }, {
+      name: "Typ V (mäßig-mild)",
+      beschreibung: "Hyperplastischer Kallus; Kalzifizierung der Interosseusmembran; kein COL1A1/2-Defekt (IFITM5)"
+    }, {
+      name: "Typ VI (selten)",
+      beschreibung: "Fischgrätenmuster in Knochenhistologie; SERPINF1-Mutation; normal Skleren"
+    }]
+  },
+  xlh: {
+    titel: "XLH-Diagnoseparameter (Phosphat-Stoffwechsel)",
+    quelle: "Haffner D et al. Nat Rev Nephrol 2019; EAR-Konsensus 2019",
+    url: "https://doi.org/10.1038/s41581-019-0152-5",
+    stufen: [{
+      name: "Serumphosphat nüchtern",
+      beschreibung: "Grenzwerte altersnormiert; XLH: meist 0,5–0,8 mmol/l (Normal Erwachsene: 0,87–1,45 mmol/l)"
+    }, {
+      name: "TmP/GFR (tubuläre Max.)",
+      beschreibung: "Phosphatrückresorption: Kinder <1,15, Erwachsene <0,8 mmol/l = pathologisch (renaler Phosphatverlust)"
+    }, {
+      name: "FGF-23 intakt",
+      beschreibung: "FGF-23 bei XLH deutlich erhöht; >100 RU/ml (Referenzlabor) unterstützt Diagnose"
+    }, {
+      name: "1,25(OH)2-Vitamin D",
+      beschreibung: "Bei XLH paradox normal oder niedrig trotz Hypophosphatämie (FGF-23 hemmt 1α-Hydroxylase)"
+    }]
+  },
+  hpp: {
+    titel: "Hypophosphatasia (HPP) – Whyte-Klassifikation nach Manifestationsalter",
+    quelle: "Whyte MP. Endocr Rev 1994; Rockman-Greenberg C. Pediatr Endocrinol 2013",
+    url: "https://doi.org/10.1210/er.1994-15-4-439",
+    stufen: [{
+      name: "Perinatal letal",
+      beschreibung: "Schwerste Form; hypomineralisierte Knochen intrauterin; Atemversagen; oft tödlich"
+    }, {
+      name: "Perinatal benigne",
+      beschreibung: "Spontane Remission nach Geburt (selten)"
+    }, {
+      name: "Infantil",
+      beschreibung: "Manifestation <6 Monate; Hypo-/Aplasie der Schädelknochen; hohe Letalität unbehandelt"
+    }, {
+      name: "Kindlich",
+      beschreibung: "Vorzeitiger Milchzahnverlust (<5 Jahre, mit Wurzel); Rachitis-Zeichen; Kleinwuchs"
+    }, {
+      name: "Adult (häufig übersehen!)",
+      beschreibung: "Wiederkehrende Metatarsal-Stressfrakturen; atypische Femurfrakturen; AP dauerhaft erniedrigt (<40 U/l Erwachsene) → Cave: Bisphosphonate kontraindiziert!"
+    }, {
+      name: "Odonto-HPP",
+      beschreibung: "Nur Zähne betroffen; mildeste Form; Zahnverlust ohne Karies vor dem 5. Lebensjahr"
+    }]
+  },
+  tio: {
+    titel: "TIO-Diagnostik-Algorithmus (FGF-23 + Bildgebung)",
+    quelle: "Jiang Y et al. ENDO 2019; Florenzano P et al. JCEM 2021",
+    url: "https://doi.org/10.1210/clinem/dgab536",
+    stufen: [{
+      name: "Biochemie",
+      beschreibung: "FGF-23 intakt >100 RU/ml + Hypophosphatämie + TmP/GFR niedrig + 1,25(OH)2D normal/niedrig → TIO-Verdacht"
+    }, {
+      name: "Bildgebung Stufe 1",
+      beschreibung: "DOTATATE-PET/CT (Ga-68) oder DOTATOC-Szintigraphie → Sensitivität >80% für FGF-23-produzierende Tumoren"
+    }, {
+      name: "Bildgebung Stufe 2",
+      beschreibung: "MRT Ganzkörper ergänzend (Weichteiltumore, Muskeln, subkutan); Cave: Tumor oft <2 cm!"
+    }, {
+      name: "Venensampling",
+      beschreibung: "Bei negativer Bildgebung + starker klinischer Evidenz: selektives venöses FGF-23-Sampling zur Tumorlokalisation"
+    }]
+  },
+  paget: {
+    titel: "Morbus Paget – Labormonitoring (ALP + Biomarker)",
+    quelle: "Singer FR et al. Endocrine Practice 2014 (Endocrine Society Guideline)",
+    url: "https://doi.org/10.4158/EP14267.GL",
+    stufen: [{
+      name: "Alkalische Phosphatase (Knochen-ALP)",
+      beschreibung: "Wichtigster Aktivitätsmarker; Normalwert: 40–130 U/l (gesamt); bei Paget 3–10× erhöht | Knochen-spez. ALP: sensibler"
+    }, {
+      name: "β-CTX + P1NP",
+      beschreibung: "β-CTX (Resorption) und P1NP (Formation) ergänzen ALP-Monitoring und Therapieansprechen"
+    }, {
+      name: "Therapieindikation",
+      beschreibung: "ALP ≥2× obere Normgrenze + Symptome ODER asymptomatische Hochrisikolokalisation (Schädel, Wirbelsäule, gewichtsbelastende Knochen)"
+    }, {
+      name: "Remissionskriterium",
+      beschreibung: "Normalisierung der ALP unter Bisphosphonat-Therapie (Zoledronsäure 5 mg i.v. = Standard); Dauer: meist Monate bis Jahre"
+    }]
+  },
+  marfan: {
+    titel: "Ghent-Nosologie 2010 (Marfan-Syndrom-Diagnose)",
+    quelle: "Loeys BL et al. J Med Genet 2010;47:476",
+    url: "https://doi.org/10.1136/jmg.2009.072785",
+    stufen: [{
+      name: "Aortenwurzel (Z-Score)",
+      beschreibung: "Aortenwurzel-Durchmesser ≥2 Z-Score (oder Dissektion) = Hauptkriterium; Messung Sinus Valsalvae"
+    }, {
+      name: "Ectopia lentis",
+      beschreibung: "Linsenluxation in Augenhöhle; pathognomonisch"
+    }, {
+      name: "FBN1-Mutation",
+      beschreibung: "Bekannte pathogene FBN1-Mutation = Hauptkriterium"
+    }, {
+      name: "Systemischer Score (≥7 Pkt)",
+      beschreibung: "Handzeichen (+1), Handgelenkzeichen (+2), Kielbrust (+2), Hühnerbrust (+1), Plattfuß (+1), Pneumothorax (+2), Duraektasie (+2), Acetabulumprotrusion (+2), Extremitätenlänge (+1), Skoliose/Kyphose (+1), Ellbogen (+1), Gesichtszeichen (+1), Striae (+1), Myopie (+1), Mitralsegel (+1)"
+    }]
+  },
+  eds: {
+    titel: "Beighton-Score (Hypermobilität) + EDS-Diagnosekriterien 2017",
+    quelle: "Malfait F et al. Am J Med Genet 2017;175C:8",
+    url: "https://doi.org/10.1002/ajmg.c.31552",
+    stufen: [{
+      name: "Beighton-Score (0–9 Pkt)",
+      beschreibung: "Hypermobiles EDS (hEDS): ≥5/9 (Erwachsene) | Fünffingerkontakt Boden (+1), Ellbogenüberstreckung (+2), Knieüberstreckung (+2), Daumen-Unterarm (+2), Kleinfinger-Rückwärts (+2)"
+    }, {
+      name: "hEDS-Hauptkriterien (alle 3 erforderlich)",
+      beschreibung: "1. Generalisierte Gelenkhypermobilität (GJH) | 2. Bindegewebe-Merkmale (Hautdehnbarkeit, atrophe Narben, Kapsel-/Bandlaxität) | 3. Familiäre Häufung und/oder Ausschluss anderer EDS-Typen"
+    }, {
+      name: "Klassisches EDS",
+      beschreibung: "COL5A1/A2-Mutation: stark dehnbare Haut + Samthaut + atrophe Narben"
+    }, {
+      name: "Vaskuläres EDS",
+      beschreibung: "COL3A1-Mutation: Aortenruptur, Hohlorganruptur; KEINE Hypermobilität!"
+    }]
+  },
+  gaucher: {
+    titel: "Gaucher Disease Severity Score Index (SSI/GSDI)",
+    quelle: "Zimran A et al. Blood 1992; Pastores GM et al. Semin Hematol 2004",
+    url: "https://doi.org/10.1053/j.seminhematol.2004.07.012",
+    stufen: [{
+      name: "SSI leicht (0–3 Pkt)",
+      beschreibung: "Geringe Organomegalie; keine Knochenschmerzen; normale Hämatologie"
+    }, {
+      name: "SSI mäßig (4–7 Pkt)",
+      beschreibung: "Moderate Hepato-/Splenomegalie; Anämie; Thrombopenie; Knochenbeschwerden"
+    }, {
+      name: "SSI schwer (8–15 Pkt)",
+      beschreibung: "Schwere Organmanifestation; Knocheninfarkte; Nekrosen; Transfusionsbedarf"
+    }, {
+      name: "Enzymersatztherapie-Indikation",
+      beschreibung: "Symptomat. Gaucher Typ I: Imiglucerase / Velaglucerase / Taliglucerase; Substratreduktion: Eliglustat / Miglustat bei Erwachsenen ohne Knochenbeteiligung"
+    }]
+  },
+  turner: {
+    titel: "Turner-Syndrom – Karyotyp-Varianten + Knochenrisiko",
+    quelle: "Gravholt CH et al. Nat Rev Endocrinol 2017; ESHRE 2023",
+    url: "https://doi.org/10.1038/nrendo.2017.165",
+    stufen: [{
+      name: "45,X (klassisch, ~50%)",
+      beschreibung: "Vollständige Monosomie; schwerster Phänotyp; primärer Hypogonadismus fast immer"
+    }, {
+      name: "45,X/46,XX (Mosaik)",
+      beschreibung: "Milder Phänotyp möglich; ggf. Spontanpubertät; DXA trotzdem empfohlen"
+    }, {
+      name: "46,Xi(Xq) / 46,X,del(Xp)",
+      beschreibung: "Isochromosom oder partielle Deletion; variables Bild"
+    }, {
+      name: "Knochenrisiko",
+      beschreibung: "BMD Z-Score oft -1 bis -2 SD; Substitution mit Östrogen bis natürliche Menopause obligat; DXA alle 5 Jahre (früher bei Fraktur/Risiko)"
+    }]
+  },
+  klinefelter: {
+    titel: "Klinefelter-Syndrom (47,XXY) – Hypogonadismus + Knochenrisiko",
+    quelle: "Gravholt CH et al. Nat Rev Endocrinol 2018",
+    url: "https://doi.org/10.1038/nrendo.2018.29",
+    stufen: [{
+      name: "47,XXY (klassisch, ~80%)",
+      beschreibung: "Primärer Hypogonadismus; kleine Testes; Infertilität; Gynäkomastie; Testosteron meist <10 nmol/l"
+    }, {
+      name: "Höheres Aneuploidie (48,XXXY)",
+      beschreibung: "Schwerere Ausprägung; intellektuelle Beeinträchtigung häufiger"
+    }, {
+      name: "Knochenrisiko",
+      beschreibung: "BMD-Verlust durch Hypogonadismus; Testosteronsubstitution verbessert BMD signifikant | DXA bei Diagnosestellung; Ziel Testosteron: ≥12 nmol/l"
+    }]
+  },
+  seltene_metabolisch: {
+    titel: "Gaucher/Fabry/Pompe – Screeningparameter",
+    quelle: "Orphanet; Desnick RJ et al. 2021 Review",
+    url: "https://www.orpha.net",
+    stufen: [{
+      name: "Enzymaktivität (Trockenblut/Leukozyten)",
+      beschreibung: "Gaucher: Glukozerebrosidase | Fabry: α-Galaktosidase A | Pompe: saure Maltase (GAA) – jeweils im Trockenblut-Screening messbar"
+    }, {
+      name: "Biomarker",
+      beschreibung: "Gaucher: Chitotriosidase ↑↑ | Fabry: Lyso-Gb3 im Plasma | Pompe: Urinary Hex4 (Hexaglukose)"
+    }, {
+      name: "Gentestung",
+      beschreibung: "GBA1 (Gaucher), GLA (Fabry), GAA (Pompe) – Ergebnis entscheidet über Enzymersatz-Indikation"
+    }]
+  }
+};
+const SEK_SCORING_KEY = "osteo_sekscoring_overrides_v1";
+function buildSekScoringDefaults() {
+  return JSON.parse(JSON.stringify(SEK_SCORING_DEFAULTS));
+}
 
 // Build default question map from SECTIONS at runtime
 function buildSekQsDefaults() {
@@ -4170,7 +5570,31 @@ function SecondaryPanel({
     }
   }, u.name), u.icd && /*#__PURE__*/React.createElement("span", {
     className: "sek-unt-icd"
-  }, u.icd)))))), /*#__PURE__*/React.createElement("div", {
+  }, u.icd)))), (() => {
+    const sc = sekScoringDb && sekScoringDb[sym];
+    if (!sc || !(sc.stufen || []).length) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      className: "sek-scoring-box"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "sek-scoring-title"
+    }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCCA ", sc.titel || "Klassifikation"), sc.quelle && (sc.url ? /*#__PURE__*/React.createElement("a", {
+      href: sc.url,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      className: "sek-scoring-src"
+    }, sc.quelle) : /*#__PURE__*/React.createElement("span", {
+      className: "sek-scoring-src"
+    }, sc.quelle))), /*#__PURE__*/React.createElement("div", {
+      className: "sek-scoring-grid"
+    }, sc.stufen.map((st, si) => /*#__PURE__*/React.createElement("div", {
+      key: si,
+      className: "sek-scoring-row"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "sek-scoring-name"
+    }, st.name), /*#__PURE__*/React.createElement("span", {
+      className: "sek-scoring-desc"
+    }, st.beschreibung)))));
+  })())), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: "10px 20px 12px",
       fontSize: 10.5,
@@ -5116,11 +6540,13 @@ function AdminPanel({
   sekProfileDb,
   sekUntersDb,
   sekQsDb,
+  sekScoringDb,
   onSave,
   onSaveSek,
   onSaveSekProfile,
   onSaveSekUnters,
   onSaveSekQs,
+  onSaveSekScoring,
   onClose
 }) {
   const ICD5_RE = /^[A-Z]\d{2}\.[\d]{2}[XG]?G?$/;
@@ -5169,6 +6595,10 @@ function AdminPanel({
   const [sekQsDraft, setSekQsDraft] = useState(() => ({
     ...buildSekQsDefaults(),
     ...(sekQsDb || {})
+  }));
+  const [sekScoringDraft, setSekScoringDraft] = useState(() => ({
+    ...buildSekScoringDefaults(),
+    ...(sekScoringDb || {})
   }));
   const [expandedSym, setExpandedSym] = useState(null);
 
@@ -5223,6 +6653,7 @@ function AdminPanel({
       onSaveSekProfile(sekProfileDraft);
       onSaveSekUnters(sekUntersDraft);
       onSaveSekQs(sekQsDraft);
+      onSaveSekScoring(sekScoringDraft);
     }
     onClose();
   };
@@ -5255,6 +6686,7 @@ function AdminPanel({
         setSekProfileDraft(buildSekProfileDefaults());
         setSekUntersDraft(buildSekUntersDefaults());
         setSekQsDraft(buildSekQsDefaults());
+        setSekScoringDraft(buildSekScoringDefaults());
       }
     }
   };
@@ -5876,7 +7308,204 @@ function AdminPanel({
               fontFamily: "inherit"
             }
           }, "\u2715"));
-        }))));
+        })), (() => {
+          const sc = sekScoringDraft[sym] || {};
+          return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+            style: {
+              ...labelSt,
+              marginBottom: 4
+            }
+          }, "\uD83D\uDCCA Scoring & Stadieneinteilung (leitlinienbasiert)"), /*#__PURE__*/React.createElement("div", {
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: 8
+            }
+          }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+            style: {
+              ...labelSt,
+              marginBottom: 2
+            }
+          }, "Titel des Klassifikationssystems"), /*#__PURE__*/React.createElement("input", {
+            style: {
+              ...inputSt,
+              fontSize: 12
+            },
+            value: sc.titel || "",
+            placeholder: "z. B. Marsh-Oberhuber-Klassifikation (mod. 2001)",
+            onChange: e => setSekScoringDraft(d => ({
+              ...d,
+              [sym]: {
+                ...(d[sym] || {}),
+                titel: e.target.value
+              }
+            }))
+          })), /*#__PURE__*/React.createElement("div", {
+            style: {
+              display: "flex",
+              gap: 8
+            }
+          }, /*#__PURE__*/React.createElement("div", {
+            style: {
+              flex: 1
+            }
+          }, /*#__PURE__*/React.createElement("label", {
+            style: {
+              ...labelSt,
+              marginBottom: 2
+            }
+          }, "Quelle / Leitlinie"), /*#__PURE__*/React.createElement("input", {
+            style: {
+              ...inputSt,
+              fontSize: 12
+            },
+            value: sc.quelle || "",
+            placeholder: "z. B. DGVS S2k-Leitlinie Z\xF6liakie 2022",
+            onChange: e => setSekScoringDraft(d => ({
+              ...d,
+              [sym]: {
+                ...(d[sym] || {}),
+                quelle: e.target.value
+              }
+            }))
+          })), /*#__PURE__*/React.createElement("div", {
+            style: {
+              width: 200,
+              flexShrink: 0
+            }
+          }, /*#__PURE__*/React.createElement("label", {
+            style: {
+              ...labelSt,
+              marginBottom: 2
+            }
+          }, "URL (optional)"), /*#__PURE__*/React.createElement("input", {
+            style: {
+              ...inputSt,
+              fontSize: 12
+            },
+            value: sc.url || "",
+            placeholder: "https://...",
+            onChange: e => setSekScoringDraft(d => ({
+              ...d,
+              [sym]: {
+                ...(d[sym] || {}),
+                url: e.target.value
+              }
+            }))
+          }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+            style: {
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 4
+            }
+          }, /*#__PURE__*/React.createElement("label", {
+            style: {
+              ...labelSt,
+              marginBottom: 0
+            }
+          }, "Stufen / Grenzwerte (", (sc.stufen || []).length, ")"), /*#__PURE__*/React.createElement("button", {
+            onClick: () => setSekScoringDraft(d => {
+              const rows = [...(d[sym]?.stufen || []), {
+                name: "",
+                beschreibung: ""
+              }];
+              return {
+                ...d,
+                [sym]: {
+                  ...(d[sym] || {}),
+                  stufen: rows
+                }
+              };
+            }),
+            style: {
+              fontSize: 11,
+              padding: "3px 10px",
+              background: "#1a4a8f",
+              color: "#fff",
+              border: "none",
+              borderRadius: 5,
+              cursor: "pointer",
+              fontFamily: "inherit"
+            }
+          }, "+ Stufe hinzuf\xFCgen")), (sc.stufen || []).map((st, si) => /*#__PURE__*/React.createElement("div", {
+            key: si,
+            style: {
+              display: "flex",
+              gap: 6,
+              marginBottom: 5,
+              alignItems: "flex-start"
+            }
+          }, /*#__PURE__*/React.createElement("input", {
+            style: {
+              ...inputSt,
+              width: 180,
+              flexShrink: 0,
+              fontSize: 12
+            },
+            value: st.name || "",
+            placeholder: "Stadium / Score",
+            onChange: e => setSekScoringDraft(d => {
+              const rows = [...(d[sym]?.stufen || [])];
+              rows[si] = {
+                ...rows[si],
+                name: e.target.value
+              };
+              return {
+                ...d,
+                [sym]: {
+                  ...(d[sym] || {}),
+                  stufen: rows
+                }
+              };
+            })
+          }), /*#__PURE__*/React.createElement("textarea", {
+            style: {
+              ...inputSt,
+              flex: 1,
+              resize: "vertical",
+              minHeight: 44,
+              fontSize: 12,
+              lineHeight: 1.5
+            },
+            value: st.beschreibung || "",
+            placeholder: "Kriterien, Grenzwerte, klinische Bedeutung\u2026",
+            onChange: e => setSekScoringDraft(d => {
+              const rows = [...(d[sym]?.stufen || [])];
+              rows[si] = {
+                ...rows[si],
+                beschreibung: e.target.value
+              };
+              return {
+                ...d,
+                [sym]: {
+                  ...(d[sym] || {}),
+                  stufen: rows
+                }
+              };
+            })
+          }), /*#__PURE__*/React.createElement("button", {
+            onClick: () => setSekScoringDraft(d => ({
+              ...d,
+              [sym]: {
+                ...(d[sym] || {}),
+                stufen: (d[sym]?.stufen || []).filter((_, i) => i !== si)
+              }
+            })),
+            style: {
+              flexShrink: 0,
+              background: "#fee2e2",
+              color: "#dc2626",
+              border: "1px solid #fca5a5",
+              borderRadius: 5,
+              padding: "3px 8px",
+              cursor: "pointer",
+              fontSize: 13,
+              fontFamily: "inherit",
+              marginTop: 2
+            }
+          }, "\u2715"))))));
+        })()));
       })];
     });
   })()), /*#__PURE__*/React.createElement("div", {
@@ -6412,7 +8041,11 @@ function App() {
     patient: patient,
     diff: diff
   }), showResult && gender && /*#__PURE__*/React.createElement(SecondaryPanel, {
-    answers: answers
+    answers: answers,
+    sekProfileDb: sekProfileDb,
+    sekUntersDb: sekUntersDb,
+    sekQsDb: sekQsDb,
+    sekScoringDb: sekScoringDb
   }), /*#__PURE__*/React.createElement("div", {
     className: "disclaimer",
     style: {
