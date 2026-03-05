@@ -2712,7 +2712,7 @@ function getIcdArray(entry, gender, answers){
 }
 
 /* ═══════════════════════════════════════════════ TEXT EXPORT ═══ */
-function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamnese){
+function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamnese,therapieHistory,osteoTherapieDb){
   const db=diagDb||DIAG_DB_DEFAULTS;
   const d=new Date().toLocaleDateString("de-DE");
   const lines=[];
@@ -2835,6 +2835,35 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
     if(answers.dxa_lws)lines.push(`T-Score LWS          : ${answers.dxa_lws}`);
     if(answers.dxa_neck)lines.push(`T-Score Schenkelhals : ${answers.dxa_neck}`);
     if(answers.dxa_tbs)lines.push(`TBS                  : ${answers.dxa_tbs}`);
+    lines.push("");
+  }
+  // ─ Bisherige Osteoporose-Therapie ─
+  const th=therapieHistory||[];
+  const tdb=osteoTherapieDb||OSTEO_THERAPIE_DEFAULTS;
+  if(th.length>0){
+    lines.push("BISHERIGE OSTEOPOROSE-THERAPIE");lines.push(sub);
+    th.forEach(function(en,i){
+      const med=tdb.find(function(m){return m.id===en.medId;})||null;
+      let s="  "+(i+1)+". "+(med?med.wirkstoff:(en.medId||"Unbekannt"));
+      if(med&&med.handelsnamen)s+=" ("+med.handelsnamen.split(",")[0]+")";
+      if(en.vonJahr)s+="  von "+en.vonJahr;
+      if(en.nochAktuell)s+=" – noch aktuell";
+      else if(en.bisJahr)s+=" bis "+en.bisJahr;
+      lines.push(s);
+      if(en.dosierung)lines.push("     Dosierung: "+en.dosierung);
+      if(en.abgesetzt&&en.absetzGrund){
+        const grund=ABSETZ_GRUENDE.find(function(g){return g.id===en.absetzGrund;});
+        lines.push("     Abgesetzt: "+(grund?grund.label:en.absetzGrund));
+        if(en.absetzGrund==="nw"&&(en.absetzNwIds||[]).length>0&&med&&med.nw){
+          const nwTexts=en.absetzNwIds.map(function(nid){
+            const nwObj=med.nw.find(function(n){return n.id===nid;});
+            return nwObj?nwObj.label+" ["+nwObj.icd+"]":nid;
+          });
+          lines.push("     Nebenwirkungen: "+nwTexts.join("; "));
+        }
+      }
+      if(en.anmerkung)lines.push("     Anmerkung: "+en.anmerkung);
+    });
     lines.push("");
   }
   lines.push("RISIKOFAKTOREN MIT DIAGNOSE UND ICD-10-CODES");lines.push(sub);
@@ -4771,7 +4800,7 @@ function flattenEntries(id, entries, original){
   return result;
 }
 
-function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScoringDb,onSave,onSaveSek,onSaveSekProfile,onSaveSekUnters,onSaveSekQs,onSaveSekScoring,onClose}){
+function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScoringDb,osteoTherapieDb,onSave,onSaveSek,onSaveSekProfile,onSaveSekUnters,onSaveSekQs,onSaveSekScoring,onSaveTherapieDb,onClose}){
   const ICD5_RE=/^[A-Z]\d{2}\.[\d]{2}[XG]?G?$/;
   const validateIcd=(s)=>(s||"").trim()===""||ICD5_RE.test((s||"").trim());
   const allIds=Object.keys(DIAG_DB_DEFAULTS);
@@ -4802,6 +4831,13 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
   const[sekUntersDraft,setSekUntersDraft]=useState(()=>({...buildSekUntersDefaults(),...(sekUntersDb||{})}));
   const[sekQsDraft,setSekQsDraft]=useState(()=>({...buildSekQsDefaults(),...(sekQsDb||{})}));
   const[sekScoringDraft,setSekScoringDraft]=useState(()=>({...buildSekScoringDefaults(),...(sekScoringDb||{})}));
+  const[therapieDraft,setTherapieDraft]=useState(()=>{
+    const base=buildOsteoTherapieDefaults();
+    const over=osteoTherapieDb||[];
+    // Merge overrides by id
+    return base.map(m=>{const ov=over.find(x=>x.id===m.id);return ov?{...m,...ov}:m;});
+  });
+  const[therapieExpanded,setTherapieExpanded]=useState({});
   const[expandedSym,setExpandedSym]=useState(null);
 
   // Entry CRUD
@@ -4829,6 +4865,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
 
   const handleSave=()=>{
     if(activeTab==="risiko"){ onSave(draft); }
+    else if(activeTab==="therapie"){ onSaveTherapieDb(therapieDraft); }
     else {
       onSaveSek(sekDraft);
       onSaveSekProfile(sekProfileDraft);
@@ -4849,6 +4886,10 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
           }
           return d;
         });
+      }
+    } else if(activeTab==="therapie"){
+      if(window.confirm("Osteoporose-Therapie-Datenbank auf Standardwerte zurücksetzen?")){
+        setTherapieDraft(buildOsteoTherapieDefaults());
       }
     } else {
       if(window.confirm("Alle Sekundärform-Daten auf Standardwerte zurücksetzen?")){
@@ -4911,7 +4952,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
           <>
             {/* Tab bar */}
             <div style={{display:"flex",background:"#1a1208",borderBottom:"2px solid #c8a070",flexShrink:0}}>
-              {[["risiko","🦴 Risikofaktoren"],["sek","🔎 Sekundäre Osteoporose"]].map(([key,label])=>(
+              {[["risiko","🦴 Risikofaktoren"],["sek","🔎 Sekundäre Osteoporose"],["therapie","💊 Osteoporose-Therapie"]].map(([key,label])=>(
                 <button key={key} onClick={()=>setActiveTab(key)}
                   style={{padding:"10px 20px",border:"none",cursor:"pointer",
                     fontFamily:"'Source Sans 3',sans-serif",fontSize:13,fontWeight:700,
@@ -4931,12 +4972,16 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                 value={search} onChange={e=>setSearch(e.target.value)}
                 placeholder={activeTab==="risiko"
                   ?"🔍 Suche nach Kennung, Frage oder Diagnose…"
+                  :activeTab==="therapie"
+                  ?"🔍 Suche nach Wirkstoff oder Handelsname…"
                   :"🔍 Suche nach Erkrankung oder ICD-Code…"}
                 style={{flex:1,minWidth:180,padding:"6px 10px",border:"1.5px solid #d4c4a8",
                   borderRadius:5,fontSize:12.5,fontFamily:"inherit",outline:"none"}}/>
               <span style={{fontSize:11,color:"#a09080",whiteSpace:"nowrap"}}>
                 {activeTab==="risiko"
                   ? `${filteredIds.length} / ${allIds.length} Einträge`
+                  :activeTab==="therapie"
+                  ? `${therapieDraft.length} Medikamente`
                   : `${filteredSekIds.length} / ${sekAllIds.length} Einträge`}
               </span>
               <span style={{fontSize:11,color:"#7a6a58"}}>
@@ -5316,6 +5361,120 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                 ];
               });
             })()}
+            {activeTab==="therapie"&&(
+              <div style={{padding:"10px 14px"}}>
+                <div style={{marginBottom:10,fontSize:12,color:"#8a7a6a",lineHeight:1.6,padding:"8px 12px",
+                  background:"#fef9f4",border:"1px solid #e8d8c0",borderRadius:6}}>
+                  Hier können Sie Handelsnamen, Dosierungen, Zulassungstexte und Nebenwirkungen der Osteoporose-Medikamente anpassen.
+                  Änderungen gelten nur für dieses Gerät und werden lokal gespeichert.
+                </div>
+                {therapieDraft.map((med,mi)=>{
+                  const expanded=!!therapieExpanded[med.id];
+                  return(
+                    <div key={med.id} style={{marginBottom:8,border:"1px solid #d8c8b0",borderRadius:8,background:"#fffcf8",overflow:"hidden"}}>
+                      {/* Header */}
+                      <div onClick={()=>setTherapieExpanded(e=>({...e,[med.id]:!e[med.id]}))}
+                        style={{display:"flex",alignItems:"center",gap:10,padding:"9px 13px",
+                          background:expanded?"#f7ede0":"#fdf8f4",cursor:"pointer",userSelect:"none"}}>
+                        <span style={{fontSize:11,fontWeight:700,padding:"2px 7px",borderRadius:10,
+                          background:"#9b7a5a",color:"white",whiteSpace:"nowrap"}}>{med.gruppe.split(" ")[0]}</span>
+                        <div style={{flex:1}}>
+                          <span style={{fontWeight:700,fontSize:13,color:"#3a2010"}}>{med.wirkstoff}</span>
+                          <span style={{fontSize:11.5,color:"#7a6a5a",marginLeft:8}}>{med.handelsnamen.split(",")[0]}</span>
+                        </div>
+                        <span style={{fontSize:12,color:"#9b7a5a"}}>{expanded?"▲":"▼"}</span>
+                      </div>
+                      {expanded&&(
+                        <div style={{padding:"10px 14px",borderTop:"1px solid #e8d8c0"}}>
+                          {[
+                            ["Wirkstoff",         "wirkstoff",    "text",     "Wirkstoffname"],
+                            ["Gruppe",            "gruppe",       "text",     "z.B. Bisphosphonate (oral)"],
+                            ["Handelsnamen (DE)", "handelsnamen", "textarea", "Kommagetrennte Handelsnamen"],
+                            ["Dosierung",         "dosierung",   "textarea", "Standarddosierung"],
+                            ["Zulassung",         "zulassung",   "textarea", "Zugelassene Indikationen"],
+                            ["Anmerkung / Warnung","anmerkung",  "textarea", "Klinisch relevante Hinweise"],
+                          ].map(([lbl,field,type,ph])=>(
+                            <div key={field} style={{marginBottom:8}}>
+                              <label style={{fontSize:11.5,fontWeight:700,color:"#6b5a4a",display:"block",marginBottom:3}}>{lbl}</label>
+                              {type==="textarea"
+                                ? <textarea rows={2} placeholder={ph}
+                                    style={{width:"100%",boxSizing:"border-box",padding:"5px 8px",
+                                      border:"1px solid #d8c8b0",borderRadius:5,fontSize:12,fontFamily:"inherit",
+                                      resize:"vertical",outline:"none"}}
+                                    value={med[field]||""}
+                                    onChange={e=>{const v=e.target.value;
+                                      setTherapieDraft(d=>d.map((m,i)=>i===mi?{...m,[field]:v}:m));}}/>
+                                : <input placeholder={ph}
+                                    style={{width:"100%",boxSizing:"border-box",padding:"5px 8px",
+                                      border:"1px solid #d8c8b0",borderRadius:5,fontSize:12,fontFamily:"inherit",outline:"none"}}
+                                    value={med[field]||""}
+                                    onChange={e=>{const v=e.target.value;
+                                      setTherapieDraft(d=>d.map((m,i)=>i===mi?{...m,[field]:v}:m));}}/>
+                              }
+                            </div>
+                          ))}
+                          {/* Nebenwirkungen */}
+                          <div style={{marginTop:10}}>
+                            <div style={{fontSize:12,fontWeight:700,color:"#7a5a3a",marginBottom:6,
+                              display:"flex",alignItems:"center",gap:8}}>
+                              ⚠ Nebenwirkungen (aus Fachinformation)
+                              <button onClick={()=>setTherapieDraft(d=>d.map((m,i)=>i!==mi?m:{...m,
+                                nw:[...(m.nw||[]),{id:"nw_"+Date.now(),label:"",icd:"",haeuf:"gelegentlich"}]}))}
+                                style={{fontSize:11,padding:"2px 8px",borderRadius:5,border:"1px dashed #9b7a5a",
+                                  background:"white",cursor:"pointer",fontFamily:"inherit"}}>+ Nebenwirkung</button>
+                            </div>
+                            {(med.nw||[]).map((nw,ni)=>(
+                              <div key={nw.id||ni} style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:5}}>
+                                <input placeholder="Bezeichnung (z.B. Kieferosteonekrose)"
+                                  style={{flex:3,padding:"4px 7px",border:"1px solid #d8c8b0",borderRadius:5,
+                                    fontSize:12,fontFamily:"inherit",outline:"none"}}
+                                  value={nw.label||""}
+                                  onChange={e=>{const v=e.target.value;
+                                    setTherapieDraft(d=>d.map((m,i)=>{
+                                      if(i!==mi)return m;
+                                      const nwArr=[...(m.nw||[])];nwArr[ni]={...nwArr[ni],label:v};
+                                      return{...m,nw:nwArr};}));}}/>
+                                <input placeholder="ICD-10 (z.B. M87.18)"
+                                  style={{flex:1,padding:"4px 7px",border:"1px solid #d8c8b0",borderRadius:5,
+                                    fontSize:12,fontFamily:"inherit",outline:"none",textTransform:"uppercase"}}
+                                  value={nw.icd||""}
+                                  onChange={e=>{const v=e.target.value.toUpperCase();
+                                    setTherapieDraft(d=>d.map((m,i)=>{
+                                      if(i!==mi)return m;
+                                      const nwArr=[...(m.nw||[])];nwArr[ni]={...nwArr[ni],icd:v};
+                                      return{...m,nw:nwArr};}));}}/>
+                                <select value={nw.haeuf||"gelegentlich"}
+                                  style={{flex:1,padding:"4px 6px",border:"1px solid #d8c8b0",borderRadius:5,
+                                    fontSize:11.5,fontFamily:"inherit",cursor:"pointer"}}
+                                  onChange={e=>{const v=e.target.value;
+                                    setTherapieDraft(d=>d.map((m,i)=>{
+                                      if(i!==mi)return m;
+                                      const nwArr=[...(m.nw||[])];nwArr[ni]={...nwArr[ni],haeuf:v};
+                                      return{...m,nw:nwArr};}));}}>
+                                  <option>sehr häufig (&gt;10%)</option>
+                                  <option>häufig (1-10%)</option>
+                                  <option>gelegentlich (0.1-1%)</option>
+                                  <option>selten (0.01-0.1%)</option>
+                                  <option>sehr selten (&lt;0.01%)</option>
+                                  <option>häufig bei Absetzen ohne Anschluss</option>
+                                  <option>erhöhtes Langzeitrisiko</option>
+                                </select>
+                                <button onClick={()=>setTherapieDraft(d=>d.map((m,i)=>{
+                                  if(i!==mi)return m;
+                                  return{...m,nw:(m.nw||[]).filter((_,j)=>j!==ni)};}))}
+                                  style={{flexShrink:0,background:"#fee2e2",color:"#dc2626",
+                                    border:"1px solid #fca5a5",borderRadius:5,padding:"3px 7px",
+                                    cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>✕</button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             </div>
 
             <div className="admin-footer">
@@ -5329,6 +5488,438 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
   );
 }
 
+
+
+/* ─── OSTEOPOROSE THERAPIE SEKTION ────────────────────────────────────────── */
+function OsteoTherapieSection({history,setHistory,db,open,onToggle}){
+  const iSt={padding:"5px 8px",border:"1px solid #d8c8b0",borderRadius:6,fontSize:13,fontFamily:"inherit",background:"white",outline:"none"};
+  const selSt={...iSt,cursor:"pointer"};
+  const delBSt={padding:"4px 9px",borderRadius:5,border:"1px solid #fca5a5",background:"#fee2e2",color:"#dc2626",cursor:"pointer",fontSize:13,fontFamily:"inherit",flexShrink:0};
+  const addBSt={padding:"5px 14px",borderRadius:6,border:"1px dashed #9b7a5a",background:"white",color:"#6b5040",cursor:"pointer",fontSize:12,fontFamily:"inherit",fontWeight:600};
+  const fld=(label,children)=>(<div style={{display:"flex",flexDirection:"column",gap:3}}><label style={{fontSize:12,color:"#6b5a4a",fontWeight:600,whiteSpace:"nowrap"}}>{label}</label>{children}</div>);
+
+  const addEntry=()=>setHistory(h=>[...h,{medId:"",vonJahr:"",bisJahr:"",nochAktuell:false,dosierung:"",abgesetzt:false,absetzGrund:"",absetzNwIds:[],anmerkung:""}]);
+  const updEntry=(i,f,v)=>setHistory(h=>{const r=[...h];r[i]={...r[i],[f]:v};return r;});
+  const delEntry=(i)=>setHistory(h=>h.filter((_,j)=>j!==i));
+  const toggleNw=(i,nwId)=>setHistory(h=>{
+    const r=[...h]; const ids=r[i].absetzNwIds||[];
+    r[i]={...r[i],absetzNwIds:ids.includes(nwId)?ids.filter(x=>x!==nwId):[...ids,nwId]};
+    return r;
+  });
+
+  const hasData=history.length>0;
+  const gruppen=[...new Set((db||OSTEO_THERAPIE_DEFAULTS).map(m=>m.gruppe))];
+
+  return(
+    <div className="section-card" style={{marginBottom:12,overflow:"hidden"}}>
+      <div className="section-header" onClick={onToggle} style={{cursor:"pointer",userSelect:"none"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:18}}>💊</span>
+          <div>
+            <div style={{fontWeight:700,fontSize:15}}>Bisherige Osteoporose-Therapie</div>
+            <div style={{fontSize:12,color:"#9b8a7a",fontWeight:400}}>
+              Frühere und aktuelle medikamentöse Behandlung der Osteoporose
+              {hasData&&<span style={{marginLeft:8,color:"#4a8f3a",fontWeight:600,fontSize:11}}>✓ {history.length} Eintrag{history.length!==1?"einträge":""}</span>}
+            </div>
+          </div>
+        </div>
+        <span style={{fontSize:18,color:"var(--P)"}}>{open?"▲":"▼"}</span>
+      </div>
+
+      {open&&(
+        <div style={{padding:"14px 18px"}}>
+          <div style={{marginBottom:12,padding:"9px 12px",background:"#f0f8ff",border:"1px solid #c0d8f0",borderRadius:7,fontSize:12.5,color:"#2a4a7a",lineHeight:1.6}}>
+            <strong>Bitte alle bisherigen Osteoporose-Medikamente eintragen</strong> – auch wenn diese schon längere Zeit zurückliegen oder abgesetzt wurden.
+            Bei Absetzen bitte den Grund angeben. Nebenwirkungen werden mit ICD-10-Code dokumentiert.
+          </div>
+
+          {history.length===0&&(
+            <div style={{fontSize:12,color:"#a09080",fontStyle:"italic",marginBottom:8}}>
+              Noch keine Therapieeinträge. Bitte alle bisherigen Osteoporose-Medikamente eintragen.
+            </div>
+          )}
+
+          {history.map((en,i)=>{
+            const med=(db||OSTEO_THERAPIE_DEFAULTS).find(m=>m.id===en.medId)||null;
+            return(
+              <div key={i} style={{marginBottom:10,padding:"11px 13px",border:`1.5px solid ${med?"#9b7a5a":"#e0d0b8"}`,
+                borderRadius:9,background:med?"#fffcf8":"#fafaf8",position:"relative"}}>
+                {/* Header row */}
+                <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",marginBottom:8}}>
+                  <span style={{fontSize:13,fontWeight:700,color:"#9b7a5a",minWidth:22,paddingBottom:4}}>{i+1}.</span>
+                  {fld("Medikament / Wirkstoff",
+                    <select style={{...selSt,minWidth:300,flex:2}} value={en.medId}
+                      onChange={e=>updEntry(i,"medId",e.target.value)}>
+                      <option value="">– Bitte wählen –</option>
+                      {gruppen.map(grp=>(
+                        <optgroup key={grp} label={"── "+grp+" ──"}>
+                          {(db||OSTEO_THERAPIE_DEFAULTS).filter(m=>m.gruppe===grp).map(m=>(
+                            <option key={m.id} value={m.id}>{m.wirkstoff}{m.handelsnamen?" ("+m.handelsnamen.split(",")[0]+")":""}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  )}
+                  {fld("Von (Jahr)",
+                    <input type="number" min="1980" max="2026" placeholder="z.B. 2018"
+                      style={{...iSt,width:88}} value={en.vonJahr}
+                      onChange={e=>updEntry(i,"vonJahr",e.target.value)}/>
+                  )}
+                  {en.nochAktuell
+                    ? <div style={{alignSelf:"flex-end",padding:"5px 0",fontSize:12,color:"#4a8f3a",fontWeight:700}}>→ noch aktuell</div>
+                    : fld("Bis (Jahr)",
+                        <input type="number" min="1980" max="2026" placeholder="z.B. 2022"
+                          style={{...iSt,width:88}} value={en.bisJahr}
+                          onChange={e=>updEntry(i,"bisJahr",e.target.value)}/>
+                      )
+                  }
+                  <div style={{alignSelf:"flex-end",paddingBottom:4}}>
+                    <label style={{display:"flex",gap:5,alignItems:"center",cursor:"pointer",fontSize:12,fontWeight:600,color:"#5a7a3a"}}>
+                      <input type="checkbox" checked={!!en.nochAktuell}
+                        onChange={e=>updEntry(i,"nochAktuell",e.target.checked)}
+                        style={{width:14,height:14,accentColor:"#5a7a3a",cursor:"pointer"}}/>
+                      Noch aktuell
+                    </label>
+                  </div>
+                  <button onClick={()=>delEntry(i)} style={{...delBSt,alignSelf:"flex-end"}}>✕ Entfernen</button>
+                </div>
+
+                {/* Med info box */}
+                {med&&(
+                  <div style={{marginBottom:8,padding:"7px 10px",background:"#f7f4ee",borderRadius:6,fontSize:12,lineHeight:1.6}}>
+                    <div><strong>Handelsnamen:</strong> {med.handelsnamen}</div>
+                    <div><strong>Standarddosis:</strong> {med.dosierung}</div>
+                    <div><strong>Zulassung:</strong> {med.zulassung}</div>
+                    {med.anmerkung&&<div style={{color:"#9b5a10",marginTop:2}}>⚠ {med.anmerkung}</div>}
+                  </div>
+                )}
+
+                {/* Dosierung + Abgesetzt */}
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:8}}>
+                  {fld("Verwendete Dosierung / Darreichungsform (opt.)",
+                    <input placeholder={med?med.dosierung:"z.B. 70 mg 1×/Woche"}
+                      style={{...iSt,minWidth:220,flex:2}} value={en.dosierung}
+                      onChange={e=>updEntry(i,"dosierung",e.target.value)}/>
+                  )}
+                </div>
+
+                {/* Absetzen */}
+                {!en.nochAktuell&&(
+                  <div style={{marginBottom:8}}>
+                    <label style={{display:"flex",gap:6,alignItems:"center",cursor:"pointer",
+                      padding:"5px 10px",borderRadius:6,fontSize:12.5,fontWeight:600,
+                      background:en.abgesetzt?"#fef3c7":"#f5f0ea",
+                      border:en.abgesetzt?"1px solid #f59e0b":"1px solid #e0d0b0",
+                      display:"inline-flex",marginBottom:6}}>
+                      <input type="checkbox" checked={!!en.abgesetzt}
+                        onChange={e=>updEntry(i,"abgesetzt",e.target.checked)}
+                        style={{width:15,height:15,accentColor:"#d97706",cursor:"pointer"}}/>
+                      Medikament wurde abgesetzt / beendet
+                    </label>
+                    {en.abgesetzt&&(
+                      <div style={{padding:"8px 10px",background:"#fffbf0",border:"1px solid #f59e0b",borderRadius:6,marginTop:4}}>
+                        <div style={{marginBottom:6}}>
+                          {fld("Absetzgrund",
+                            <select style={{...selSt,minWidth:280}} value={en.absetzGrund}
+                              onChange={e=>updEntry(i,"absetzGrund",e.target.value)}>
+                              <option value="">– Grund wählen –</option>
+                              {ABSETZ_GRUENDE.map(g=><option key={g.id} value={g.id}>{g.label}</option>)}
+                            </select>
+                          )}
+                        </div>
+                        {en.absetzGrund==="nw"&&med&&med.nw&&med.nw.length>0&&(
+                          <div>
+                            <div style={{fontSize:12,fontWeight:700,color:"#7a5010",marginBottom:5}}>
+                              Welche Nebenwirkungen? (Mehrfachauswahl, aus Fachinformation)
+                            </div>
+                            {med.nw.map(nw=>{
+                              const checked=(en.absetzNwIds||[]).includes(nw.id);
+                              return(
+                                <label key={nw.id} style={{display:"flex",gap:7,alignItems:"flex-start",
+                                  cursor:"pointer",padding:"4px 8px",borderRadius:5,marginBottom:2,
+                                  background:checked?"#fff8e1":"white",
+                                  border:checked?"1px solid #f59e0b":"1px solid transparent"}}>
+                                  <input type="checkbox" checked={checked}
+                                    onChange={()=>toggleNw(i,nw.id)}
+                                    style={{width:15,height:15,marginTop:1,accentColor:"#d97706",cursor:"pointer",flexShrink:0}}/>
+                                  <div>
+                                    <span style={{fontSize:12.5,fontWeight:checked?700:400}}>{nw.label}</span>
+                                    <span style={{marginLeft:6,fontSize:10.5,padding:"1px 5px",borderRadius:8,
+                                      background:"#e8f0fe",color:"#1a3a8a",fontWeight:600}}>{nw.icd}</span>
+                                    <span style={{marginLeft:6,fontSize:10.5,color:"#9b8a7a"}}>{nw.haeuf}</span>
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Anmerkung */}
+                <div>
+                  {fld("Anmerkung / Verlauf / Ergebnis (opt.)",
+                    <input placeholder="z.B. gut verträglich, Therapieerfolg DXA +5%, Umstellung wegen ONJ…"
+                      style={{...iSt,width:"100%",boxSizing:"border-box"}} value={en.anmerkung}
+                      onChange={e=>updEntry(i,"anmerkung",e.target.value)}/>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          <button onClick={addEntry} style={addBSt}>+ Osteoporose-Medikament hinzufügen</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════ OSTEOPOROSE-THERAPIE DATENBANK ═══════════════════════════════ */
+const OSTEO_THERAPIE_KEY="osteo_therapie_db_v1";
+// This will be inserted as OSTEO_THERAPIE_DEFAULTS
+
+const OSTEO_THERAPIE_DEFAULTS = [
+  // ── Bisphosphonate oral ──
+  {
+    id:"alendronat",gruppe:"Bisphosphonate (oral)",
+    wirkstoff:"Alendronsäure",
+    handelsnamen:"Fosamax® 70 mg, Tevanate® 70 mg, Alendronaxte® 70 mg (Generika)",
+    dosierung:"70 mg 1× pro Woche oral (nüchtern, mit Wasser, 30 min vor Mahlzeit)",
+    zulassung:"Postmenopausale Osteoporose; Osteoporose beim Mann; Glukokortikoid-induzierte Osteoporose",
+    anmerkung:"Häufigstes Bisphosphonat; bei Unverträglichkeit orale Alternativen oder IV-Wechsel",
+    nw:[
+      {id:"oeso",    label:"Ösophagitis / Speiseröhrenentzündung",    icd:"K20",   haeuf:"häufig"},
+      {id:"dysphagie",label:"Schluckbeschwerden (Dysphagie)",         icd:"R13.1", haeuf:"häufig"},
+      {id:"bauch",   label:"Bauchschmerzen / Sodbrennen / Übelkeit",  icd:"R10.1", haeuf:"häufig"},
+      {id:"onj",     label:"Kieferosteonekrose (ONJ)",                 icd:"M87.18",haeuf:"selten"},
+      {id:"aff",     label:"Atypische Femurfraktur",                   icd:"M84.55",haeuf:"sehr selten (< 1/10.000)"},
+      {id:"myalg",   label:"Muskel-, Gelenk- und Knochenschmerzen",   icd:"M79.3", haeuf:"häufig"},
+      {id:"hypokal", label:"Hypokalzämie (zu niedriger Kalziumspiegel)",icd:"E83.51",haeuf:"gelegentlich"},
+      {id:"kopf",    label:"Kopfschmerzen",                            icd:"R51",   haeuf:"gelegentlich"},
+    ]
+  },
+  {
+    id:"risedronat",gruppe:"Bisphosphonate (oral)",
+    wirkstoff:"Risedronsäure",
+    handelsnamen:"Actonel® 35 mg (1×/Woche), Actonel® 75 mg (2 Tage/Monat), Actonel® Combi",
+    dosierung:"35 mg 1× pro Woche oral",
+    zulassung:"Postmenopausale Osteoporose; Glukokortikoid-induzierte Osteoporose; Osteoporose beim Mann",
+    anmerkung:"Etwas besser verträglich als Alendronsäure bezüglich Ösophagus",
+    nw:[
+      {id:"oeso",    label:"Ösophagitis / Speiseröhrenentzündung",    icd:"K20",   haeuf:"gelegentlich"},
+      {id:"bauch",   label:"Bauchschmerzen / Übelkeit / Diarrhoe",    icd:"R10.1", haeuf:"häufig"},
+      {id:"onj",     label:"Kieferosteonekrose (ONJ)",                 icd:"M87.18",haeuf:"selten"},
+      {id:"aff",     label:"Atypische Femurfraktur",                   icd:"M84.55",haeuf:"sehr selten"},
+      {id:"myalg",   label:"Muskel-, Gelenk- und Knochenschmerzen",   icd:"M79.3", haeuf:"gelegentlich"},
+      {id:"hypokal", label:"Hypokalzämie",                             icd:"E83.51",haeuf:"gelegentlich"},
+      {id:"kopf",    label:"Kopfschmerzen",                            icd:"R51",   haeuf:"gelegentlich"},
+      {id:"augenentz",label:"Augenentzündung (Uveitis/Skleritis)",    icd:"H20",   haeuf:"selten"},
+    ]
+  },
+  {
+    id:"ibandronat_oral",gruppe:"Bisphosphonate (oral)",
+    wirkstoff:"Ibandronsäure",
+    handelsnamen:"Bonviva® 150 mg Tablette (1×/Monat)",
+    dosierung:"150 mg 1× pro Monat oral",
+    zulassung:"Postmenopausale Osteoporose",
+    anmerkung:"Monatliche Einnahme; alternative zu wöchentlichen Bisphosphonaten",
+    nw:[
+      {id:"bauch",   label:"Bauchschmerzen / Übelkeit / Diarrhoe",    icd:"R10.1", haeuf:"häufig"},
+      {id:"oeso",    label:"Ösophagitis / Speiseröhrenentzündung",    icd:"K20",   haeuf:"gelegentlich"},
+      {id:"onj",     label:"Kieferosteonekrose (ONJ)",                 icd:"M87.18",haeuf:"selten"},
+      {id:"aff",     label:"Atypische Femurfraktur",                   icd:"M84.55",haeuf:"sehr selten"},
+      {id:"myalg",   label:"Muskel- und Knochenschmerzen",            icd:"M79.3", haeuf:"gelegentlich"},
+      {id:"hypokal", label:"Hypokalzämie",                             icd:"E83.51",haeuf:"gelegentlich"},
+    ]
+  },
+  // ── Bisphosphonate IV ──
+  {
+    id:"zoledronat",gruppe:"Bisphosphonate (intravenös)",
+    wirkstoff:"Zoledronsäure",
+    handelsnamen:"Aclasta® 5 mg Infusion (1×/Jahr)",
+    dosierung:"5 mg IV als Kurzinfusion 1× jährlich (mind. 15 min)",
+    zulassung:"Postmenopausale Osteoporose; Osteoporose beim Mann; Glukokortikoid-induzierte Osteoporose; Morbus Paget",
+    anmerkung:"Sehr hohe Adhärenz durch jährliche Gabe; häufig Grippeähnliche Reaktion nach Erstgabe",
+    nw:[
+      {id:"akutphase", label:"Akute-Phase-Reaktion: Fieber, Grippe, Muskelschmerzen (v.a. Erstgabe)",icd:"R68.89",haeuf:"sehr häufig (> 1/3 nach Erstgabe)"},
+      {id:"onj",      label:"Kieferosteonekrose (ONJ)",                 icd:"M87.18",haeuf:"selten"},
+      {id:"aff",      label:"Atypische Femurfraktur",                   icd:"M84.55",haeuf:"sehr selten"},
+      {id:"niere",    label:"Nierenfunktionsverschlechterung",          icd:"N17",   haeuf:"selten (Kontraindikation GFR < 35)"},
+      {id:"hypokal",  label:"Hypokalzämie",                             icd:"E83.51",haeuf:"häufig (Kalzium + Vit-D vor Gabe sichern)"},
+      {id:"vorhof",   label:"Vorhofflimmern",                           icd:"I48",   haeuf:"selten"},
+      {id:"myalg",    label:"Muskel-, Gelenk- und Knochenschmerzen",   icd:"M79.3", haeuf:"häufig"},
+      {id:"kopf",     label:"Kopfschmerzen",                            icd:"R51",   haeuf:"häufig"},
+      {id:"augenentz",label:"Augenentzündung (Uveitis/Skleritis)",    icd:"H20",   haeuf:"selten"},
+    ]
+  },
+  {
+    id:"ibandronat_iv",gruppe:"Bisphosphonate (intravenös)",
+    wirkstoff:"Ibandronsäure IV",
+    handelsnamen:"Bonviva® 3 mg Injektionslösung (alle 3 Monate)",
+    dosierung:"3 mg IV alle 3 Monate",
+    zulassung:"Postmenopausale Osteoporose",
+    anmerkung:"Quartalsgabe; geringeres Akutphasenproblem als Zoledronsäure",
+    nw:[
+      {id:"akutphase",label:"Grippeähnliche Reaktion nach Injektion", icd:"R68.89",haeuf:"gelegentlich"},
+      {id:"onj",      label:"Kieferosteonekrose (ONJ)",               icd:"M87.18",haeuf:"selten"},
+      {id:"hypokal",  label:"Hypokalzämie",                           icd:"E83.51",haeuf:"gelegentlich"},
+      {id:"niere",    label:"Nierenfunktionsverschlechterung",        icd:"N17",   haeuf:"selten"},
+      {id:"myalg",    label:"Muskel- und Knochenschmerzen",          icd:"M79.3", haeuf:"gelegentlich"},
+    ]
+  },
+  // ── RANKL-Antikörper ──
+  {
+    id:"denosumab",gruppe:"RANKL-Antikörper",
+    wirkstoff:"Denosumab",
+    handelsnamen:"Prolia® 60 mg Fertigspritze (alle 6 Monate s.c.)",
+    dosierung:"60 mg subkutan alle 6 Monate (Injektionsabstand darf nicht überschritten werden!)",
+    zulassung:"Postmenopausale Osteoporose; Osteoporose beim Mann; Glukokortikoid-induzierte Osteoporose",
+    anmerkung:"ACHTUNG: Absetzen ohne Anschlusspräparat → schwere Rebound-Frakturen! Strenge Adhärenz nötig.",
+    nw:[
+      {id:"hypokal",    label:"Hypokalzämie (oft schwer, bes. bei Nierenschwäche)", icd:"E83.51",haeuf:"häufig"},
+      {id:"infekt",     label:"Schwere Infektionen (Haut, Harnwege, Atemwege)",     icd:"A49.9", haeuf:"häufig"},
+      {id:"onj",        label:"Kieferosteonekrose (ONJ)",                             icd:"M87.18",haeuf:"selten"},
+      {id:"aff",        label:"Atypische Femurfraktur",                               icd:"M84.55",haeuf:"sehr selten"},
+      {id:"rebound",    label:"Rebound-Frakturen (Wirbelkörper) nach Absetzen",      icd:"M48.5", haeuf:"häufig bei Absetzen ohne Anschluss"},
+      {id:"haut",       label:"Hautreaktionen (Dermatitis, Ekzem, Urtikaria)",       icd:"L29.8", haeuf:"gelegentlich"},
+      {id:"myalg",      label:"Muskel- und Knochenschmerzen",                        icd:"M79.3", haeuf:"gelegentlich"},
+      {id:"hypophosph", label:"Hypokalzämie / Hypokalzämie",                         icd:"E83.51",haeuf:"häufig"},
+    ]
+  },
+  // ── Parathormon-Analoga ──
+  {
+    id:"teriparatid",gruppe:"Parathormon-Analoga (anabol)",
+    wirkstoff:"Teriparatid",
+    handelsnamen:"Forsteo® 20 µg/Tag, Terrosa® 20 µg/Tag, Movymia® 20 µg/Tag (Fertigpen, täglich s.c.)",
+    dosierung:"20 µg subkutan täglich (max. 24 Monate Gesamtdauer)",
+    zulassung:"Schwere postmenopausale Osteoporose; Osteoporose beim Mann; Glukokortikoid-induzierte Osteoporose",
+    anmerkung:"Anaboles Prinzip: Knochenneubildung. Maximale Therapiedauer 24 Monate. Danach Anschlusspräparat zwingend.",
+    nw:[
+      {id:"hyperkal",   label:"Hyperkalzämie (zu hoher Kalziumspiegel)",             icd:"E83.52",haeuf:"gelegentlich"},
+      {id:"nausea",     label:"Übelkeit / Erbrechen",                                icd:"R11",   haeuf:"häufig"},
+      {id:"schwindel",  label:"Schwindel / Benommenheit",                            icd:"R42",   haeuf:"häufig"},
+      {id:"kopf",       label:"Kopfschmerzen",                                        icd:"R51",   haeuf:"häufig"},
+      {id:"krampf",     label:"Muskelkrämpfe (Wadenkrämpfe)",                        icd:"R25.2", haeuf:"häufig"},
+      {id:"hypotonie",  label:"Orthostatische Hypotonie (Schwindel beim Aufstehen)", icd:"I95.1", haeuf:"gelegentlich"},
+      {id:"harnsaeure", label:"Erhöhte Harnsäure / Gicht",                          icd:"M10.9", haeuf:"gelegentlich"},
+      {id:"tachy",      label:"Herzrasen (Tachykardie)",                              icd:"R00.0", haeuf:"gelegentlich"},
+    ]
+  },
+  {
+    id:"abaloparatid",gruppe:"Parathormon-Analoga (anabol)",
+    wirkstoff:"Abaloparatid",
+    handelsnamen:"Eladynos® 80 µg/Tag (Fertigpen, täglich s.c.) – seit 2023 in EU zugelassen",
+    dosierung:"80 µg subkutan täglich",
+    zulassung:"Schwere postmenopausale Osteoporose (hoches Frakturrisiko)",
+    anmerkung:"Neueres PTHrP-Analogon; ähnliches Wirkprinzip wie Teriparatid; ebenfalls max. 18 Monate",
+    nw:[
+      {id:"hyperkal",  label:"Hyperkalzämie",                                icd:"E83.52",haeuf:"gelegentlich"},
+      {id:"nausea",    label:"Übelkeit",                                      icd:"R11",   haeuf:"häufig"},
+      {id:"schwindel", label:"Schwindel",                                     icd:"R42",   haeuf:"häufig"},
+      {id:"hypotonie", label:"Orthostatische Hypotonie",                      icd:"I95.1", haeuf:"gelegentlich"},
+      {id:"herzrate",  label:"Erhöhte Herzrate (Palpitationen)",              icd:"R00.2", haeuf:"gelegentlich"},
+      {id:"reaktion",  label:"Lokalreaktion an der Injektionsstelle",         icd:"T88.7", haeuf:"sehr häufig"},
+    ]
+  },
+  // ── Sklerostin-Antikörper ──
+  {
+    id:"romosozumab",gruppe:"Sklerostin-Antikörper (anabol + antiresorptiv)",
+    wirkstoff:"Romosozumab",
+    handelsnamen:"Evenity® 210 mg/Monat (2 s.c.-Injektionen à 105 mg) – seit 2020 in EU",
+    dosierung:"210 mg subkutan 1× pro Monat (12 Monate Gesamttherapie), dann Umstieg auf Antiresorptivum",
+    zulassung:"Schwere postmenopausale Osteoporose; Hochrisikopatienten",
+    anmerkung:"KONTRAINDIKATION: Vorheriger Herzinfarkt oder Schlaganfall (erhöhtes kardiovaskuläres Risiko laut EMA-Auflage)",
+    nw:[
+      {id:"kv",      label:"Herzinfarkt / Schlaganfall (erhöhtes Risiko – Kontraindikation bei Vorgeschichte!)", icd:"I25.9",haeuf:"selten"},
+      {id:"onj",     label:"Kieferosteonekrose (ONJ)",                        icd:"M87.18",haeuf:"selten"},
+      {id:"aff",     label:"Atypische Femurfraktur",                          icd:"M84.55",haeuf:"sehr selten"},
+      {id:"reaktion",label:"Lokalreaktion an der Injektionsstelle",           icd:"T88.7", haeuf:"sehr häufig"},
+      {id:"arthr",   label:"Gelenkschmerzen (Arthralgie)",                    icd:"M25.5", haeuf:"häufig"},
+      {id:"kopf",    label:"Kopfschmerzen",                                    icd:"R51",   haeuf:"gelegentlich"},
+      {id:"hypokal", label:"Hypokalzämie",                                    icd:"E83.51",haeuf:"gelegentlich"},
+    ]
+  },
+  // ── SERM ──
+  {
+    id:"raloxifen",gruppe:"SERM – Selektive Östrogen-Rezeptor-Modulatoren",
+    wirkstoff:"Raloxifen",
+    handelsnamen:"Evista® 60 mg/Tag, Optruma® 60 mg/Tag (Tablette, täglich oral)",
+    dosierung:"60 mg täglich oral",
+    zulassung:"Postmenopausale Osteoporose (bevorzugt bei zusätzlichem Mamma-Karzinom-Risiko)",
+    anmerkung:"Nur für Frauen; keine HRT-Wirkung auf Hitzewallungen (kann diese sogar verstärken)",
+    nw:[
+      {id:"tvt",      label:"Tiefe Venenthrombose (TVT)",                    icd:"I82.4", haeuf:"selten (erhöhtes Risiko)"},
+      {id:"le",       label:"Lungenembolie",                                  icd:"I26",   haeuf:"selten"},
+      {id:"hitzew",   label:"Hitzewallungen / Schweißausbrüche",             icd:"N95.1", haeuf:"sehr häufig"},
+      {id:"beinoede", label:"Beinödeme / Beinschwellung",                    icd:"R60.0", haeuf:"häufig"},
+      {id:"wadenkr",  label:"Wadenkrämpfe",                                   icd:"R25.2", haeuf:"häufig"},
+      {id:"schwindel",label:"Schwindel",                                      icd:"R42",   haeuf:"gelegentlich"},
+      {id:"grippe",   label:"Grippeartige Symptome",                          icd:"J06.9", haeuf:"gelegentlich"},
+    ]
+  },
+  {
+    id:"bazedoxifen",gruppe:"SERM – Selektive Östrogen-Rezeptor-Modulatoren",
+    wirkstoff:"Bazedoxifen",
+    handelsnamen:"Conbriza® 20 mg/Tag (Tablette); Duavive® (Kombination mit konjugierten Östrogenen)",
+    dosierung:"20 mg täglich oral",
+    zulassung:"Postmenopausale Osteoporose (bei Unverträglichkeit anderer Substanzen)",
+    anmerkung:"Selten eingesetzt; Kombination mit Östrogen (Duavive) bei Wechseljahresbeschwerden + Osteoporose",
+    nw:[
+      {id:"tvt",    label:"Tiefe Venenthrombose (TVT)",                      icd:"I82.4", haeuf:"selten"},
+      {id:"hitzew", label:"Hitzewallungen / Schweißausbrüche",               icd:"N95.1", haeuf:"häufig"},
+      {id:"muskeln",label:"Muskelkrämpfe / Wadenkrämpfe",                    icd:"R25.2", haeuf:"gelegentlich"},
+      {id:"abdomen",label:"Bauchschmerzen / Übelkeit",                       icd:"R10.1", haeuf:"gelegentlich"},
+    ]
+  },
+  // ── Historisch / nicht mehr im Einsatz ──
+  {
+    id:"strontium",gruppe:"Historisch (nicht mehr erhältlich)",
+    wirkstoff:"Strontiumranelat",
+    handelsnamen:"Protelos® 2 g/Tag (seit 2017 in Deutschland vom Markt genommen)",
+    dosierung:"2 g täglich oral (abends, 2 h nach Mahlzeit)",
+    zulassung:"Postmenopausale Osteoporose; Osteoporose beim Mann (ehemalige Zulassung)",
+    anmerkung:"Seit 2017 nicht mehr in Deutschland erhältlich (EU-Marktrücknahme wegen kardiovaskulärem Risiko). Fragen relevant für Therapieanamnese älterer Patienten.",
+    nw:[
+      {id:"herzinfarkt",label:"Herzinfarkt / Koronare Ereignisse (Grund für Marktrücknahme)", icd:"I21",  haeuf:"selten (aber Risikoerhöhung)"},
+      {id:"tvt",        label:"Tiefe Venenthrombose",                                          icd:"I82.4",haeuf:"selten"},
+      {id:"dress",      label:"DRESS-Syndrom (schwere Hautreaktion + Organbeteiligung)",        icd:"L27.1",haeuf:"sehr selten"},
+      {id:"nausea",     label:"Übelkeit / Diarrhoe",                                           icd:"R11",  haeuf:"sehr häufig"},
+      {id:"kopf",       label:"Kopfschmerzen / Schwindel",                                     icd:"R51",  haeuf:"häufig"},
+      {id:"memory",     label:"Gedächtnisstörungen / Kognitive Beeinträchtigung",              icd:"F06.7",haeuf:"selten"},
+    ]
+  },
+  {
+    id:"kalzitonin",gruppe:"Historisch (nicht mehr für Osteoporose zugelassen)",
+    wirkstoff:"Lachskalzitonin",
+    handelsnamen:"Miacalcic® Nasenspray (Zulassung für Osteoporose 2013 von EMA widerrufen)",
+    dosierung:"200 IE/Tag intranasal (historisch)",
+    zulassung:"Ehemals: Postmenopausale Osteoporose (Zulassung wegen Krebsrisiko entzogen)",
+    anmerkung:"Seit 2013 nicht mehr für Osteoporose zugelassen; relevant für ältere Therapieanamnesen",
+    nw:[
+      {id:"krebsrisiko",label:"Erhöhtes Krebsrisiko (Grund für Zulassungsentzug)",  icd:"C80.1",haeuf:"erhöhtes Langzeitrisiko"},
+      {id:"rhinitis",   label:"Rhinitis / Nasenreizung",                              icd:"J31.0",haeuf:"sehr häufig"},
+      {id:"flush",      label:"Hitzegefühl / Flush",                                  icd:"R23.2",haeuf:"häufig"},
+      {id:"nausea",     label:"Übelkeit / Bauchschmerzen",                            icd:"R11",  haeuf:"häufig"},
+    ]
+  },
+];
+
+
+function buildOsteoTherapieDefaults(){ return JSON.parse(JSON.stringify(OSTEO_THERAPIE_DEFAULTS)); }
+
+const ABSETZ_GRUENDE=[
+  {id:"nw",      label:"Nebenwirkung / Unverträglichkeit"},
+  {id:"ziel",    label:"Therapieziel erreicht / planmäßiges Ende"},
+  {id:"arzt",    label:"Ärztliche Entscheidung (Sonstiges)"},
+  {id:"patient", label:"Patientenwunsch"},
+  {id:"kosten",  label:"Kostenübernahme / Zuzahlung"},
+  {id:"non_adn", label:"Schwierige Einnahme / Adhärenz-Problem"},
+  {id:"sonstige",label:"Sonstiger Grund"},
+];
+
 function App(){
   const today=new Date().toLocaleDateString("de-DE");
   const[lh,setLh]=useState(DEFAULT_LH);
@@ -5341,6 +5932,9 @@ function App(){
   const[sekUntersDb,setSekUntersDb]=useState(()=>buildSekUntersDefaults());
   const[sekQsDb,setSekQsDb]=useState(()=>buildSekQsDefaults());
   const[sekScoringDb,setSekScoringDb]=useState(()=>buildSekScoringDefaults());
+  const[osteoTherapieDb,setOsteoTherapieDb]=useState(()=>buildOsteoTherapieDefaults());
+  const[therapieHistory,setTherapieHistory]=useState([]); // [{medId,vonJahr,bisJahr,nochAktuell,dosierung,abgesetzt,absetzGrund,absetzNwIds,anmerkung}]
+  const[openTherap,setOpenTherap]=useState(true);
   const[adminOpen,setAdminOpen]=useState(false);
   const[adminPin,setAdminPin]=useState("");
   const[adminUnlocked,setAdminUnlocked]=useState(false);
@@ -5464,7 +6058,7 @@ function App(){
     await saveSession();
     const r=computeRisk(answers,gender);
     const d=prevSession?computeDiff(answers,prevSession,gender):null;
-    const text=buildTextExport(patient,gender,answers,r,d,lh,diagDb,sekDiagDb,anamnese);
+    const text=buildTextExport(patient,gender,answers,r,d,lh,diagDb,sekDiagDb,anamnese,therapieHistory,osteoTherapieDb);
     const fname=makeFilename("txt");
     // Try native File System Access API (shows real "Speichern unter" dialog)
     if(typeof window.showSaveFilePicker==="function"){
@@ -5507,6 +6101,7 @@ function App(){
     setAnamnese({diagnosen:[],weitere:[],allergien:[],familienanamnese:[],fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]});
     setPainMaps({});
     setSekStatus({});
+    setTherapieHistory([]);
     setPatient({name:"",geburtsdatum:"",fillDate:today});setGender(null);setDisclaimerOk(false);
     storageSet(STORE_DRAFT,null);
   };
@@ -5690,6 +6285,12 @@ function App(){
               setPainMaps={setPainMaps}
               open={openPain}
               onToggle={()=>setOpenPain(v=>!v)}/>
+            <OsteoTherapieSection
+              history={therapieHistory}
+              setHistory={setTherapieHistory}
+              db={osteoTherapieDb}
+              open={openTherap}
+              onToggle={()=>setOpenTherap(v=>!v)}/>
           </>
         )}
 
@@ -5757,7 +6358,9 @@ function App(){
           onSaveSekProfile={db=>{setSekProfileDb(db);saveSekDb(SEK_PROFILE_KEY,db,buildSekProfileDefaults);}}
           onSaveSekUnters={db=>{setSekUntersDb(db);saveSekDb(SEK_UNTERS_KEY,db,buildSekUntersDefaults);}}
           onSaveSekQs={db=>{setSekQsDb(db);saveSekDb(SEK_QS_KEY,db,buildSekQsDefaults);}}
-          onSaveSekScoring={db=>{setSekScoringDb(db);saveSekDb(SEK_SCORING_KEY,db,buildSekScoringDefaults);}}/>
+          onSaveSekScoring={db=>{setSekScoringDb(db);saveSekDb(SEK_SCORING_KEY,db,buildSekScoringDefaults);}}
+          osteoTherapieDb={osteoTherapieDb}
+          onSaveTherapieDb={db=>{setOsteoTherapieDb(db);}}/>
       )}
             {camOpen&&(
         <CameraScanner onMedsFound={handleCamMeds} onClose={()=>setCamOpen(false)}/>
