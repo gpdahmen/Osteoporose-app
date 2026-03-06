@@ -325,7 +325,7 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 .viewer-txt{flex:1;margin:0;padding:20px 24px;font-family:'Courier New',monospace;font-size:12.5px;line-height:1.7;white-space:pre;color:#1a1208;background:#f5f0e8;border:none;resize:none;outline:none;width:100%;box-sizing:border-box}
 .viewer-iframe{flex:1;border:none;background:white}
 .admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:flex;align-items:center;justify-content:center}
-.admin-panel{background:white;border-radius:10px;width:min(860px,97vw);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 12px 50px rgba(0,0,0,.3);overflow:hidden}
+.admin-panel{background:white;border-radius:10px;width:min(1020px,98vw);max-height:96vh;display:flex;flex-direction:column;box-shadow:0 12px 50px rgba(0,0,0,.3);overflow:hidden}
 .admin-head{background:#1a1208;color:#e8ddd0;padding:14px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
 .admin-head-title{flex:1;font-family:'Playfair Display',serif;font-size:16px;font-weight:700}
 .admin-pin-wrap{display:flex;align-items:center;gap:10px;padding:20px;border-bottom:1px solid #ece5d8;background:#fdf9f4}
@@ -4800,7 +4800,11 @@ function flattenEntries(id, entries, original){
   return result;
 }
 
-function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScoringDb,osteoTherapieDb,onSave,onSaveSek,onSaveSekProfile,onSaveSekUnters,onSaveSekQs,onSaveSekScoring,onSaveTherapieDb,onClose}){
+function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScoringDb,osteoTherapieDb,onSave,onSaveSek,onSaveSekProfile,onSaveSekUnters,onSaveSekQs,onSaveSekScoring,onSaveTherapieDb,onClose,
+  // Auswertung props
+  gender,answers,patient,anamnese,therapieHistory,lh,sessions,sekStatus,setSekStatus,
+  onExportPdf,onExportTxt,onLoadSession,onDeleteSession,
+  initialTab,diff}){
   const ICD5_RE=/^[A-Z]\d{2}\.[\d]{2}[XG]?G?$/;
   const validateIcd=(s)=>(s||"").trim()===""||ICD5_RE.test((s||"").trim());
   const allIds=Object.keys(DIAG_DB_DEFAULTS);
@@ -4818,7 +4822,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
   const[pinErr,setPinErr]=useState(false);
   const[unlocked,setUnlocked]=useState(false);
   const[search,setSearch]=useState("");
-  const[activeTab,setActiveTab]=useState("risiko"); // "risiko" | "sek"
+  const[activeTab,setActiveTab]=useState(initialTab||"auswertung"); // "auswertung" | "risiko" | "sek" | "therapie"
   // Secondary DB draft
   const sekAllIds=Object.keys(SEK_DIAG_DB_DEFAULTS);
   const[sekDraft,setSekDraft]=useState(()=>{
@@ -4864,6 +4868,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
   };
 
   const handleSave=()=>{
+    if(activeTab==="auswertung"||activeTab==="verlauf"){ onClose(); return; }
     if(activeTab==="risiko"){ onSave(draft); }
     else if(activeTab==="therapie"){ onSaveTherapieDb(therapieDraft); }
     else {
@@ -4876,6 +4881,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
     onClose();
   };
   const handleReset=()=>{
+    if(activeTab==="auswertung"||activeTab==="verlauf"){ return; }
     if(activeTab==="risiko"){
       if(window.confirm("Alle Risikofaktor-Diagnosen auf Standardwerte zurücksetzen?")){
         setDraft(()=>{
@@ -4935,7 +4941,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
     <div className="admin-overlay" onClick={onClose}>
       <div className="admin-panel" onClick={e=>e.stopPropagation()}>
         <div className="admin-head">
-          <span className="admin-head-title">⚙️ Admin – Diagnose-Datenbank</span>
+          <span className="admin-head-title">🩺 Arzt-Zugang – Auswertung &amp; Einstellungen</span>
           <button className="viewer-close" onClick={onClose}>×</button>
         </div>
         {!unlocked?(
@@ -4952,7 +4958,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
           <>
             {/* Tab bar */}
             <div style={{display:"flex",background:"#1a1208",borderBottom:"2px solid #c8a070",flexShrink:0}}>
-              {[["risiko","🦴 Risikofaktoren"],["sek","🔎 Sekundäre Osteoporose"],["therapie","💊 Osteoporose-Therapie"]].map(([key,label])=>(
+              {[["auswertung","📊 Auswertung"],["verlauf","📂 Verlauf"],["risiko","🦴 Risikofaktoren"],["sek","🔎 Sekundäre Osteoporose"],["therapie","💊 Osteoporose-Therapie"]].map(([key,label])=>(
                 <button key={key} onClick={()=>setActiveTab(key)}
                   style={{padding:"10px 20px",border:"none",cursor:"pointer",
                     fontFamily:"'Source Sans 3',sans-serif",fontSize:13,fontWeight:700,
@@ -4965,8 +4971,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
               ))}
             </div>
 
-            {/* Search bar + info */}
-            <div style={{padding:"8px 14px",background:"#fef9f4",borderBottom:"1px solid #ece5d8",
+            {/* Search bar + info – DB tabs only */}
+            {(activeTab!=="auswertung"&&activeTab!=="verlauf")&&<div style={{padding:"8px 14px",background:"#fef9f4",borderBottom:"1px solid #ece5d8",
               display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",flexShrink:0}}>
               <input
                 value={search} onChange={e=>setSearch(e.target.value)}
@@ -4987,10 +4993,90 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
               <span style={{fontSize:11,color:"#7a6a58"}}>
                 ICD-10: Buchstabe + 2 Ziffern + Punkt + 2 Ziffern + G&nbsp;&nbsp;·&nbsp;&nbsp;Rote Felder = ungültiges Format
               </span>
-            </div>
+            </div>}
 
             {/* Card list */}
             <div className="admin-scroll">
+              {/* ═══ AUSWERTUNG TAB ═══════════════════════════════════════ */}
+              {activeTab==="auswertung"&&(()=>{
+                const risk=gender?computeRisk(answers,gender):null;
+                const iSt={padding:"5px 9px",border:"1px solid #d8c8b0",borderRadius:6,fontSize:13,fontFamily:"inherit",background:"white",outline:"none"};
+                return(
+                  <div style={{padding:"6px 0"}}>
+                    {!gender&&(
+                      <div style={{padding:"20px",textAlign:"center",color:"#9b8a7a",fontSize:14}}>
+                        Bitte zuerst im Fragebogen das Geschlecht auswählen.
+                      </div>
+                    )}
+                    {gender&&(<>
+                      {/* Export-Buttons */}
+                      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14,padding:"10px 4px"}}>
+                        <button onClick={onExportPdf}
+                          style={{padding:"9px 18px",borderRadius:6,border:"1.5px solid var(--P)",background:"white",color:"var(--M)",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
+                          🖨 PDF speichern
+                        </button>
+                        <button onClick={onExportTxt}
+                          style={{padding:"9px 18px",borderRadius:6,border:"1.5px solid var(--P)",background:"white",color:"var(--M)",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
+                          💾 TXT speichern
+                        </button>
+                        <button onClick={()=>{ onClose(); }}
+                          style={{padding:"9px 18px",borderRadius:6,border:"1.5px solid #9b7a5a",background:"#faf4ed",color:"#5a3010",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
+                          ← Zurück zum Fragebogen
+                        </button>
+                      </div>
+
+                      {/* Risiko-Ergebnis */}
+                      <ResultCard gender={gender} answers={answers} patient={patient} diff={diff}/>
+
+                      {/* Sekundärformen */}
+                      <div style={{marginTop:12}}>
+                        <SecondaryPanel answers={answers}
+                          sekProfileDb={sekProfileDb} sekUntersDb={sekUntersDb}
+                          sekQsDb={sekQsDb} sekScoringDb={sekScoringDb}
+                          sekStatus={sekStatus} onSekStatus={setSekStatus}/>
+                      </div>
+                    </>)}
+                  </div>
+                );
+              })()}
+
+              {/* ═══ VERLAUF TAB ════════════════════════════════════════════ */}
+              {activeTab==="verlauf"&&(
+                <div style={{padding:"6px 0"}}>
+                  <div style={{marginBottom:10,padding:"8px 12px",background:"#f0f8ff",border:"1px solid #c0d8f0",borderRadius:7,fontSize:12.5,color:"#2a4a7a"}}>
+                    Gespeicherte Befundsitzungen dieses Geräts. Klick auf „Laden" stellt den Befund wieder her.
+                  </div>
+                  {(!sessions||sessions.length===0)&&(
+                    <div style={{padding:"20px",textAlign:"center",color:"#9b8a7a",fontSize:13}}>
+                      Noch keine gespeicherten Sitzungen vorhanden.
+                    </div>
+                  )}
+                  {(sessions||[]).map(s=>(
+                    <div key={s.id} style={{marginBottom:8,padding:"10px 13px",background:"white",border:"1px solid #e0d4c0",borderRadius:8,display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+                      <div style={{flex:1,minWidth:180}}>
+                        <div style={{fontWeight:700,fontSize:13,color:"#3a2010"}}>{s.patient?.name||"(kein Name)"}</div>
+                        <div style={{fontSize:12,color:"#7a6a5a"}}>
+                          {s.fillDate||"–"} · {s.gender==="f"?"Frau":"Mann"} · {s.patient?.geburtsdatum||"Geb. unbekannt"}
+                        </div>
+                        {s.riskSnapshot&&<div style={{fontSize:11.5,color:"#9b7a5a",marginTop:2}}>
+                          Risiko: {s.riskSnapshot.cat||"–"} · 10-J.-Frakturrisiko: {s.riskSnapshot.r10!=null?((s.riskSnapshot.r10||0)*100).toFixed(1)+"%":"–"}
+                        </div>}
+                      </div>
+                      <div style={{display:"flex",gap:6}}>
+                        <button onClick={()=>{onLoadSession(s);onClose();}}
+                          style={{padding:"5px 13px",borderRadius:5,border:"1px solid #9b7a5a",background:"#faf4ed",color:"#5a3010",cursor:"pointer",fontSize:12,fontFamily:"inherit",fontWeight:600}}>
+                          ↩ Laden
+                        </button>
+                        <button onClick={()=>onDeleteSession(s.id)}
+                          style={{padding:"5px 10px",borderRadius:5,border:"1px solid #fca5a5",background:"#fee2e2",color:"#dc2626",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {activeTab==="risiko" ? filteredIds.map(id=>{
                 const row = draft[id]||{};
                 const entries = normEntries(row);
@@ -5478,8 +5564,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
             </div>
 
             <div className="admin-footer">
-              <button className="admin-reset-btn" onClick={handleReset}>↩ Auf Standard zurücksetzen</button>
-              <button className="admin-save-btn" onClick={handleSave}>✓ Speichern</button>
+              {(activeTab!=="auswertung"&&activeTab!=="verlauf")&&<button className="admin-reset-btn" onClick={handleReset}>↩ Auf Standard zurücksetzen</button>}
+              <button className="admin-save-btn" onClick={handleSave}>{(activeTab==="auswertung"||activeTab==="verlauf")?"✕ Schließen":"✓ Speichern & Schließen"}</button>
             </div>
           </>
         )}
@@ -6084,6 +6170,7 @@ function App(){
   const[adminOpen,setAdminOpen]=useState(false);
   const[adminPin,setAdminPin]=useState("");
   const[adminUnlocked,setAdminUnlocked]=useState(false);
+  const[arztStartTab,setArztStartTab]=useState("auswertung"); // "auswertung" | "risiko" | "sek" | "therapie" 
   const ADMIN_PIN="1234";
   const[viewer,setViewer]=useState(null); // {type:"txt"|"pdf", content:string}
   const[camOpen,setCamOpen]=useState(false);
@@ -6155,7 +6242,7 @@ function App(){
     return s.patient?.name?.toLowerCase()===patient.name.toLowerCase()&&
            (!patient.geburtsdatum||s.patient?.geburtsdatum===patient.geburtsdatum);
   }).slice(-1)[0]||null;
-  const diff=showResult&&prevSession?computeDiff(answers,prevSession,gender):null;
+  const diff=prevSession?computeDiff(answers,prevSession,gender):null;
   const risk=gender?computeRisk(answers,gender):null;
 
   // Save session to history
@@ -6273,21 +6360,11 @@ function App(){
       <div className="app">
 
         <div className="action-strip">
-          <div className="action-strip-title">📁 Befunde &amp; Ausgabe</div>
-          <button className="as-btn" onClick={()=>setShowHist(v=>!v)}>
-            📂 Verlauf ({sessions.length})
+          <div className="action-strip-title">🩺 Anamnese- und Osteoporose-Dokumentationshilfe</div>
+          <button className="as-btn" style={{marginLeft:"auto",background:"#c8a070",color:"#2c1f0e",borderColor:"#c8a070",fontWeight:700,fontSize:13}}
+            onClick={()=>{setArztStartTab("auswertung");setAdminOpen(true);}}>
+            🩺 Arzt-Zugang
           </button>
-          {sessions.length>0&&(
-            <button className="as-btn hi" onClick={()=>handleLoadSession(sessions[0])}>
-              ⟳ {sessions[0]?.patient?.name||"Letzten"} ({sessions[0]?.fillDate||"–"}) laden
-            </button>
-          )}
-          <button className="as-btn" style={{marginLeft:"auto"}} onClick={()=>setAdminOpen(true)}>⚙️ Admin</button>
-          {gender&&<>
-            <button className="as-btn" onClick={handleCalc}>📊 Auswertung</button>
-            <button className="as-btn" onClick={handlePrint}>🖨 PDF speichern unter…</button>
-            <button className="as-btn" onClick={handleText}>💾 TXT speichern unter…</button>
-          </>}
         </div>
 
         {/* ── Letterhead (screen + print) ── */}
@@ -6459,36 +6536,26 @@ function App(){
           );
         })}
 
-        {/* ── Bottom Action Bar (at end as requested) ── */}
+        {/* ── Bottom Bar: Patientenaktionen ── */}
         {gender&&(
           <div className="bottom-bar">
-            <div className="bottom-bar-title">🗂 Aktionen &amp; Ausgabe</div>
+            <div className="bottom-bar-title">📋 Fragebogen abgeschlossen?</div>
+            <div style={{fontSize:13.5,color:"#5a4a3a",marginBottom:14,lineHeight:1.7}}>
+              Wenn Sie alle Fragen beantwortet haben, ist der Fragebogen fertig.
+              <strong> Bitte geben Sie das Gerät an die Praxis weiter</strong> – die Auswertung
+              und der Befundbericht werden vom medizinischen Personal im Arzt-Zugang erstellt.
+            </div>
             <div className="btn-row">
-              <button className="btn-calc no-print" onClick={handleCalc}>📊 Auswertung berechnen</button>
-              <button className="btn-pdf no-print" onClick={handlePrint}>🖨 Als PDF speichern unter…</button>
-              <button className="btn-txt no-print" onClick={handleText}>📄 Textdatei speichern unter…</button>
-              <button className="btn-hist no-print" onClick={()=>setShowHist(v=>!v)}>
-                📂 Verlauf ({sessions.filter(s=>s.gender===gender||(patient.name&&s.patient?.name?.toLowerCase()===patient.name.toLowerCase())).length})
+              <button className="btn-calc no-print" style={{background:"#c8a070",color:"#2c1f0e",border:"none",fontWeight:700}}
+                onClick={()=>{setArztStartTab("auswertung");setAdminOpen(true);}}>
+                🩺 Arzt-Zugang öffnen
               </button>
               <button className="btn-calc no-print" style={{background:"white",color:"var(--M)",border:"1.5px solid var(--P)"}}
-                onClick={openAllSections}>↕ Alle öffnen</button>
-              <button className="btn-reset no-print" onClick={handleReset}>↺ Zurücksetzen</button>
+                onClick={openAllSections}>↕ Alle Abschnitte öffnen</button>
+              <button className="btn-reset no-print" onClick={handleReset}>↺ Eingaben zurücksetzen</button>
             </div>
           </div>
         )}
-
-        {/* ── History Panel ── */}
-        {showHist&&<HistoryPanel sessions={sessions} onLoad={handleLoadSession}
-          onDelete={handleDeleteSession} onClose={()=>setShowHist(false)} gender={gender}/>}
-
-        {/* ── Result ── */}
-        {showResult&&gender&&(
-          <ResultCard gender={gender} answers={answers} patient={patient} diff={diff}/>
-        )}
-
-      {showResult&&gender&&(
-        <SecondaryPanel answers={answers} sekProfileDb={sekProfileDb} sekUntersDb={sekUntersDb} sekQsDb={sekQsDb} sekScoringDb={sekScoringDb} sekStatus={sekStatus} onSekStatus={setSekStatus}/>
-      )}
 
         <div className="disclaimer" style={{marginTop:18}}>
           Auswertung in Analogie zur <strong>DVO-Leitlinie 2023</strong> · AWMF-Register 183-001, Version 2.1 · November 2023 / Juni 2024
@@ -6498,7 +6565,7 @@ function App(){
             {adminOpen&&(
         <AdminPanel diagDb={diagDb} sekDiagDb={sekDiagDb}
           sekProfileDb={sekProfileDb} sekUntersDb={sekUntersDb} sekQsDb={sekQsDb} sekScoringDb={sekScoringDb}
-          onClose={()=>{setAdminOpen(false);setAdminPin("");}}
+          onClose={()=>{setAdminOpen(false);setAdminPin("");setShowResult(false);}}
           onSave={db=>{setDiagDb(db);saveDiagDb(db);}}
           onSaveSek={db=>{setSekDiagDb(db);saveSekDiagDb(db);}}
           onSaveSekProfile={db=>{setSekProfileDb(db);saveSekDb(SEK_PROFILE_KEY,db,buildSekProfileDefaults);}}
@@ -6506,7 +6573,14 @@ function App(){
           onSaveSekQs={db=>{setSekQsDb(db);saveSekDb(SEK_QS_KEY,db,buildSekQsDefaults);}}
           onSaveSekScoring={db=>{setSekScoringDb(db);saveSekDb(SEK_SCORING_KEY,db,buildSekScoringDefaults);}}
           osteoTherapieDb={osteoTherapieDb}
-          onSaveTherapieDb={db=>{setOsteoTherapieDb(db);}}/>
+          onSaveTherapieDb={db=>{setOsteoTherapieDb(db);}}
+          gender={gender} answers={answers} patient={patient} anamnese={anamnese}
+          therapieHistory={therapieHistory} lh={lh} sessions={sessions}
+          sekStatus={sekStatus} setSekStatus={setSekStatus}
+          onExportPdf={handlePrint} onExportTxt={handleText}
+          onLoadSession={handleLoadSession} onDeleteSession={handleDeleteSession}
+          initialTab={arztStartTab||"auswertung"}
+          diff={diff}/>
       )}
             {camOpen&&(
         <CameraScanner onMedsFound={handleCamMeds} onClose={()=>setCamOpen(false)}/>
