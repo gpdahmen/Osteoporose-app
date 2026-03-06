@@ -2837,6 +2837,14 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
     if(answers.dxa_tbs)lines.push(`TBS                  : ${answers.dxa_tbs}`);
     lines.push("");
   }
+  // ─ Aktuelle Medikamente (vom Patienten eingetragen) ─
+  const alleMeds=answers["alle_medikamente_rx"]||[];
+  if(alleMeds.length>0){
+    lines.push("AKTUELLE MEDIKATION (Patientenangabe)");lines.push(sub);
+    alleMeds.forEach(function(m,i){lines.push("  "+(i+1)+". "+m);});
+    lines.push("");
+  }
+
   // ─ Bisherige Osteoporose-Therapie ─
   const th=therapieHistory||[];
   const tdb=osteoTherapieDb||OSTEO_THERAPIE_DEFAULTS;
@@ -2969,6 +2977,80 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
 }
 
 /* ═══════════════════════════════════════════════ COMPONENTS ═══ */
+/* ── Medikamenten-Sammelbereich (oben in jeder Meds-Section) ── */
+function MedsSammlung({rxValue,onRx,onCameraOpen}){
+  const[text,setText]=useState("");
+  const tags=rxValue||[];
+  const addTag=(t)=>{const v=t.trim();if(!v||tags.includes(v))return;onRx("alle_medikamente_rx",[...tags,v]);};
+  const removeTag=(i)=>onRx("alle_medikamente_rx",tags.filter((_,j)=>j!==i));
+  const handleKey=(e)=>{if(e.key==="Enter"||e.key===","){addTag(text);setText("");}};
+  return(
+    <div style={{background:"#f0f7f4",border:"2px solid #4a8a6a",borderRadius:10,
+      padding:"16px 18px",marginBottom:18}}>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,fontWeight:700,
+        color:"#1a3a2a",marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
+        💊 Alle Ihre Medikamente – bitte hier eintragen
+      </div>
+
+      {/* Kamera-Button */}
+      <button onClick={onCameraOpen} className="no-print" style={{
+        width:"100%",padding:"13px 16px",
+        background:"linear-gradient(135deg,#1a3a2a,#2a5a3a)",
+        color:"white",border:"none",borderRadius:8,cursor:"pointer",
+        fontFamily:"'Source Sans 3',sans-serif",fontSize:13.5,fontWeight:600,
+        display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+        boxShadow:"0 3px 12px rgba(0,0,0,.2)",marginBottom:8}}>
+        <span style={{fontSize:20}}>📷</span>
+        <div style={{textAlign:"left"}}>
+          <div>Medikamentenplan oder Schachtel fotografieren</div>
+          <div style={{fontSize:11,fontWeight:400,opacity:.8,marginTop:2}}>
+            QR-Code (Einheitlicher Medikationsplan) · Barcode (PZN/EAN) · KI-Fotoerkennung
+          </div>
+        </div>
+      </button>
+
+      {/* Klarschrift-Eingabe */}
+      <div style={{display:"flex",gap:8,marginBottom:10}}>
+        <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={handleKey}
+          placeholder="Medikamentenname eingeben, dann Enter drücken…"
+          style={{flex:1,padding:"9px 12px",border:"1.5px solid #7ab0a0",borderRadius:6,
+            fontSize:13.5,fontFamily:"'Source Sans 3',sans-serif",outline:"none",
+            background:"white",color:"#1a3a2a"}}/>
+        <button onClick={()=>{addTag(text);setText("");}}
+          style={{padding:"9px 16px",background:"#2a6a4a",color:"white",border:"none",
+            borderRadius:6,cursor:"pointer",fontSize:13,fontWeight:600,
+            fontFamily:"'Source Sans 3',sans-serif",whiteSpace:"nowrap"}}>
+          + Hinzufügen
+        </button>
+      </div>
+
+      {/* Eingetragene Medikamente */}
+      {tags.length===0
+        ? <div style={{fontSize:12,color:"#6a8a7a",fontStyle:"italic",padding:"6px 2px"}}>
+            Noch keine Medikamente eingetragen – bitte Kamera nutzen oder Namen eingeben
+          </div>
+        : <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {tags.map((t,i)=>(
+              <span key={i} style={{display:"inline-flex",alignItems:"center",gap:5,
+                padding:"5px 10px",background:"#d4ede4",border:"1px solid #7ab0a0",
+                borderRadius:20,fontSize:12.5,color:"#1a3a2a",fontWeight:500}}>
+                💊 {t}
+                <button onClick={()=>removeTag(i)} className="no-print"
+                  style={{background:"none",border:"none",cursor:"pointer",
+                    color:"#5a8a6a",fontSize:14,lineHeight:1,padding:"0 2px",fontWeight:700}}>
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+      }
+      <div style={{fontSize:11,color:"#6a8a7a",marginTop:8,lineHeight:1.5}}>
+        ℹ Tragen Sie alle Medikamente ein, die Sie regelmäßig einnehmen. Die Fragen unten helfen dem Arzt, die knochenrelevanten Präparate einzuordnen.
+      </div>
+    </div>
+  );
+}
+
 function MedInput({qid,meds,rxValue,onRx,autoOpen}){
   const[open,setOpen]=useState(false);
   React.useEffect(()=>{if(autoOpen)setOpen(true);},[autoOpen]);
@@ -3103,6 +3185,7 @@ function Question({q,value,onChange,answered,rxValue,onRx}){
 }
 
 function Section({section,open,onToggle,answers,onAnswer,onRx,hasRisk,onCameraOpen}){
+  const isMeds=section.id==="meds"||section.id==="meds_f"||section.id==="meds_m";
   return(
     <div className="sec">
       <div className={`sec-hdr${open?" open":""}${hasRisk?" has-risk":""}`} onClick={onToggle}>
@@ -3116,20 +3199,18 @@ function Section({section,open,onToggle,answers,onAnswer,onRx,hasRisk,onCameraOp
         <span className="chev">▼</span>
       </div>
       <div className={`sec-body${open?" open":""}`}>
-        {(section.id==="meds"||section.id==="meds_f"||section.id==="meds_m")&&onCameraOpen&&(
-          <div style={{margin:"12px 0 16px 0"}}>
-            <button onClick={onCameraOpen} style={{
-              width:"100%",padding:"14px 16px",background:"linear-gradient(135deg,#1a3a2a,#2a5a3a)",
-              color:"white",border:"none",borderRadius:8,cursor:"pointer",
-              fontFamily:"'Source Sans 3',sans-serif",fontSize:14,fontWeight:600,
-              display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-              boxShadow:"0 4px 14px rgba(0,0,0,.25)"}}>
-              <span style={{fontSize:22}}>📷</span>
-              <span>Photographieren Sie Ihren Medikamentenplan oder Medikamentenschachteln</span>
-            </button>
-            <div style={{fontSize:11,color:"#8b7a68",textAlign:"center",marginTop:6,fontStyle:"italic"}}>
-              QR-Code (Einheitlicher Medikationsplan) · Barcode (PZN/EAN) · KI-Fotoerkennung
-            </div>
+        {isMeds&&onCameraOpen&&(
+          <MedsSammlung
+            rxValue={answers["alle_medikamente_rx"]}
+            onRx={onRx}
+            onCameraOpen={onCameraOpen}/>
+        )}
+        {isMeds&&(
+          <div style={{fontSize:12,fontWeight:700,color:"#7a5a38",letterSpacing:"1px",
+            textTransform:"uppercase",margin:"4px 0 12px",display:"flex",alignItems:"center",gap:8}}>
+            <span style={{flex:1,height:1,background:"#e8d8c0"}}/>
+            Bitte beantworten Sie jetzt die folgenden Fragen
+            <span style={{flex:1,height:1,background:"#e8d8c0"}}/>
           </div>
         )}
         {section.qs.map(q=>(
@@ -6273,17 +6354,11 @@ function App(){
 
   const handleSaveLh=async(newLh)=>{setLh(newLh);await storageSet(STORE_LH,newLh);};
   const handleCamMeds=(meds)=>{
-    // Add found medications as free-text entries to the first applicable rx field,
-    // or to a dedicated "aktuelle_medikation_rx" catch-all field
-    const existing=answers["aktuelle_medikation_rx"]||[];
+    // Erkannte Medikamente in die zentrale Medikamenten-Sammelbox eintragen
+    const existing=answers["alle_medikamente_rx"]||[];
     const merged=[...new Set([...existing,...meds])];
-    setA("aktuelle_medikation_rx",merged);
-    // Also try to match to known questions
-    meds.forEach(name=>{
-      const lower=name.toLowerCase();
-      // Try to match to sections by keywords
-      const qMatch=Object.keys(answers).find(k=>k.endsWith("_rx")&&false); // placeholder
-    });
+    setA("alle_medikamente_rx",merged);
+    setCamOpen(false);
   };
 
   /* ── helpers ── */
