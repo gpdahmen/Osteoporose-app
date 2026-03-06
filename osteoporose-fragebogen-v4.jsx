@@ -5682,232 +5682,378 @@ const OSTEO_THERAPIE_KEY="osteo_therapie_db_v1";
 // This will be inserted as OSTEO_THERAPIE_DEFAULTS
 
 const OSTEO_THERAPIE_DEFAULTS = [
-  // ── Bisphosphonate oral ──
+
+  /* ═══════════════════════════════════════════════════════════════════
+     BISPHOSPHONATE – ORAL
+     ═══════════════════════════════════════════════════════════════════ */
   {
     id:"alendronat",gruppe:"Bisphosphonate (oral)",
     wirkstoff:"Alendronsäure",
-    handelsnamen:"Fosamax® 70 mg, Tevanate® 70 mg, Alendronaxte® 70 mg (Generika)",
-    dosierung:"70 mg 1× pro Woche oral (nüchtern, mit Wasser, 30 min vor Mahlzeit)",
-    zulassung:"Postmenopausale Osteoporose; Osteoporose beim Mann; Glukokortikoid-induzierte Osteoporose",
-    anmerkung:"Häufigstes Bisphosphonat; bei Unverträglichkeit orale Alternativen oder IV-Wechsel",
+    handelsnamen:"Fosamax® 70 mg · Tevanate® 70 mg · Alendronat-Actavis® 70 mg · Alendronat AL 70® · Alendronat Aurobindo 70 mg® · Alendronat Bluefish 70 mg® · Alendronat Heumann 70 mg® · Alendronat HEXAL 70 mg® · Alendronat-ratiopharm® 70 mg · Alendronat Sandoz® 70 mg · Alendronat Stada® 70 mg · Alendronat TAD® 70 mg · Alendronat Winthrop® 70 mg · Alendronsäure Aristo® 70 mg · Alendronsäure-CT 70 mg® · Binosto® 70 mg (brausetablette)",
+    dosierung:"70 mg 1× pro Woche oral (nüchtern, 30 min vor Mahlzeit, mit mind. 200 ml Leitungswasser, danach aufrecht bleiben)",
+    zulassung:"Postmenopausale Osteoporose (F); Osteoporose beim Mann (M); Glukokortikoid-induzierte Osteoporose",
+    anmerkung:"Häufigstes Bisphosphonat in Deutschland. Binosto® als Brausetablette bei Schluckproblemen.",
     nw:[
-      {id:"oeso",    label:"Ösophagitis / Speiseröhrenentzündung",    icd:"K20",   haeuf:"häufig"},
-      {id:"dysphagie",label:"Schluckbeschwerden (Dysphagie)",         icd:"R13.1", haeuf:"häufig"},
-      {id:"bauch",   label:"Bauchschmerzen / Sodbrennen / Übelkeit",  icd:"R10.1", haeuf:"häufig"},
-      {id:"onj",     label:"Kieferosteonekrose (ONJ)",                 icd:"M87.18",haeuf:"selten"},
-      {id:"aff",     label:"Atypische Femurfraktur",                   icd:"M84.55",haeuf:"sehr selten (< 1/10.000)"},
-      {id:"myalg",   label:"Muskel-, Gelenk- und Knochenschmerzen",   icd:"M79.3", haeuf:"häufig"},
-      {id:"hypokal", label:"Hypokalzämie (zu niedriger Kalziumspiegel)",icd:"E83.51",haeuf:"gelegentlich"},
-      {id:"kopf",    label:"Kopfschmerzen",                            icd:"R51",   haeuf:"gelegentlich"},
+      {id:"oeso",    label:"Ösophagitis / Speiseröhrenentzündung / Ösophagusulkus", icd:"K20",   haeuf:"häufig"},
+      {id:"dysphagie",label:"Schluckbeschwerden (Dysphagie)",                       icd:"R13.1", haeuf:"häufig"},
+      {id:"bauch",   label:"Bauchschmerzen / Sodbrennen / Übelkeit / Diarrhoe",     icd:"R10.1", haeuf:"häufig"},
+      {id:"onj",     label:"Kieferosteonekrose (ONJ)",                              icd:"M87.18",haeuf:"selten"},
+      {id:"aff",     label:"Atypische Femurfraktur",                                icd:"M84.55",haeuf:"sehr selten (< 1/10.000)"},
+      {id:"myalg",   label:"Muskel-, Gelenk- und Knochenschmerzen",                icd:"M79.3", haeuf:"häufig"},
+      {id:"hypokal", label:"Hypokalzämie",                                          icd:"E83.51",haeuf:"gelegentlich"},
+      {id:"kopf",    label:"Kopfschmerzen",                                          icd:"R51",   haeuf:"gelegentlich"},
+      {id:"auge",    label:"Augenentzündung (Uveitis / Skleritis / Episkleritis)",  icd:"H20",   haeuf:"selten"},
     ]
   },
   {
     id:"risedronat",gruppe:"Bisphosphonate (oral)",
     wirkstoff:"Risedronsäure",
-    handelsnamen:"Actonel® 35 mg (1×/Woche), Actonel® 75 mg (2 Tage/Monat), Actonel® Combi",
-    dosierung:"35 mg 1× pro Woche oral",
-    zulassung:"Postmenopausale Osteoporose; Glukokortikoid-induzierte Osteoporose; Osteoporose beim Mann",
-    anmerkung:"Etwas besser verträglich als Alendronsäure bezüglich Ösophagus",
+    handelsnamen:"Actonel® 35 mg (wöchentlich) · Actonel® 75 mg (2 Tage/Monat) · Actonel Combi® (mit Kalzium+Vit.D) · Actonel Combi D® · Risedronat AL® · Risedronat Aristo® · Risedronat Aurobindo® · Risedronat Bluefish® · Risedronat Heumann® · Risedronat HEXAL® · Risedronat-ratiopharm® · Risedronat Sandoz® · Risedronat Stada® · Risedronat Winthrop® · Risedronsäure Actavis® · Risedronsäure-CT®",
+    dosierung:"35 mg 1× pro Woche oral (alternativ 75 mg an 2 aufeinanderfolgenden Tagen/Monat)",
+    zulassung:"Postmenopausale Osteoporose (F); Glukokortikoid-induzierte Osteoporose; Osteoporose beim Mann",
+    anmerkung:"Etwas besser ösophagusverträglich als Alendronsäure. Actonel Combi® enthält Kalzium + Vitamin D in Beutelform.",
     nw:[
-      {id:"oeso",    label:"Ösophagitis / Speiseröhrenentzündung",    icd:"K20",   haeuf:"gelegentlich"},
-      {id:"bauch",   label:"Bauchschmerzen / Übelkeit / Diarrhoe",    icd:"R10.1", haeuf:"häufig"},
-      {id:"onj",     label:"Kieferosteonekrose (ONJ)",                 icd:"M87.18",haeuf:"selten"},
-      {id:"aff",     label:"Atypische Femurfraktur",                   icd:"M84.55",haeuf:"sehr selten"},
-      {id:"myalg",   label:"Muskel-, Gelenk- und Knochenschmerzen",   icd:"M79.3", haeuf:"gelegentlich"},
-      {id:"hypokal", label:"Hypokalzämie",                             icd:"E83.51",haeuf:"gelegentlich"},
-      {id:"kopf",    label:"Kopfschmerzen",                            icd:"R51",   haeuf:"gelegentlich"},
-      {id:"augenentz",label:"Augenentzündung (Uveitis/Skleritis)",    icd:"H20",   haeuf:"selten"},
+      {id:"oeso",    label:"Ösophagitis / Speiseröhrenentzündung",                  icd:"K20",   haeuf:"gelegentlich"},
+      {id:"bauch",   label:"Bauchschmerzen / Übelkeit / Diarrhoe / Obstipation",   icd:"R10.1", haeuf:"häufig"},
+      {id:"onj",     label:"Kieferosteonekrose (ONJ)",                              icd:"M87.18",haeuf:"selten"},
+      {id:"aff",     label:"Atypische Femurfraktur",                                icd:"M84.55",haeuf:"sehr selten"},
+      {id:"myalg",   label:"Muskel-, Gelenk- und Knochenschmerzen",                icd:"M79.3", haeuf:"gelegentlich"},
+      {id:"hypokal", label:"Hypokalzämie",                                          icd:"E83.51",haeuf:"gelegentlich"},
+      {id:"kopf",    label:"Kopfschmerzen / Schwindel",                             icd:"R51",   haeuf:"gelegentlich"},
+      {id:"auge",    label:"Augenentzündung (Uveitis / Skleritis / Iritis)",        icd:"H20",   haeuf:"selten"},
     ]
   },
   {
     id:"ibandronat_oral",gruppe:"Bisphosphonate (oral)",
-    wirkstoff:"Ibandronsäure",
-    handelsnamen:"Bonviva® 150 mg Tablette (1×/Monat)",
-    dosierung:"150 mg 1× pro Monat oral",
+    wirkstoff:"Ibandronsäure (oral, monatlich)",
+    handelsnamen:"Bonviva® 150 mg Tablette · Bondronat® 50 mg (täglich, onkologisch) · Ibandronsäure Actavis® 150 mg · Ibandronsäure AL 150 mg® · Ibandronsäure Aurobindo 150 mg® · Ibandronsäure Bluefish 150 mg® · Ibandronsäure Heumann 150 mg® · Ibandronsäure HEXAL 150 mg® · Ibandronsäure-ratiopharm® 150 mg · Ibandronsäure Sandoz® 150 mg · Ibandronsäure Stada® 150 mg · Ibandronsäure Winthrop® 150 mg",
+    dosierung:"150 mg 1× pro Monat oral (nüchtern, 60 min vor Mahlzeit)",
     zulassung:"Postmenopausale Osteoporose",
-    anmerkung:"Monatliche Einnahme; alternative zu wöchentlichen Bisphosphonaten",
+    anmerkung:"Monatliche Einnahme verbessert Adhärenz. Bondronat® 50 mg täglich ist onkologisch zugelassen (nicht für Osteoporose).",
     nw:[
-      {id:"bauch",   label:"Bauchschmerzen / Übelkeit / Diarrhoe",    icd:"R10.1", haeuf:"häufig"},
-      {id:"oeso",    label:"Ösophagitis / Speiseröhrenentzündung",    icd:"K20",   haeuf:"gelegentlich"},
-      {id:"onj",     label:"Kieferosteonekrose (ONJ)",                 icd:"M87.18",haeuf:"selten"},
-      {id:"aff",     label:"Atypische Femurfraktur",                   icd:"M84.55",haeuf:"sehr selten"},
-      {id:"myalg",   label:"Muskel- und Knochenschmerzen",            icd:"M79.3", haeuf:"gelegentlich"},
-      {id:"hypokal", label:"Hypokalzämie",                             icd:"E83.51",haeuf:"gelegentlich"},
+      {id:"bauch",   label:"Bauchschmerzen / Übelkeit / Diarrhoe / Dyspepsie",     icd:"R10.1", haeuf:"häufig"},
+      {id:"oeso",    label:"Ösophagitis / Speiseröhrenentzündung",                  icd:"K20",   haeuf:"gelegentlich"},
+      {id:"onj",     label:"Kieferosteonekrose (ONJ)",                              icd:"M87.18",haeuf:"selten"},
+      {id:"aff",     label:"Atypische Femurfraktur",                                icd:"M84.55",haeuf:"sehr selten"},
+      {id:"myalg",   label:"Muskel- und Knochenschmerzen",                          icd:"M79.3", haeuf:"gelegentlich"},
+      {id:"hypokal", label:"Hypokalzämie",                                          icd:"E83.51",haeuf:"gelegentlich"},
     ]
   },
-  // ── Bisphosphonate IV ──
+  {
+    id:"etidronat",gruppe:"Bisphosphonate (oral)",
+    wirkstoff:"Etidronat (historisch, kaum noch verwendet)",
+    handelsnamen:"Didronel® 400 mg · Didrokit® (mit Kalzium, zyklisch) · Diphos® – alle Präparate in Deutschland nicht mehr aktiv vermarktet",
+    dosierung:"400 mg/Tag für 14 Tage, dann 76 Tage Kalzium (zyklisch)",
+    zulassung:"Ehemals: Postmenopausale Osteoporose; Morbus Paget. Zulassung für Osteoporose in DE faktisch nicht mehr relevant.",
+    anmerkung:"Erstes zugelassenes Bisphosphonat. Heute vollständig durch neuere Substanzen ersetzt. Nur noch in Therapieanamnesen älterer Patienten relevant.",
+    nw:[
+      {id:"bauch",  label:"Übelkeit / Diarrhoe / Bauchschmerzen",                   icd:"R10.1", haeuf:"häufig"},
+      {id:"osteo",  label:"Osteomalazie bei Langzeitgabe (paradoxer Effekt)",        icd:"M83",   haeuf:"bei Überdosierung"},
+      {id:"myalg",  label:"Knochen- und Muskelschmerzen",                            icd:"M79.3", haeuf:"gelegentlich"},
+    ]
+  },
+  {
+    id:"clodronat_oral",gruppe:"Bisphosphonate (oral)",
+    wirkstoff:"Clodronsäure (oral)",
+    handelsnamen:"Bonefos® 400 mg Kapseln · Clodronat Hexal® · Ostac® – primär onkologische Indikation",
+    dosierung:"1600 mg/Tag oral (bei Osteoporose, off-label; zugelassen für Hyperkalzämie/Knochenmetastasen)",
+    zulassung:"In DE keine Zulassung für Osteoporose; zugelassen für tumorbedingte Hyperkalzämie und Knochenmetastasen",
+    anmerkung:"Nur der Vollständigkeit halber – kein Standard in der Osteoporosetherapie. Relevant bei onkologischen Patienten.",
+    nw:[
+      {id:"bauch",  label:"Übelkeit / Diarrhoe / Bauchschmerzen",                   icd:"R10.1", haeuf:"sehr häufig"},
+      {id:"niere",  label:"Nierenfunktionsverschlechterung",                         icd:"N17",   haeuf:"gelegentlich"},
+      {id:"hypokal",label:"Hypokalzämie",                                            icd:"E83.51",haeuf:"gelegentlich"},
+    ]
+  },
+
+  /* ═══════════════════════════════════════════════════════════════════
+     BISPHOSPHONATE – INTRAVENÖS
+     ═══════════════════════════════════════════════════════════════════ */
   {
     id:"zoledronat",gruppe:"Bisphosphonate (intravenös)",
     wirkstoff:"Zoledronsäure",
-    handelsnamen:"Aclasta® 5 mg Infusion (1×/Jahr)",
-    dosierung:"5 mg IV als Kurzinfusion 1× jährlich (mind. 15 min)",
-    zulassung:"Postmenopausale Osteoporose; Osteoporose beim Mann; Glukokortikoid-induzierte Osteoporose; Morbus Paget",
-    anmerkung:"Sehr hohe Adhärenz durch jährliche Gabe; häufig Grippeähnliche Reaktion nach Erstgabe",
+    handelsnamen:"Aclasta® 5 mg/100 ml Infusionslösung · Zoledronsäure Accord® 5 mg · Zoledronsäure Actavis® 5 mg · Zoledronsäure AL 5 mg® · Zoledronsäure Aurobindo® 5 mg · Zoledronsäure Bluefish® · Zoledronsäure Fresenius Kabi® 5 mg · Zoledronsäure Heumann® 5 mg · Zoledronsäure HEXAL® 5 mg · Zoledronsäure Kabi® · Zoledronsäure-ratiopharm® 5 mg · Zoledronsäure Sandoz® 5 mg · Zoledronsäure Stada® 5 mg · Zoledronsäure Sun® · Zometa® 4 mg (onkologisch, andere Konzentration)",
+    dosierung:"5 mg IV als Kurzinfusion 1× jährlich (mind. 15 min, ausreichend hydriert)",
+    zulassung:"Postmenopausale Osteoporose (F); Osteoporose beim Mann (M); Glukokortikoid-induzierte Osteoporose; Morbus Paget (einmalig 5 mg)",
+    anmerkung:"Beste Adhärenz durch jährliche Einmalgabe. Akutphasenreaktion v.a. nach Erstgabe (ca. 30%). Kontraindikation: GFR < 35 ml/min.",
     nw:[
-      {id:"akutphase", label:"Akute-Phase-Reaktion: Fieber, Grippe, Muskelschmerzen (v.a. Erstgabe)",icd:"R68.89",haeuf:"sehr häufig (> 1/3 nach Erstgabe)"},
-      {id:"onj",      label:"Kieferosteonekrose (ONJ)",                 icd:"M87.18",haeuf:"selten"},
-      {id:"aff",      label:"Atypische Femurfraktur",                   icd:"M84.55",haeuf:"sehr selten"},
-      {id:"niere",    label:"Nierenfunktionsverschlechterung",          icd:"N17",   haeuf:"selten (Kontraindikation GFR < 35)"},
-      {id:"hypokal",  label:"Hypokalzämie",                             icd:"E83.51",haeuf:"häufig (Kalzium + Vit-D vor Gabe sichern)"},
-      {id:"vorhof",   label:"Vorhofflimmern",                           icd:"I48",   haeuf:"selten"},
-      {id:"myalg",    label:"Muskel-, Gelenk- und Knochenschmerzen",   icd:"M79.3", haeuf:"häufig"},
-      {id:"kopf",     label:"Kopfschmerzen",                            icd:"R51",   haeuf:"häufig"},
-      {id:"augenentz",label:"Augenentzündung (Uveitis/Skleritis)",    icd:"H20",   haeuf:"selten"},
+      {id:"akutphase",label:"Akute-Phase-Reaktion: Fieber, Grippe, Muskelschmerzen (v.a. nach Erstgabe)", icd:"R68.89",haeuf:"sehr häufig (> 30% nach Erstgabe)"},
+      {id:"onj",      label:"Kieferosteonekrose (ONJ)",                              icd:"M87.18",haeuf:"selten"},
+      {id:"aff",      label:"Atypische Femurfraktur",                                icd:"M84.55",haeuf:"sehr selten"},
+      {id:"niere",    label:"Nierenfunktionsverschlechterung (Kontraindikation GFR < 35)", icd:"N17",haeuf:"selten"},
+      {id:"hypokal",  label:"Hypokalzämie (Kalzium + Vit-D vor Gabe sicherstellen!)",icd:"E83.51",haeuf:"häufig"},
+      {id:"vorhof",   label:"Vorhofflimmern",                                         icd:"I48",  haeuf:"selten"},
+      {id:"myalg",    label:"Muskel-, Gelenk- und Knochenschmerzen",                 icd:"M79.3",haeuf:"häufig"},
+      {id:"kopf",     label:"Kopfschmerzen",                                          icd:"R51",  haeuf:"häufig"},
+      {id:"auge",     label:"Augenentzündung (Uveitis / Skleritis)",                 icd:"H20",  haeuf:"selten"},
     ]
   },
   {
     id:"ibandronat_iv",gruppe:"Bisphosphonate (intravenös)",
-    wirkstoff:"Ibandronsäure IV",
-    handelsnamen:"Bonviva® 3 mg Injektionslösung (alle 3 Monate)",
-    dosierung:"3 mg IV alle 3 Monate",
+    wirkstoff:"Ibandronsäure (intravenös, quartalsweise)",
+    handelsnamen:"Bonviva® 3 mg/3 ml Injektionslösung · Ibandronsäure Actavis® 3 mg · Ibandronsäure AL 3 mg® · Ibandronsäure Aurobindo® 3 mg · Ibandronsäure HEXAL® 3 mg · Ibandronsäure-ratiopharm® 3 mg · Ibandronsäure Sandoz® 3 mg · Ibandronsäure Stada® 3 mg · Bondronat® 2 mg / 6 mg (onkologisch)",
+    dosierung:"3 mg IV Bolusinjektion alle 3 Monate (15–30 sec, keine Infusion nötig)",
     zulassung:"Postmenopausale Osteoporose",
-    anmerkung:"Quartalsgabe; geringeres Akutphasenproblem als Zoledronsäure",
+    anmerkung:"Quartalsgabe; Injektion als schneller Bolus möglich (kein Infusionsgerät erforderlich). Kein Akutphasensyndrom wie bei Zoledronsäure.",
     nw:[
-      {id:"akutphase",label:"Grippeähnliche Reaktion nach Injektion", icd:"R68.89",haeuf:"gelegentlich"},
-      {id:"onj",      label:"Kieferosteonekrose (ONJ)",               icd:"M87.18",haeuf:"selten"},
-      {id:"hypokal",  label:"Hypokalzämie",                           icd:"E83.51",haeuf:"gelegentlich"},
-      {id:"niere",    label:"Nierenfunktionsverschlechterung",        icd:"N17",   haeuf:"selten"},
-      {id:"myalg",    label:"Muskel- und Knochenschmerzen",          icd:"M79.3", haeuf:"gelegentlich"},
+      {id:"akutphase",label:"Grippeähnliche Reaktion nach Injektion (milder als Zoledronsäure)", icd:"R68.89",haeuf:"gelegentlich"},
+      {id:"onj",      label:"Kieferosteonekrose (ONJ)",                              icd:"M87.18",haeuf:"selten"},
+      {id:"hypokal",  label:"Hypokalzämie",                                          icd:"E83.51",haeuf:"gelegentlich"},
+      {id:"niere",    label:"Nierenfunktionsverschlechterung",                       icd:"N17",   haeuf:"selten"},
+      {id:"myalg",    label:"Muskel- und Knochenschmerzen",                          icd:"M79.3", haeuf:"gelegentlich"},
+      {id:"kopf",     label:"Kopfschmerzen",                                          icd:"R51",  haeuf:"gelegentlich"},
     ]
   },
-  // ── RANKL-Antikörper ──
+  {
+    id:"pamidronat_iv",gruppe:"Bisphosphonate (intravenös)",
+    wirkstoff:"Pamidronsäure (intravenös)",
+    handelsnamen:"Aredia® 15 mg / 30 mg / 60 mg / 90 mg · Pamidronat Medac® · Pamidronat Gry® · Pamidronat Hexal® – überwiegend onkologisch",
+    dosierung:"Osteoporose: 30 mg IV alle 3 Monate (off-label bei oraler Bisphosphonat-Unverträglichkeit)",
+    zulassung:"In DE keine Zulassung für Osteoporose; zugelassen für Morbus Paget, tumor-induzierte Hyperkalzämie, Knochenmetastasen, Osteogenesis imperfecta",
+    anmerkung:"Wird off-label bei Patienten mit GI-Unverträglichkeit auf orale Bisphosphonate und fehlender Zoledronsäure-Indikation eingesetzt.",
+    nw:[
+      {id:"akutphase",label:"Akute-Phase-Reaktion: Fieber, Schüttelfrost",           icd:"R68.89",haeuf:"sehr häufig"},
+      {id:"hypokal",  label:"Hypokalzämie / Hypofosfatämie",                         icd:"E83.51",haeuf:"häufig"},
+      {id:"niere",    label:"Nierenfunktionsverschlechterung",                       icd:"N17",   haeuf:"gelegentlich"},
+      {id:"onj",      label:"Kieferosteonekrose (ONJ)",                              icd:"M87.18",haeuf:"selten"},
+      {id:"vene",     label:"Lokalreaktion / Phlebitis an der Infusionsstelle",      icd:"T80.1", haeuf:"häufig"},
+    ]
+  },
+
+  /* ═══════════════════════════════════════════════════════════════════
+     RANKL-ANTIKÖRPER
+     ═══════════════════════════════════════════════════════════════════ */
   {
     id:"denosumab",gruppe:"RANKL-Antikörper",
     wirkstoff:"Denosumab",
-    handelsnamen:"Prolia® 60 mg Fertigspritze (alle 6 Monate s.c.)",
-    dosierung:"60 mg subkutan alle 6 Monate (Injektionsabstand darf nicht überschritten werden!)",
-    zulassung:"Postmenopausale Osteoporose; Osteoporose beim Mann; Glukokortikoid-induzierte Osteoporose",
-    anmerkung:"ACHTUNG: Absetzen ohne Anschlusspräparat → schwere Rebound-Frakturen! Strenge Adhärenz nötig.",
+    handelsnamen:"Prolia® 60 mg/ml Fertigspritze (Osteoporose, alle 6 Monate) · Xgeva® 120 mg/1,7 ml (onkologisch, alle 4 Wochen – andere Indikation)",
+    dosierung:"60 mg subkutan alle 6 Monate (Injektionsabstand darf NICHT überschritten werden – Rebound-Gefahr!)",
+    zulassung:"Postmenopausale Osteoporose (F); Osteoporose beim Mann (M); Knochenschwund bei antihormoneller Tumortherapie; Glukokortikoid-induzierte Osteoporose",
+    anmerkung:"⚠ WICHTIG: Absetzen ohne Anschlusspräparat (Bisphosphonat) führt zu schwerem Rebound mit multiplen Wirbelkörperfrakturen! Strenge Adhärenz und Übergangstherapie zwingend.",
     nw:[
-      {id:"hypokal",    label:"Hypokalzämie (oft schwer, bes. bei Nierenschwäche)", icd:"E83.51",haeuf:"häufig"},
-      {id:"infekt",     label:"Schwere Infektionen (Haut, Harnwege, Atemwege)",     icd:"A49.9", haeuf:"häufig"},
-      {id:"onj",        label:"Kieferosteonekrose (ONJ)",                             icd:"M87.18",haeuf:"selten"},
-      {id:"aff",        label:"Atypische Femurfraktur",                               icd:"M84.55",haeuf:"sehr selten"},
-      {id:"rebound",    label:"Rebound-Frakturen (Wirbelkörper) nach Absetzen",      icd:"M48.5", haeuf:"häufig bei Absetzen ohne Anschluss"},
-      {id:"haut",       label:"Hautreaktionen (Dermatitis, Ekzem, Urtikaria)",       icd:"L29.8", haeuf:"gelegentlich"},
-      {id:"myalg",      label:"Muskel- und Knochenschmerzen",                        icd:"M79.3", haeuf:"gelegentlich"},
-      {id:"hypophosph", label:"Hypokalzämie / Hypokalzämie",                         icd:"E83.51",haeuf:"häufig"},
+      {id:"hypokal",    label:"Hypokalzämie (oft schwer, besonders bei Niereninsuffizienz)",    icd:"E83.51",haeuf:"häufig"},
+      {id:"infekt",     label:"Schwere Infektionen: Haut (Zellulitis), Harnwege, Atemwege",     icd:"A49.9", haeuf:"häufig"},
+      {id:"onj",        label:"Kieferosteonekrose (ONJ)",                                         icd:"M87.18",haeuf:"selten"},
+      {id:"aff",        label:"Atypische Femurfraktur",                                           icd:"M84.55",haeuf:"sehr selten"},
+      {id:"rebound",    label:"Rebound-Frakturen (Wirbelkörper) nach Absetzen ohne Anschluss",   icd:"M48.5", haeuf:"häufig bei Absetzen ohne Anschluss"},
+      {id:"haut",       label:"Hautreaktionen (Dermatitis, Ekzem, Urtikaria, Ausschlag)",        icd:"L29.8", haeuf:"gelegentlich"},
+      {id:"myalg",      label:"Muskel- und Knochenschmerzen",                                    icd:"M79.3", haeuf:"gelegentlich"},
+      {id:"hypophosph", label:"Hypofosfatämie",                                                  icd:"E83.30",haeuf:"gelegentlich"},
     ]
   },
-  // ── Parathormon-Analoga ──
+
+  /* ═══════════════════════════════════════════════════════════════════
+     PARATHORMON-ANALOGA (ANABOL)
+     ═══════════════════════════════════════════════════════════════════ */
   {
     id:"teriparatid",gruppe:"Parathormon-Analoga (anabol)",
-    wirkstoff:"Teriparatid",
-    handelsnamen:"Forsteo® 20 µg/Tag, Terrosa® 20 µg/Tag, Movymia® 20 µg/Tag (Fertigpen, täglich s.c.)",
-    dosierung:"20 µg subkutan täglich (max. 24 Monate Gesamtdauer)",
-    zulassung:"Schwere postmenopausale Osteoporose; Osteoporose beim Mann; Glukokortikoid-induzierte Osteoporose",
-    anmerkung:"Anaboles Prinzip: Knochenneubildung. Maximale Therapiedauer 24 Monate. Danach Anschlusspräparat zwingend.",
+    wirkstoff:"Teriparatid (PTH 1-34)",
+    handelsnamen:"Forsteo® 20 µg/80 µl Fertigpen · Terrosa® 20 µg Fertigpen · Movymia® 20 µg Fertigpen · Teriparatid Accord® · Teriparatid Gedeon Richter® · Teriparatid Pfizer® · Teriparatid SUN® · Teriparatid Stada® · Teriparatid Alvogen® · Teriparatid Aristo®",
+    dosierung:"20 µg subkutan täglich (max. Gesamtdauer 24 Monate im Leben – lebenslange Beschränkung)",
+    zulassung:"Schwere postmenopausale Osteoporose (F); Osteoporose beim Mann mit hohem Frakturrisiko (M); Glukokortikoid-induzierte Osteoporose",
+    anmerkung:"⚠ Maximale Gesamtdauer 24 Monate (lebenslange Einschränkung). Danach Anschlusspräparat (Antiresorptivum) ZWINGEND. Tierstudie: Osteosarkomrisiko bei Ratten (bisher keine Evidenz beim Menschen).",
     nw:[
-      {id:"hyperkal",   label:"Hyperkalzämie (zu hoher Kalziumspiegel)",             icd:"E83.52",haeuf:"gelegentlich"},
-      {id:"nausea",     label:"Übelkeit / Erbrechen",                                icd:"R11",   haeuf:"häufig"},
-      {id:"schwindel",  label:"Schwindel / Benommenheit",                            icd:"R42",   haeuf:"häufig"},
-      {id:"kopf",       label:"Kopfschmerzen",                                        icd:"R51",   haeuf:"häufig"},
-      {id:"krampf",     label:"Muskelkrämpfe (Wadenkrämpfe)",                        icd:"R25.2", haeuf:"häufig"},
-      {id:"hypotonie",  label:"Orthostatische Hypotonie (Schwindel beim Aufstehen)", icd:"I95.1", haeuf:"gelegentlich"},
-      {id:"harnsaeure", label:"Erhöhte Harnsäure / Gicht",                          icd:"M10.9", haeuf:"gelegentlich"},
-      {id:"tachy",      label:"Herzrasen (Tachykardie)",                              icd:"R00.0", haeuf:"gelegentlich"},
+      {id:"hyperkal",   label:"Hyperkalzämie (transienter Kalziumanstieg nach Injektion)",       icd:"E83.52",haeuf:"gelegentlich"},
+      {id:"nausea",     label:"Übelkeit / Erbrechen",                                             icd:"R11",   haeuf:"häufig"},
+      {id:"schwindel",  label:"Schwindel / Benommenheit",                                         icd:"R42",   haeuf:"häufig"},
+      {id:"kopf",       label:"Kopfschmerzen",                                                    icd:"R51",   haeuf:"häufig"},
+      {id:"krampf",     label:"Muskelkrämpfe (Wadenkrämpfe)",                                     icd:"R25.2", haeuf:"häufig"},
+      {id:"hypotonie",  label:"Orthostatische Hypotonie (Schwindel beim Aufstehen)",              icd:"I95.1", haeuf:"gelegentlich"},
+      {id:"harnsaeure", label:"Erhöhte Harnsäure / Gicht",                                       icd:"M10.9", haeuf:"gelegentlich"},
+      {id:"tachy",      label:"Herzrasen (Tachykardie) / Palpitationen",                         icd:"R00.0", haeuf:"gelegentlich"},
+      {id:"reaktion",   label:"Lokalreaktion an der Injektionsstelle",                            icd:"T88.7", haeuf:"häufig"},
+      {id:"osteosark",  label:"Osteosarkom (theoretisches Risiko auf Basis von Rattenstudien)",   icd:"C41.9", haeuf:"theoretisch; bisher nicht beim Menschen nachgewiesen"},
     ]
   },
   {
     id:"abaloparatid",gruppe:"Parathormon-Analoga (anabol)",
-    wirkstoff:"Abaloparatid",
-    handelsnamen:"Eladynos® 80 µg/Tag (Fertigpen, täglich s.c.) – seit 2023 in EU zugelassen",
-    dosierung:"80 µg subkutan täglich",
-    zulassung:"Schwere postmenopausale Osteoporose (hoches Frakturrisiko)",
-    anmerkung:"Neueres PTHrP-Analogon; ähnliches Wirkprinzip wie Teriparatid; ebenfalls max. 18 Monate",
+    wirkstoff:"Abaloparatid (PTHrP-Analogon)",
+    handelsnamen:"Eladynos® 80 µg/dose Fertigpen (seit 2023 EU-Zulassung, Einführung in DE schrittweise)",
+    dosierung:"80 µg subkutan täglich (max. 18 Monate Gesamtdauer)",
+    zulassung:"Schwere postmenopausale Osteoporose (hohes Frakturrisiko, nach Versagen oder Unverträglichkeit anderer Therapien)",
+    anmerkung:"Neueres PTHrP-Analogon; ähnlich Teriparatid, etwas geringeres Hyperkalzämierisiko. Maximaldauer 18 Monate.",
     nw:[
-      {id:"hyperkal",  label:"Hyperkalzämie",                                icd:"E83.52",haeuf:"gelegentlich"},
-      {id:"nausea",    label:"Übelkeit",                                      icd:"R11",   haeuf:"häufig"},
-      {id:"schwindel", label:"Schwindel",                                     icd:"R42",   haeuf:"häufig"},
-      {id:"hypotonie", label:"Orthostatische Hypotonie",                      icd:"I95.1", haeuf:"gelegentlich"},
-      {id:"herzrate",  label:"Erhöhte Herzrate (Palpitationen)",              icd:"R00.2", haeuf:"gelegentlich"},
-      {id:"reaktion",  label:"Lokalreaktion an der Injektionsstelle",         icd:"T88.7", haeuf:"sehr häufig"},
+      {id:"hyperkal",  label:"Hyperkalzämie",                                                     icd:"E83.52",haeuf:"gelegentlich"},
+      {id:"nausea",    label:"Übelkeit",                                                           icd:"R11",   haeuf:"häufig"},
+      {id:"schwindel", label:"Schwindel",                                                          icd:"R42",   haeuf:"häufig"},
+      {id:"hypotonie", label:"Orthostatische Hypotonie",                                          icd:"I95.1", haeuf:"gelegentlich"},
+      {id:"herzrate",  label:"Palpitationen / Tachykardie",                                       icd:"R00.2", haeuf:"gelegentlich"},
+      {id:"reaktion",  label:"Lokalreaktion an der Injektionsstelle (Rötung, Schmerz)",           icd:"T88.7", haeuf:"sehr häufig"},
+      {id:"hypurik",   label:"Erhöhte Harnsäure",                                                 icd:"E79.0", haeuf:"gelegentlich"},
     ]
   },
-  // ── Sklerostin-Antikörper ──
+  {
+    id:"pth84",gruppe:"Parathormon-Analoga (anabol)",
+    wirkstoff:"Parathormon 1-84 (intaktes PTH)",
+    handelsnamen:"Preotact® 100 µg Fertigpen – in DE seit 2012 nicht mehr vermarktet (Marktrücknahme aus kommerziellen Gründen)",
+    dosierung:"100 µg subkutan täglich (max. 24 Monate)",
+    zulassung:"Ehemals: Postmenopausale Osteoporose mit hohem Frakturrisiko (2006–2012 in DE)",
+    anmerkung:"Freiwillige Marktrücknahme aus wirtschaftlichen Gründen (nicht wegen Sicherheitsproblemen). Nur für ältere Therapieanamnesen relevant.",
+    nw:[
+      {id:"hyperkal",  label:"Hyperkalzämie (häufiger als bei Teriparatid)",                      icd:"E83.52",haeuf:"sehr häufig"},
+      {id:"nausea",    label:"Übelkeit",                                                           icd:"R11",   haeuf:"häufig"},
+      {id:"schwindel", label:"Schwindel",                                                          icd:"R42",   haeuf:"häufig"},
+      {id:"reaktion",  label:"Lokalreaktion an der Injektionsstelle",                             icd:"T88.7", haeuf:"häufig"},
+    ]
+  },
+
+  /* ═══════════════════════════════════════════════════════════════════
+     SKLEROSTIN-ANTIKÖRPER (DUAL WIRKSAM: anabol + antiresorptiv)
+     ═══════════════════════════════════════════════════════════════════ */
   {
     id:"romosozumab",gruppe:"Sklerostin-Antikörper (anabol + antiresorptiv)",
     wirkstoff:"Romosozumab",
-    handelsnamen:"Evenity® 210 mg/Monat (2 s.c.-Injektionen à 105 mg) – seit 2020 in EU",
-    dosierung:"210 mg subkutan 1× pro Monat (12 Monate Gesamttherapie), dann Umstieg auf Antiresorptivum",
-    zulassung:"Schwere postmenopausale Osteoporose; Hochrisikopatienten",
-    anmerkung:"KONTRAINDIKATION: Vorheriger Herzinfarkt oder Schlaganfall (erhöhtes kardiovaskuläres Risiko laut EMA-Auflage)",
+    handelsnamen:"Evenity® 105 mg/1,17 ml Fertigspritze (2 Spritzen à 105 mg = 210 mg pro Monat)",
+    dosierung:"210 mg subkutan 1× pro Monat (2 getrennte Injektionen à 105 mg) – maximal 12 Monate Gesamttherapie, danach Antiresorptivum",
+    zulassung:"Schwere postmenopausale Osteoporose (hohes Frakturrisiko). EU-Zulassung seit 2020.",
+    anmerkung:"⚠ KONTRAINDIKATION: Vorhergehender Herzinfarkt oder Schlaganfall (< 12 Monate). EMA-Auflage wegen kardiovaskulärem Risiko. Keine Zulassung beim Mann in DE.",
     nw:[
-      {id:"kv",      label:"Herzinfarkt / Schlaganfall (erhöhtes Risiko – Kontraindikation bei Vorgeschichte!)", icd:"I25.9",haeuf:"selten"},
-      {id:"onj",     label:"Kieferosteonekrose (ONJ)",                        icd:"M87.18",haeuf:"selten"},
-      {id:"aff",     label:"Atypische Femurfraktur",                          icd:"M84.55",haeuf:"sehr selten"},
-      {id:"reaktion",label:"Lokalreaktion an der Injektionsstelle",           icd:"T88.7", haeuf:"sehr häufig"},
-      {id:"arthr",   label:"Gelenkschmerzen (Arthralgie)",                    icd:"M25.5", haeuf:"häufig"},
-      {id:"kopf",    label:"Kopfschmerzen",                                    icd:"R51",   haeuf:"gelegentlich"},
-      {id:"hypokal", label:"Hypokalzämie",                                    icd:"E83.51",haeuf:"gelegentlich"},
+      {id:"kv",      label:"Herzinfarkt / Schlaganfall (erhöhtes Risiko – KI bei Vorgeschichte!)",icd:"I25.9",haeuf:"selten (vs. Alendronsäure: leicht erhöht)"},
+      {id:"onj",     label:"Kieferosteonekrose (ONJ)",                                             icd:"M87.18",haeuf:"selten"},
+      {id:"aff",     label:"Atypische Femurfraktur",                                               icd:"M84.55",haeuf:"sehr selten"},
+      {id:"reaktion",label:"Lokalreaktion an der Injektionsstelle",                               icd:"T88.7", haeuf:"sehr häufig"},
+      {id:"arthr",   label:"Gelenkschmerzen (Arthralgie)",                                         icd:"M25.5", haeuf:"häufig"},
+      {id:"kopf",    label:"Kopfschmerzen",                                                        icd:"R51",   haeuf:"gelegentlich"},
+      {id:"hypokal", label:"Hypokalzämie",                                                        icd:"E83.51",haeuf:"gelegentlich"},
+      {id:"uebers",  label:"Überempfindlichkeitsreaktionen (Angioödem, Urtikaria)",                icd:"T78.4", haeuf:"selten"},
     ]
   },
-  // ── SERM ──
+
+  /* ═══════════════════════════════════════════════════════════════════
+     SERM – SELEKTIVE ÖSTROGEN-REZEPTOR-MODULATOREN
+     ═══════════════════════════════════════════════════════════════════ */
   {
-    id:"raloxifen",gruppe:"SERM – Selektive Östrogen-Rezeptor-Modulatoren",
+    id:"raloxifen",gruppe:"SERM (Selektive Östrogen-Rezeptor-Modulatoren)",
     wirkstoff:"Raloxifen",
-    handelsnamen:"Evista® 60 mg/Tag, Optruma® 60 mg/Tag (Tablette, täglich oral)",
-    dosierung:"60 mg täglich oral",
-    zulassung:"Postmenopausale Osteoporose (bevorzugt bei zusätzlichem Mamma-Karzinom-Risiko)",
-    anmerkung:"Nur für Frauen; keine HRT-Wirkung auf Hitzewallungen (kann diese sogar verstärken)",
+    handelsnamen:"Evista® 60 mg Filmtablette · Optruma® 60 mg Filmtablette · Raloxifen AL 60 mg® · Raloxifen Aristo® 60 mg · Raloxifen Aurobindo® 60 mg · Raloxifen Heumann 60 mg® · Raloxifen HEXAL® 60 mg · Raloxifen-ratiopharm® 60 mg · Raloxifen Sandoz® 60 mg · Raloxifen Stada® 60 mg",
+    dosierung:"60 mg täglich oral (mit oder ohne Mahlzeit, kein nüchternes Einnehmen erforderlich)",
+    zulassung:"Postmenopausale Osteoporose – besonders geeignet bei gleichzeitig erhöhtem Mammakarzinom-Risiko (senkt invasives ER+-Brustkrebsrisiko)",
+    anmerkung:"Nur für Frauen. Keine HRT-Wirkung (verbessert KEINE Hitzewallungen, kann diese sogar verschlechtern). Thromboseprophylaxe erforderlich bei Immobilisation.",
     nw:[
-      {id:"tvt",      label:"Tiefe Venenthrombose (TVT)",                    icd:"I82.4", haeuf:"selten (erhöhtes Risiko)"},
-      {id:"le",       label:"Lungenembolie",                                  icd:"I26",   haeuf:"selten"},
-      {id:"hitzew",   label:"Hitzewallungen / Schweißausbrüche",             icd:"N95.1", haeuf:"sehr häufig"},
-      {id:"beinoede", label:"Beinödeme / Beinschwellung",                    icd:"R60.0", haeuf:"häufig"},
-      {id:"wadenkr",  label:"Wadenkrämpfe",                                   icd:"R25.2", haeuf:"häufig"},
-      {id:"schwindel",label:"Schwindel",                                      icd:"R42",   haeuf:"gelegentlich"},
-      {id:"grippe",   label:"Grippeartige Symptome",                          icd:"J06.9", haeuf:"gelegentlich"},
+      {id:"tvt",      label:"Tiefe Venenthrombose (TVT) – erhöhtes Risiko",                      icd:"I82.4", haeuf:"gelegentlich (3-fach erhöhtes Risiko vs. Placebo)"},
+      {id:"le",       label:"Lungenembolie",                                                       icd:"I26",   haeuf:"selten"},
+      {id:"hitzew",   label:"Hitzewallungen / Schweißausbrüche (Verstärkung möglich!)",           icd:"N95.1", haeuf:"sehr häufig"},
+      {id:"beinoede", label:"Beinödeme / Beinschwellung",                                         icd:"R60.0", haeuf:"häufig"},
+      {id:"wadenkr",  label:"Wadenkrämpfe",                                                        icd:"R25.2", haeuf:"häufig"},
+      {id:"schwindel",label:"Schwindel",                                                           icd:"R42",   haeuf:"gelegentlich"},
+      {id:"grippe",   label:"Grippeartige Symptome",                                               icd:"J06.9", haeuf:"gelegentlich"},
     ]
   },
   {
-    id:"bazedoxifen",gruppe:"SERM – Selektive Östrogen-Rezeptor-Modulatoren",
+    id:"bazedoxifen",gruppe:"SERM (Selektive Östrogen-Rezeptor-Modulatoren)",
     wirkstoff:"Bazedoxifen",
-    handelsnamen:"Conbriza® 20 mg/Tag (Tablette); Duavive® (Kombination mit konjugierten Östrogenen)",
+    handelsnamen:"Conbriza® 20 mg Filmtablette · Duavive® 20 mg / 0,625 mg (Bazedoxifen + konjugierte Östrogene – für Wechseljahresbeschwerden + Osteoporoseschutz)",
     dosierung:"20 mg täglich oral",
-    zulassung:"Postmenopausale Osteoporose (bei Unverträglichkeit anderer Substanzen)",
-    anmerkung:"Selten eingesetzt; Kombination mit Östrogen (Duavive) bei Wechseljahresbeschwerden + Osteoporose",
+    zulassung:"Postmenopausale Osteoporose (bei Unverträglichkeit anderer Präparate). Duavive® für Wechseljahresbeschwerden bei Frauen mit Uterus (kein Gestagen nötig dank Bazedoxifen).",
+    anmerkung:"Selten eigenständig eingesetzt. Duavive® kombiniert Östrogen (gegen Hitzewallungen) + Bazedoxifen (Endometriumschutz statt Gestagen).",
     nw:[
-      {id:"tvt",    label:"Tiefe Venenthrombose (TVT)",                      icd:"I82.4", haeuf:"selten"},
-      {id:"hitzew", label:"Hitzewallungen / Schweißausbrüche",               icd:"N95.1", haeuf:"häufig"},
-      {id:"muskeln",label:"Muskelkrämpfe / Wadenkrämpfe",                    icd:"R25.2", haeuf:"gelegentlich"},
-      {id:"abdomen",label:"Bauchschmerzen / Übelkeit",                       icd:"R10.1", haeuf:"gelegentlich"},
+      {id:"tvt",    label:"Tiefe Venenthrombose (TVT)",                                           icd:"I82.4", haeuf:"selten"},
+      {id:"hitzew", label:"Hitzewallungen / Schweißausbrüche",                                    icd:"N95.1", haeuf:"häufig"},
+      {id:"muskeln",label:"Muskelkrämpfe / Wadenkrämpfe",                                         icd:"R25.2", haeuf:"gelegentlich"},
+      {id:"abdomen",label:"Bauchschmerzen / Übelkeit",                                            icd:"R10.1", haeuf:"gelegentlich"},
+      {id:"kopf",   label:"Kopfschmerzen",                                                        icd:"R51",   haeuf:"gelegentlich"},
     ]
   },
-  // ── Historisch / nicht mehr im Einsatz ──
+
+  /* ═══════════════════════════════════════════════════════════════════
+     KALZIUM & VITAMIN D (BASISTHERAPIE / KOMBINATION)
+     ═══════════════════════════════════════════════════════════════════ */
   {
-    id:"strontium",gruppe:"Historisch (nicht mehr erhältlich)",
+    id:"kalzium_vitd",gruppe:"Basistherapie (Kalzium + Vitamin D)",
+    wirkstoff:"Kalzium + Vitamin D3 (Kombinationspräparate)",
+    handelsnamen:"Calcimagon-D3® · Calcivit D Forte® · Calcivit D3® · Calcicare D3® · Calcium D3 AL® · Calcium D3-ratiopharm® · Calcium D3 Stada® · Calcium-D3 HEXAL® · Calcium Sandoz D Osteo® · Calos D3® · Caltrate® · Ideos® · Kalzium D3-Sandoz® · Macrokal D3® · Ossoforte D3® · Osteocare® · Osteoplus D3® · Os-Cal® · Vigantoletten® (nur Vit.D) · Dekristol® (nur Vit.D, hochdosiert)",
+    dosierung:"1000–1200 mg Kalzium/Tag + 800–2000 IE Vitamin D3/Tag (individuelle Anpassung nach Spiegel)",
+    zulassung:"Prävention und Therapie von Kalzium- und Vitamin-D-Mangel; adjuvante Therapie bei Osteoporose (Begleitmedikation zu Antiresorptiva/Anabolika)",
+    anmerkung:"Begleittherapie zu allen Osteoporosepräparaten. Vor IV-Bisphosphonaten und Denosumab: Kalziumspiegel normalisieren. Bei Nierensteinen: Tagesdosis verteilen, Urinkalzium überwachen.",
+    nw:[
+      {id:"nierenstein",label:"Nierensteine (Nephrolithiasis) bei übermäßiger Dosierung",         icd:"N20.0", haeuf:"selten bei normaler Dosierung"},
+      {id:"hyperkal",   label:"Hyperkalzämie (bei Überdosierung)",                                 icd:"E83.52",haeuf:"selten bei normaler Dosierung"},
+      {id:"bauch",      label:"Verstopfung / Blähungen / Übelkeit",                               icd:"K59.0", haeuf:"gelegentlich"},
+      {id:"interakt",   label:"Wechselwirkungen (Tetracycline, Fluoride, L-Thyroxin – Abstand einhalten!)", icd:"T50.9",haeuf:"häufig"},
+    ]
+  },
+
+  /* ═══════════════════════════════════════════════════════════════════
+     HORMONTHERAPIE / ÖSTROGEN (HRT bei postmenopausaler Osteoporose)
+     ═══════════════════════════════════════════════════════════════════ */
+  {
+    id:"hrt",gruppe:"Hormontherapie (HRT / Östrogen)",
+    wirkstoff:"Östrogen-Gestagen-Kombinationen / Östrogene (HRT)",
+    handelsnamen:"Klimonorm® · Kliogest® · Trisequens® · Femoston® · Femoston conti® · Angeliq® · Activelle® · Climen® · Cycloprogynova® · Fem7® (Pflaster) · Estradot® (Pflaster) · Climara® (Pflaster) · Evorel® (Pflaster) · Dermestril® (Pflaster) · Estreva® (Gel) · Gynokadin® (Gel) · Sandrena® (Gel) · Vagifem® (lokal) · Tibolon: Liviella® · Xyvion®",
+    dosierung:"Individuell; niedrigste wirksame Dosis. Systemisch (oral, transdermal) bei ausgeprägten Wechseljahresbeschwerden + Osteoporose.",
+    zulassung:"Postmenopausale Osteoporose: nur noch Zweitlinie bei Frauen < 60 J. mit Wechseljahresbeschwerden, die keine anderen Osteoporosemittel vertragen. Primäre Indikation: Wechseljahresbeschwerden.",
+    anmerkung:"DVO 2023: HRT nur noch eingeschränkt für Osteoporose (kein First-Line-Mittel). Nutzen-Risiko-Abwägung erforderlich (Brustkrebsrisiko, TVT). Bei chirurgischer Menopause < 45 J. weiterhin empfohlen.",
+    nw:[
+      {id:"brustkrebs",label:"Erhöhtes Brustkrebsrisiko (v.a. bei kombinierter Östrogen-Gestagen-HRT > 5 J.)", icd:"C50", haeuf:"gelegentlich (erhöhtes Risiko)"},
+      {id:"tvt",       label:"Tiefe Venenthrombose / Lungenembolie (oral > transdermal)",         icd:"I82.4",haeuf:"gelegentlich"},
+      {id:"schlaganfall",label:"Schlaganfall",                                                     icd:"I64",  haeuf:"selten"},
+      {id:"hitzew",    label:"Mastodynie (Brustspannen)",                                          icd:"N64.4",haeuf:"sehr häufig"},
+      {id:"blutung",   label:"Unregelmäßige Blutungen (Durchbruchblutungen)",                     icd:"N93.9",haeuf:"häufig"},
+      {id:"oedem",     label:"Wassereinlagerungen / Ödeme",                                        icd:"R60",  haeuf:"häufig"},
+    ]
+  },
+
+  /* ═══════════════════════════════════════════════════════════════════
+     HISTORISCH / NICHT MEHR IN DEUTSCHLAND IM EINSATZ
+     ═══════════════════════════════════════════════════════════════════ */
+  {
+    id:"strontium",gruppe:"Historisch (nicht mehr erhältlich in DE)",
     wirkstoff:"Strontiumranelat",
-    handelsnamen:"Protelos® 2 g/Tag (seit 2017 in Deutschland vom Markt genommen)",
-    dosierung:"2 g täglich oral (abends, 2 h nach Mahlzeit)",
-    zulassung:"Postmenopausale Osteoporose; Osteoporose beim Mann (ehemalige Zulassung)",
-    anmerkung:"Seit 2017 nicht mehr in Deutschland erhältlich (EU-Marktrücknahme wegen kardiovaskulärem Risiko). Fragen relevant für Therapieanamnese älterer Patienten.",
+    handelsnamen:"Protelos® 2 g Granulat · Osseor® 2 g Granulat (beide seit Oktober 2017 in DE vom Markt genommen)",
+    dosierung:"2 g täglich oral (abends, mind. 2 h nach Mahlzeit, in Wasser aufgelöst)",
+    zulassung:"Ehemals (bis 2017): Postmenopausale Osteoporose; Osteoporose beim Mann. EU-Marktrücknahme 2017 wegen kardiovaskulärem Risiko.",
+    anmerkung:"Seit Oktober 2017 kein Marktvertrieb mehr in Deutschland (EU). Nur noch für Therapieanamnesen älterer Patienten relevant (Einnahme bis ca. 2017 möglich).",
     nw:[
-      {id:"herzinfarkt",label:"Herzinfarkt / Koronare Ereignisse (Grund für Marktrücknahme)", icd:"I21",  haeuf:"selten (aber Risikoerhöhung)"},
-      {id:"tvt",        label:"Tiefe Venenthrombose",                                          icd:"I82.4",haeuf:"selten"},
-      {id:"dress",      label:"DRESS-Syndrom (schwere Hautreaktion + Organbeteiligung)",        icd:"L27.1",haeuf:"sehr selten"},
-      {id:"nausea",     label:"Übelkeit / Diarrhoe",                                           icd:"R11",  haeuf:"sehr häufig"},
-      {id:"kopf",       label:"Kopfschmerzen / Schwindel",                                     icd:"R51",  haeuf:"häufig"},
-      {id:"memory",     label:"Gedächtnisstörungen / Kognitive Beeinträchtigung",              icd:"F06.7",haeuf:"selten"},
+      {id:"herzinfarkt",label:"Herzinfarkt / koronare Ereignisse (Hauptgrund für Marktrücknahme)", icd:"I21",  haeuf:"selten (aber signifikant erhöhtes Risiko vs. Placebo)"},
+      {id:"tvt",        label:"Tiefe Venenthrombose / Lungenembolie",                              icd:"I82.4",haeuf:"selten"},
+      {id:"dress",      label:"DRESS-Syndrom (Drug Rash with Eosinophilia – potenziell lebensbedrohlich)", icd:"L27.1",haeuf:"sehr selten"},
+      {id:"nausea",     label:"Übelkeit / Diarrhoe (initial sehr häufig)",                        icd:"R11",  haeuf:"sehr häufig"},
+      {id:"kopf",       label:"Kopfschmerzen / Schwindel",                                        icd:"R51",  haeuf:"häufig"},
+      {id:"memory",     label:"Gedächtnisstörungen / kognitive Beeinträchtigung",                 icd:"F06.7",haeuf:"selten"},
+      {id:"panse",      label:"Pankreatitis",                                                      icd:"K85.9",haeuf:"sehr selten"},
     ]
   },
   {
-    id:"kalzitonin",gruppe:"Historisch (nicht mehr für Osteoporose zugelassen)",
-    wirkstoff:"Lachskalzitonin",
-    handelsnamen:"Miacalcic® Nasenspray (Zulassung für Osteoporose 2013 von EMA widerrufen)",
-    dosierung:"200 IE/Tag intranasal (historisch)",
-    zulassung:"Ehemals: Postmenopausale Osteoporose (Zulassung wegen Krebsrisiko entzogen)",
-    anmerkung:"Seit 2013 nicht mehr für Osteoporose zugelassen; relevant für ältere Therapieanamnesen",
+    id:"kalzitonin",gruppe:"Historisch (Zulassung für Osteoporose entzogen)",
+    wirkstoff:"Lachskalzitonin (synthetisch)",
+    handelsnamen:"Miacalcic® 200 IE Nasenspray · Miacalcic® 50 / 100 IE Injektionslösung · Karil® Nasenspray – Zulassung für Osteoporose in EU seit 2013 widerrufen",
+    dosierung:"200 IE/Tag intranasal (historisch); 100 IE subkutan/i.m. bei akuten Schmerzen (Wirbelkörperfraktur)",
+    zulassung:"Zulassung für Osteoporose in EU am 20. Juni 2013 von der EMA widerrufen (Nutzenschaden-Verhältnis ungünstig, Langzeit-Krebsrisiko). Noch zugelassen: Morbus Paget, tumorbedingte Hyperkalzämie (parenteral).",
+    anmerkung:"War früher Standard bei akuten Wirbelfrakturen (Schmerztherapie). Heute vollständig abgelöst. Nur für ältere Anamnesen (vor 2013 behandelte Patienten) relevant.",
     nw:[
-      {id:"krebsrisiko",label:"Erhöhtes Krebsrisiko (Grund für Zulassungsentzug)",  icd:"C80.1",haeuf:"erhöhtes Langzeitrisiko"},
-      {id:"rhinitis",   label:"Rhinitis / Nasenreizung",                              icd:"J31.0",haeuf:"sehr häufig"},
-      {id:"flush",      label:"Hitzegefühl / Flush",                                  icd:"R23.2",haeuf:"häufig"},
-      {id:"nausea",     label:"Übelkeit / Bauchschmerzen",                            icd:"R11",  haeuf:"häufig"},
+      {id:"krebsrisiko",label:"Erhöhtes Krebsrisiko (Hauptgrund für Zulassungsentzug bei Osteoporose)",icd:"C80.1",haeuf:"erhöhtes Langzeitrisiko"},
+      {id:"rhinitis",   label:"Rhinitis / Nasenreizung / Nasenbluten (intranasal)",                icd:"J31.0",haeuf:"sehr häufig"},
+      {id:"flush",      label:"Hitzegefühl / Flush (besonders nach Injektion)",                   icd:"R23.2",haeuf:"häufig"},
+      {id:"nausea",     label:"Übelkeit / Bauchschmerzen / Erbrechen",                            icd:"R11",  haeuf:"häufig"},
+      {id:"reaktion",   label:"Lokalreaktion an der Injektionsstelle",                            icd:"T88.7",haeuf:"häufig"},
+    ]
+  },
+  {
+    id:"ipriflavon",gruppe:"Historisch (kein Standard, Zulassung DE erloschen)",
+    wirkstoff:"Ipriflavon (Isoflavon-Derivat)",
+    handelsnamen:"Ossiplex® Retard – Zulassung in Deutschland erloschen",
+    dosierung:"600 mg/Tag oral (200 mg 3×/Tag)",
+    zulassung:"Ehemals: Postmenopausale Osteoporose (schwache Evidenz; DE-Zulassung erloschen). In einigen osteuropäischen Ländern noch erhältlich.",
+    anmerkung:"Nur für sehr alte Therapieanamnesen (vor 2005) relevant. Wirksamkeit nie überzeugend belegt.",
+    nw:[
+      {id:"bauch",     label:"Übelkeit / Bauchschmerzen / Diarrhoe",                              icd:"R10.1",haeuf:"gelegentlich"},
+      {id:"lymphopenie",label:"Lymphopenie (Rückgang weißer Blutkörperchen)",                     icd:"D72.8",haeuf:"selten"},
+    ]
+  },
+  {
+    id:"fluorid",gruppe:"Historisch (kein Standard mehr)",
+    wirkstoff:"Natriumfluorid / Monofluorphosphat",
+    handelsnamen:"Tridin® · Ossopan® · Fluoretten® · Natriumfluorid Leiras® – alle nicht mehr für Osteoporose vermarktet",
+    dosierung:"20–40 mg Fluorid/Tag oral (historisch)",
+    zulassung:"Ehemals in DE für Osteoporose verwendet; heute kein anerkannter Standard (NVL / DVO: nicht empfohlen).",
+    anmerkung:"Fluoride erhöhen Knochendichte (DXA), aber erhöhen NICHT die Knochenqualität und reduzieren Frakturrisiko NICHT. Seit den 1990ern verlassen. Nur für sehr alte Anamnesen relevant.",
+    nw:[
+      {id:"oeso",     label:"Ösophagitis / Magenreizung",                                         icd:"K20",  haeuf:"häufig"},
+      {id:"schmerz",  label:"Knochenschmerzen (periostale Reaktion)",                             icd:"M89.9",haeuf:"gelegentlich"},
+      {id:"stress_fx",label:"Stressfrakturen (Mikrofrakturen durch minderwertige Knochenqualität)",icd:"M84.3",haeuf:"bei Langzeitgabe"},
     ]
   },
 ];
-
-
 function buildOsteoTherapieDefaults(){ return JSON.parse(JSON.stringify(OSTEO_THERAPIE_DEFAULTS)); }
 
 const ABSETZ_GRUENDE=[
