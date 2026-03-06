@@ -2712,7 +2712,7 @@ function getIcdArray(entry, gender, answers){
 }
 
 /* ═══════════════════════════════════════════════ TEXT EXPORT ═══ */
-function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamnese,therapieHistory,osteoTherapieDb){
+function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds){
   const db=diagDb||DIAG_DB_DEFAULTS;
   const d=new Date().toLocaleDateString("de-DE");
   const lines=[];
@@ -2846,10 +2846,19 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
   }
 
   // ─ Bisherige Osteoporose-Therapie ─
+  const freiTh=freitextTherapieMeds||[];
   const th=therapieHistory||[];
   const tdb=osteoTherapieDb||OSTEO_THERAPIE_DEFAULTS;
-  if(th.length>0){
+  if(freiTh.length>0||th.length>0){
     lines.push("BISHERIGE OSTEOPOROSE-THERAPIE");lines.push(sub);
+    if(freiTh.length>0){
+      lines.push("  Schnellerfassung (Kamera/Freitext):");
+      freiTh.forEach(function(m,i){lines.push("    "+(i+1)+". "+m);});
+      if(th.length>0)lines.push("");
+    }
+  }
+  if(th.length>0){
+    lines.push(" ");
     th.forEach(function(en,i){
       const med=tdb.find(function(m){return m.id===en.medId;})||null;
       let s="  "+(i+1)+". "+(med?med.wirkstoff:(en.medId||"Unbekannt"));
@@ -5666,7 +5675,81 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
 
 
 /* ─── OSTEOPOROSE THERAPIE SEKTION ────────────────────────────────────────── */
-function OsteoTherapieSection({history,setHistory,db,open,onToggle}){
+function OsteoMedSammlung({onCameraOpen,freitextMeds,onFreitextMeds}){
+  const[text,setText]=useState("");
+  const tags=freitextMeds||[];
+  const addTag=(t)=>{const v=t.trim();if(!v||tags.includes(v))return;onFreitextMeds([...tags,v]);};
+  const removeTag=(i)=>onFreitextMeds(tags.filter((_,j)=>j!==i));
+  const handleKey=(e)=>{if(e.key==="Enter"||e.key===","){addTag(text);setText("");}};
+  return(
+    <div style={{background:"#f4f7f0",border:"2px solid #6a9a5a",borderRadius:10,
+      padding:"15px 17px",marginBottom:16}}>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:13.5,fontWeight:700,
+        color:"#1a3a10",marginBottom:11,display:"flex",alignItems:"center",gap:8}}>
+        📋 Frühere Osteoporose-Medikamente – schnell erfassen
+      </div>
+
+      {/* Kamera */}
+      {onCameraOpen&&(
+        <button onClick={onCameraOpen} className="no-print" style={{
+          width:"100%",padding:"12px 15px",
+          background:"linear-gradient(135deg,#1a3a10,#2a5a1a)",
+          color:"white",border:"none",borderRadius:8,cursor:"pointer",
+          fontFamily:"'Source Sans 3',sans-serif",fontSize:13,fontWeight:600,
+          display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+          boxShadow:"0 3px 12px rgba(0,0,0,.18)",marginBottom:8}}>
+          <span style={{fontSize:19}}>📷</span>
+          <div style={{textAlign:"left"}}>
+            <div>Medikamentenplan oder Schachtel fotografieren</div>
+            <div style={{fontSize:11,fontWeight:400,opacity:.8,marginTop:1}}>
+              QR-Code (Einheitlicher Medikationsplan) · Barcode (PZN/EAN) · KI-Fotoerkennung
+            </div>
+          </div>
+        </button>
+      )}
+
+      {/* Klarschrift */}
+      <div style={{display:"flex",gap:8,marginBottom:9}}>
+        <input value={text} onChange={e=>setText(e.target.value)} onKeyDown={handleKey}
+          placeholder="Medikamentenname eingeben, dann Enter drücken…"
+          style={{flex:1,padding:"8px 11px",border:"1.5px solid #7aaa5a",borderRadius:6,
+            fontSize:13,fontFamily:"'Source Sans 3',sans-serif",outline:"none",background:"white"}}/>
+        <button onClick={()=>{addTag(text);setText("");}}
+          style={{padding:"8px 14px",background:"#3a7a2a",color:"white",border:"none",
+            borderRadius:6,cursor:"pointer",fontSize:13,fontWeight:600,
+            fontFamily:"'Source Sans 3',sans-serif",whiteSpace:"nowrap"}}>
+          + Hinzufügen
+        </button>
+      </div>
+
+      {/* Tags */}
+      {tags.length===0
+        ? <div style={{fontSize:12,color:"#6a8a5a",fontStyle:"italic",padding:"4px 2px"}}>
+            Noch nichts eingetragen – Kamera nutzen oder Namen eingeben
+          </div>
+        : <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {tags.map((t,i)=>(
+              <span key={i} style={{display:"inline-flex",alignItems:"center",gap:5,
+                padding:"5px 10px",background:"#d8edd0",border:"1px solid #7aaa5a",
+                borderRadius:20,fontSize:12,color:"#1a3a10",fontWeight:500}}>
+                💊 {t}
+                <button onClick={()=>removeTag(i)} className="no-print"
+                  style={{background:"none",border:"none",cursor:"pointer",
+                    color:"#4a7a3a",fontSize:14,lineHeight:1,padding:"0 2px",fontWeight:700}}>
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+      }
+      <div style={{fontSize:11,color:"#6a8a5a",marginTop:7,lineHeight:1.5}}>
+        ℹ Tragen Sie hier alle früheren und aktuellen Osteoporose-Medikamente ein. Unten können Sie die Einnahme detailliert (mit Zeitraum, Dosis und Absetzgrund) erfassen.
+      </div>
+    </div>
+  );
+}
+
+function OsteoTherapieSection({history,setHistory,db,open,onToggle,onCameraOpen,freitextMeds,onFreitextMeds}){
   const iSt={padding:"5px 8px",border:"1px solid #d8c8b0",borderRadius:6,fontSize:13,fontFamily:"inherit",background:"white",outline:"none"};
   const selSt={...iSt,cursor:"pointer"};
   const delBSt={padding:"4px 9px",borderRadius:5,border:"1px solid #fca5a5",background:"#fee2e2",color:"#dc2626",cursor:"pointer",fontSize:13,fontFamily:"inherit",flexShrink:0};
@@ -5703,14 +5786,23 @@ function OsteoTherapieSection({history,setHistory,db,open,onToggle}){
 
       {open&&(
         <div style={{padding:"14px 18px"}}>
-          <div style={{marginBottom:12,padding:"9px 12px",background:"#f0f8ff",border:"1px solid #c0d8f0",borderRadius:7,fontSize:12.5,color:"#2a4a7a",lineHeight:1.6}}>
-            <strong>Bitte alle bisherigen Osteoporose-Medikamente eintragen</strong> – auch wenn diese schon längere Zeit zurückliegen oder abgesetzt wurden.
-            Bei Absetzen bitte den Grund angeben. Nebenwirkungen werden mit ICD-10-Code dokumentiert.
+          {/* ── Kamera + Klarschrifteingabe (wie MedsSammlung) ── */}
+          <OsteoMedSammlung
+            onCameraOpen={onCameraOpen}
+            freitextMeds={freitextMeds}
+            onFreitextMeds={onFreitextMeds}/>
+
+          {/* Trennlinie */}
+          <div style={{fontSize:12,fontWeight:700,color:"#7a5a38",letterSpacing:"1px",
+            textTransform:"uppercase",margin:"16px 0 12px",display:"flex",alignItems:"center",gap:8}}>
+            <span style={{flex:1,height:1,background:"#e8d8c0"}}/>
+            Strukturierte Therapieerfassung
+            <span style={{flex:1,height:1,background:"#e8d8c0"}}/>
           </div>
 
           {history.length===0&&(
             <div style={{fontSize:12,color:"#a09080",fontStyle:"italic",marginBottom:8}}>
-              Noch keine Therapieeinträge. Bitte alle bisherigen Osteoporose-Medikamente eintragen.
+              Noch keine strukturierten Einträge. Nutzen Sie den Button unten zum Hinzufügen.
             </div>
           )}
 
@@ -6256,6 +6348,7 @@ function App(){
   const[osteoTherapieDb,setOsteoTherapieDb]=useState(()=>buildOsteoTherapieDefaults());
   const[therapieHistory,setTherapieHistory]=useState([]); // [{medId,vonJahr,bisJahr,nochAktuell,dosierung,abgesetzt,absetzGrund,absetzNwIds,anmerkung}]
   const[openTherap,setOpenTherap]=useState(true);
+  const[freitextTherapieMeds,setFreitextTherapieMeds]=useState([]);
   const[adminOpen,setAdminOpen]=useState(false);
   const[adminPin,setAdminPin]=useState("");
   const[adminUnlocked,setAdminUnlocked]=useState(false);
@@ -6263,6 +6356,7 @@ function App(){
   const ADMIN_PIN="1234";
   const[viewer,setViewer]=useState(null); // {type:"txt"|"pdf", content:string}
   const[camOpen,setCamOpen]=useState(false);
+  const[therapieCam,setTherapieCam]=useState(false);
   const isAndroid=/Android/i.test(navigator.userAgent);
   const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
   const isMobile=isAndroid||isIOS;
@@ -6374,7 +6468,7 @@ function App(){
     await saveSession();
     const r=computeRisk(answers,gender);
     const d=prevSession?computeDiff(answers,prevSession,gender):null;
-    const text=buildTextExport(patient,gender,answers,r,d,lh,diagDb,sekDiagDb,anamnese,therapieHistory,osteoTherapieDb);
+    const text=buildTextExport(patient,gender,answers,r,d,lh,diagDb,sekDiagDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds);
     const fname=makeFilename("txt");
     // Try native File System Access API (shows real "Speichern unter" dialog)
     if(typeof window.showSaveFilePicker==="function"){
@@ -6623,7 +6717,10 @@ function App(){
               setHistory={setTherapieHistory}
               db={osteoTherapieDb}
               open={openTherap}
-              onToggle={()=>setOpenTherap(v=>!v)}/>
+              onToggle={()=>setOpenTherap(v=>!v)}
+              onCameraOpen={()=>{setTherapieCam(true);}}
+              freitextMeds={freitextTherapieMeds}
+              onFreitextMeds={setFreitextTherapieMeds}/>
           </>
         )}
 
@@ -6725,6 +6822,14 @@ function App(){
       )}
             {camOpen&&(
         <CameraScanner onMedsFound={handleCamMeds} onClose={()=>setCamOpen(false)}/>
+      )}
+      {therapieCam&&(
+        <CameraScanner
+          onMedsFound={(meds)=>{
+            setFreitextTherapieMeds(prev=>[...new Set([...prev,...meds])]);
+            setTherapieCam(false);
+          }}
+          onClose={()=>setTherapieCam(false)}/>
       )}
       {sendModalOpen&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:4000,
