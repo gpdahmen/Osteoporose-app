@@ -6623,10 +6623,7 @@ function App(){
                 </div>
               )}
             </div>
-            <button className="lh-edit-btn no-print"
-              onClick={()=>{setArztStartTab("briefkopf");setAdminOpen(true);}}>
-              ✏ Briefkopf bearbeiten
-            </button>
+
           </div>
         </div>
 
