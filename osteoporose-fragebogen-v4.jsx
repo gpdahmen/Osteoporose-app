@@ -6193,7 +6193,7 @@ function App(){
   const[openPain,setOpenPain]=useState(true);
   const[sekStatus,setSekStatus]=useState({}); // {[sym]: {bekannt:'ja'|'nein'|'', seitWann:'', behandlung:''}}
   const[answers,setAnswers]=useState({});
-  const[patient,setPatient]=useState({name:"",geburtsdatum:"",fillDate:today});
+  const[patient,setPatient]=useState({name:"",geburtsdatum:"",email:"",fillDate:today});
   const[openSec,setOpenSec]=useState({});
   const[showResult,setShowResult]=useState(false);
   const[showHist,setShowHist]=useState(false);
@@ -6343,7 +6343,7 @@ function App(){
     setPainMaps({});
     setSekStatus({});
     setTherapieHistory([]);
-    setPatient({name:"",geburtsdatum:"",fillDate:today});setGender(null);setDisclaimerOk(false);
+    setPatient({name:"",geburtsdatum:"",email:"",fillDate:today});setGender(null);setDisclaimerOk(false);
     storageSet(STORE_DRAFT,null);
   };
 
@@ -6360,6 +6360,22 @@ function App(){
 
   const openAllSections=()=>{
     const all={};visibleSecs.forEach(s=>all[s.id]=true);setOpenSec(all);
+  };
+
+  /* ── An Patient senden: Druckdialog öffnen (→ PDF), dann mailto ── */
+  const[sendModalOpen,setSendModalOpen]=useState(false);
+  const handleSendToPatient=async()=>{
+    if(!gender){alert("Bitte zuerst Geschlecht auswählen.");return;}
+    await saveSession();
+    // 1. Alle Abschnitte öffnen + Auswertung anzeigen damit alles im PDF landet
+    const allOpen={};visibleSecs.forEach(s=>allOpen[s.id]=true);
+    setOpenSec(allOpen);setShowResult(false); // kein Result-Panel – nur Fragebogen
+    // 2. Druckdialog öffnen (Patient speichert als PDF)
+    setTimeout(()=>{
+      window.print();
+      // 3. Nach Druckdialog: mailto-Modal zeigen
+      setTimeout(()=>setSendModalOpen(true),800);
+    },400);
   };
 
   return(
@@ -6445,6 +6461,13 @@ function App(){
                   const age=calcAgeFromBirthdate(val);
                   if(age!==null)setA("alter",String(age));
                 }}/>
+            </div>
+            <div className="pat-field" style={{gridColumn:"span 2"}}>
+              <label>E-Mail-Adresse (für Zusendung des ausgefüllten Fragebogens)</label>
+              <input type="email" value={patient.email||""} onChange={e=>setP("email",e.target.value)}
+                placeholder="patient@beispiel.de"
+                style={{width:"100%",padding:"8px 11px",border:"1.5px solid var(--CM)",borderRadius:5,
+                  fontSize:13.5,color:"var(--D)",outline:"none",fontFamily:"'Source Sans 3',sans-serif"}}/>
             </div>
             <div className="pat-field">
               <label>Größe (cm)</label>
@@ -6548,21 +6571,28 @@ function App(){
         {/* ── Bottom Bar ── */}
         {gender&&(
           <div className="bottom-bar no-print">
-            {/* Patient completion message */}
-            <div style={{background:"#f0f7f0",border:"2px solid #6aaa64",borderRadius:10,
-              padding:"18px 20px",marginBottom:16,textAlign:"center"}}>
-              <div style={{fontSize:22,marginBottom:6}}>✅</div>
-              <div style={{fontSize:16,fontWeight:700,color:"#2a5a2a",marginBottom:6}}>
-                Fragebogen fertig ausgefüllt?
-              </div>
-              <div style={{fontSize:14,color:"#3a5a3a",lineHeight:1.7,maxWidth:480,margin:"0 auto"}}>
-                Vielen Dank! Bitte geben Sie das Gerät an<br/>
-                <strong>die Arzthelfer·in oder Ärztin / den Arzt</strong> zurück.<br/>
-                <span style={{fontSize:12,color:"#6a8a6a"}}>Die Auswertung erfolgt durch das Praxisteam.</span>
-              </div>
+
+            {/* ── Patient: Abschluss-Button ── */}
+            <div style={{marginBottom:16}}>
+              <button
+                onClick={handleSendToPatient}
+                style={{width:"100%",padding:"18px 20px",borderRadius:10,border:"2px solid #4a9a4a",
+                  background:"linear-gradient(135deg,#f0f9f0,#e4f4e4)",cursor:"pointer",
+                  textAlign:"center",transition:"all .2s",boxShadow:"0 2px 10px rgba(74,154,74,.15)",
+                  fontFamily:"'Source Sans 3',sans-serif"}}>
+                <div style={{fontSize:26,marginBottom:6}}>✅</div>
+                <div style={{fontSize:16,fontWeight:700,color:"#1a5a1a",marginBottom:4}}>
+                  Fragebogen abgeschlossen – als PDF speichern
+                </div>
+                <div style={{fontSize:12.5,color:"#4a7a4a",lineHeight:1.5}}>
+                  {patient.email
+                    ? <span>PDF wird erstellt → anschließend an <strong>{patient.email}</strong> senden</span>
+                    : <span>PDF speichern (E-Mail-Adresse oben eingeben für direktes Versenden)</span>}
+                </div>
+              </button>
             </div>
 
-            {/* Staff area – visually separated */}
+                        {/* Staff area – visually separated */}
             <div style={{borderTop:"2px dashed #d8c8b0",paddingTop:14,marginTop:4}}>
               <div style={{fontSize:11,fontWeight:700,letterSpacing:"1.5px",
                 textTransform:"uppercase",color:"#9a8878",marginBottom:10,
@@ -6617,6 +6647,74 @@ function App(){
       )}
             {camOpen&&(
         <CameraScanner onMedsFound={handleCamMeds} onClose={()=>setCamOpen(false)}/>
+      )}
+      {sendModalOpen&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:4000,
+          display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
+          onClick={()=>setSendModalOpen(false)}>
+          <div style={{background:"white",borderRadius:12,padding:"28px 26px",maxWidth:440,width:"100%",
+            boxShadow:"0 8px 40px rgba(0,0,0,.25)"}}
+            onClick={e=>e.stopPropagation()}>
+            <div style={{textAlign:"center",marginBottom:20}}>
+              <div style={{fontSize:36,marginBottom:8}}>📧</div>
+              <div style={{fontSize:17,fontWeight:700,color:"#1a3a1a",marginBottom:4}}>
+                Fragebogen per E-Mail senden
+              </div>
+              <div style={{fontSize:13,color:"#5a6a5a",lineHeight:1.6}}>
+                Das PDF wurde erstellt (Druckdialog). Bitte nun per E-Mail an den Patienten senden.
+              </div>
+            </div>
+            {patient.email?(
+              <div style={{marginBottom:16}}>
+                <div style={{fontSize:12,fontWeight:700,color:"#5a5a5a",marginBottom:6,textTransform:"uppercase",letterSpacing:".5px"}}>
+                  Empfänger
+                </div>
+                <div style={{padding:"10px 14px",background:"#f0f9f0",border:"1.5px solid #6aaa64",
+                  borderRadius:7,fontSize:14,fontWeight:600,color:"#1a5a1a"}}>
+                  {patient.email}
+                </div>
+              </div>
+            ):(
+              <div style={{marginBottom:16,padding:"10px 14px",background:"#fff8f0",
+                border:"1px solid #f0c060",borderRadius:7,fontSize:13,color:"#7a5010"}}>
+                ⚠ Keine E-Mail-Adresse hinterlegt. Bitte im Patientenkopf eintragen.
+              </div>
+            )}
+            <div style={{marginBottom:20,padding:"10px 14px",background:"#f8f8f8",
+              borderRadius:7,fontSize:12,color:"#5a5a5a",lineHeight:1.7}}>
+              <strong>Betreff:</strong> Ihr ausgefüllter Osteoporose-Fragebogen<br/>
+              <strong>Anhang:</strong> Das soeben gespeicherte PDF aus dem Druckdialog
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {patient.email&&(
+                <a href={(()=>{
+                    const subj=encodeURIComponent("Ihr ausgefüllter Osteoporose-Fragebogen \u2013 "+lh.name);
+                    const body=encodeURIComponent(
+                      "Sehr geehrte Patientin, sehr geehrter Patient,\n\n"+
+                      "im Anhang finden Sie Ihren ausgefüllten Osteoporose-Fragebogen als PDF.\n\n"+
+                      "Bitte bringen Sie das Dokument zu Ihrem n\u00e4chsten Termin mit.\n\n"+
+                      "Mit freundlichen Gr\u00fc\u00dfen\n"+lh.name+"\n"+lh.title+"\n"+lh.strasse+", "+lh.plz_ort
+                    );
+                    return "mailto:"+encodeURIComponent(patient.email)+"?subject="+subj+"&body="+body;
+                  })()}
+                  style={{display:"block",textAlign:"center",padding:"12px 20px",
+                    background:"#2a5a2a",color:"white",borderRadius:7,fontSize:14,
+                    fontWeight:700,textDecoration:"none",letterSpacing:".2px"}}>
+                  📤 E-Mail-Programm öffnen
+                </a>
+              )}
+              <button onClick={()=>setSendModalOpen(false)}
+                style={{padding:"10px",borderRadius:7,border:"1px solid #d0d0d0",
+                  background:"white",cursor:"pointer",fontSize:13,color:"#5a5a5a",
+                  fontFamily:"'Source Sans 3',sans-serif"}}>
+                Schließen
+              </button>
+              <div style={{fontSize:11,color:"#9a9a9a",textAlign:"center",lineHeight:1.5}}>
+                💬 <em>Messenger-Versand (z.B. Rocket.Chat) folgt in einer späteren Version</em>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
       {viewer&&(
         <div className="viewer-overlay">
