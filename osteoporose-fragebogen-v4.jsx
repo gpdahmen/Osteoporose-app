@@ -4892,7 +4892,7 @@ function flattenEntries(id, entries, original){
 
 function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScoringDb,osteoTherapieDb,onSave,onSaveSek,onSaveSekProfile,onSaveSekUnters,onSaveSekQs,onSaveSekScoring,onSaveTherapieDb,onClose,
   // Auswertung props
-  gender,answers,patient,anamnese,therapieHistory,lh,sessions,sekStatus,setSekStatus,
+  gender,answers,patient,anamnese,therapieHistory,lh,onSaveLh,sessions,sekStatus,setSekStatus,
   onExportPdf,onExportTxt,onLoadSession,onDeleteSession,
   initialTab,diff}){
   const ICD5_RE=/^[A-Z]\d{2}\.[\d]{2}[XG]?G?$/;
@@ -5056,7 +5056,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
           <>
             {/* Tab bar */}
             <div style={{display:"flex",background:"#1a1208",borderBottom:"2px solid #c8a070",flexShrink:0}}>
-              {[["auswertung","📊 Auswertung"],["verlauf","📂 Verlauf"],["risiko","🦴 Risikofaktoren"],["sek","🔎 Sekundäre Osteoporose"],["therapie","💊 Osteoporose-Therapie"]].map(([key,label])=>(
+              {[["auswertung","📊 Auswertung"],["verlauf","📂 Verlauf"],["risiko","🦴 Risikofaktoren"],["sek","🔎 Sekundäre Osteoporose"],["therapie","💊 Osteoporose-Therapie"],["briefkopf","✏ Briefkopf"]].map(([key,label])=>(
                 <button key={key} onClick={()=>setActiveTab(key)}
                   style={{padding:"10px 20px",border:"none",cursor:"pointer",
                     fontFamily:"'Source Sans 3',sans-serif",fontSize:13,fontWeight:700,
@@ -5070,7 +5070,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
             </div>
 
             {/* Search bar + info – DB tabs only */}
-            {(activeTab!=="auswertung"&&activeTab!=="verlauf")&&<div style={{padding:"8px 14px",background:"#fef9f4",borderBottom:"1px solid #ece5d8",
+            {(activeTab!=="auswertung"&&activeTab!=="verlauf"&&activeTab!=="briefkopf")&&<div style={{padding:"8px 14px",background:"#fef9f4",borderBottom:"1px solid #ece5d8",
               display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",flexShrink:0}}>
               <input
                 value={search} onChange={e=>setSearch(e.target.value)}
@@ -5661,9 +5661,64 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
             )}
             </div>
 
+            {/* ── Briefkopf Tab ── */}
+            {activeTab==="briefkopf"&&(
+              <div style={{padding:"22px 24px",maxWidth:640}}>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:700,
+                  color:"var(--D)",marginBottom:6}}>✏ Briefkopf bearbeiten</div>
+                <div style={{fontSize:12.5,color:"#7a6a5a",marginBottom:18,lineHeight:1.6}}>
+                  Diese Angaben erscheinen auf allen ausgedruckten Dokumenten und Befundberichten.
+                </div>
+                <div className="lh-grid" style={{marginBottom:14}}>
+                  <div className="lh-field"><label>Name / Titel</label>
+                    <input value={lh.name} onChange={e=>onSaveLh({...lh,name:e.target.value})} placeholder="Dr. med. Mustermann"/></div>
+                  <div className="lh-field"><label>Fachrichtung</label>
+                    <input value={lh.title} onChange={e=>onSaveLh({...lh,title:e.target.value})} placeholder="Facharzt für …"/></div>
+                  <div className="lh-field"><label>Straße und Hausnummer</label>
+                    <input value={lh.strasse} onChange={e=>onSaveLh({...lh,strasse:e.target.value})} placeholder="Musterstraße 1"/></div>
+                  <div className="lh-field"><label>PLZ und Ort</label>
+                    <input value={lh.plz_ort} onChange={e=>onSaveLh({...lh,plz_ort:e.target.value})} placeholder="12345 Musterstadt"/></div>
+                  <div className="lh-field"><label>Telefon (optional)</label>
+                    <input value={lh.telefon} onChange={e=>onSaveLh({...lh,telefon:e.target.value})} placeholder="040 / …"/></div>
+                  <div className="lh-field"><label>Fax (optional)</label>
+                    <input value={lh.fax} onChange={e=>onSaveLh({...lh,fax:e.target.value})} placeholder="040 / …"/></div>
+                </div>
+                <div className="lh-field" style={{marginBottom:18}}>
+                  <label>E-Mail (optional)</label>
+                  <input value={lh.email} style={{maxWidth:340}} onChange={e=>onSaveLh({...lh,email:e.target.value})} placeholder="praxis@example.de"/>
+                </div>
+                {/* Preview */}
+                <div style={{padding:"14px 18px",background:"#faf8f4",border:"1.5px solid #d8c8a8",
+                  borderRadius:8,marginTop:4}}>
+                  <div style={{fontSize:11,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",
+                    color:"#9a8878",marginBottom:10}}>Vorschau</div>
+                  <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
+                    <div style={{fontSize:26,color:"#9a7a5a",lineHeight:1}}>⚕</div>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:15,color:"#2c1f0e"}}>{lh.name||"Name fehlt"}</div>
+                      {lh.title&&<div style={{fontSize:12.5,color:"#7a6a5a"}}>{lh.title}</div>}
+                      <div style={{fontSize:12,color:"#9a8a7a",marginTop:2}}>
+                        {lh.strasse}{lh.strasse&&lh.plz_ort?" · ":""}{lh.plz_ort}
+                      </div>
+                      {(lh.telefon||lh.fax||lh.email)&&(
+                        <div style={{fontSize:11.5,color:"#9a8a7a",marginTop:2}}>
+                          {lh.telefon&&`Tel.: ${lh.telefon}`}
+                          {lh.fax&&` | Fax: ${lh.fax}`}
+                          {lh.email&&` | ${lh.email}`}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div style={{marginTop:14,fontSize:12,color:"#9a8a7a"}}>
+                  💾 Änderungen werden sofort gespeichert.
+                </div>
+              </div>
+            )}
+
             <div className="admin-footer">
-              {(activeTab!=="auswertung"&&activeTab!=="verlauf")&&<button className="admin-reset-btn" onClick={handleReset}>↩ Auf Standard zurücksetzen</button>}
-              <button className="admin-save-btn" onClick={handleSave}>{(activeTab==="auswertung"||activeTab==="verlauf")?"✕ Schließen":"✓ Speichern & Schließen"}</button>
+              {(activeTab!=="auswertung"&&activeTab!=="verlauf"&&activeTab!=="briefkopf")&&<button className="admin-reset-btn" onClick={handleReset}>↩ Auf Standard zurücksetzen</button>}
+              <button className="admin-save-btn" onClick={handleSave}>{(activeTab==="auswertung"||activeTab==="verlauf"||activeTab==="briefkopf")?"✕ Schließen":"✓ Speichern & Schließen"}</button>
             </div>
           </>
         )}
@@ -6559,8 +6614,28 @@ function App(){
           </div>
         </div>
 
-        {/* ── Letterhead (screen + print) ── */}
-        <LetterheadEditor lh={lh} onSave={handleSaveLh}/>
+        {/* ── Letterhead display (screen + print, editing in Arzt-Zugang) ── */}
+        <div className="lh-wrap">
+          <div className="lh-display">
+            <div className="lh-logo">⚕</div>
+            <div className="lh-text">
+              <div className="lh-name">{lh.name}</div>
+              {lh.title&&<div className="lh-title">{lh.title}</div>}
+              <div className="lh-addr">{lh.strasse}{lh.strasse&&lh.plz_ort?" · ":""}{lh.plz_ort}</div>
+              {(lh.telefon||lh.fax||lh.email)&&(
+                <div className="lh-contact">
+                  {lh.telefon&&`Tel.: ${lh.telefon}`}
+                  {lh.fax&&` | Fax: ${lh.fax}`}
+                  {lh.email&&` | ${lh.email}`}
+                </div>
+              )}
+            </div>
+            <button className="lh-edit-btn no-print"
+              onClick={()=>{setArztStartTab("briefkopf");setAdminOpen(true);}}>
+              ✏ Briefkopf bearbeiten
+            </button>
+          </div>
+        </div>
 
         {/* ── App Header ── */}
         <div className="hdr">
@@ -6813,7 +6888,7 @@ function App(){
           osteoTherapieDb={osteoTherapieDb}
           onSaveTherapieDb={db=>{setOsteoTherapieDb(db);}}
           gender={gender} answers={answers} patient={patient} anamnese={anamnese}
-          therapieHistory={therapieHistory} lh={lh} sessions={sessions}
+          therapieHistory={therapieHistory} lh={lh} onSaveLh={handleSaveLh} sessions={sessions}
           sekStatus={sekStatus} setSekStatus={setSekStatus}
           onExportPdf={handlePrint} onExportTxt={handleText}
           onLoadSession={handleLoadSession} onDeleteSession={handleDeleteSession}
