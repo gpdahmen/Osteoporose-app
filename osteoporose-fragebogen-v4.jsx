@@ -6607,13 +6607,6 @@ function App(){
       <style dangerouslySetInnerHTML={{__html:CSS}}/>
       <div className="app">
 
-        <div className="action-strip">
-          <div className="action-strip-title">📋 Patientenfragebogen</div>
-          <div style={{fontSize:11,color:"#9a8a78",marginTop:1}}>
-            Osteoporose-Anamnese und Risikofaktoren – bitte vollständig ausfüllen
-          </div>
-        </div>
-
         {/* ── Letterhead display (screen + print, editing in Arzt-Zugang) ── */}
         <div className="lh-wrap">
           <div className="lh-display">
