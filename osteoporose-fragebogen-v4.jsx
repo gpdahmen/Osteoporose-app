@@ -251,8 +251,8 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
 /* ─── DISCLAIMER ─── */
 .disclaimer{background:var(--CL);border:1px solid var(--CM);border-radius:6px;padding:12px 15px;margin-top:18px;font-size:11px;color:#8b7a68;line-height:1.65;text-align:center}
 
-.action-strip{background:#2c1f0e;border-radius:8px;padding:11px 14px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.action-strip-title{font-size:10px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:#9a8a78;width:100%;margin-bottom:2px}
+.action-strip{background:#1a2f1a;border-radius:8px;padding:11px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.action-strip-title{font-size:10px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:#8ab88a;width:100%;margin-bottom:2px}
 .as-btn{background:rgba(255,255,255,.15);color:#e8ddd0;border:1px solid rgba(255,255,255,.25);padding:7px 13px;border-radius:5px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Source Sans 3',sans-serif;white-space:nowrap}
 .as-btn:hover{background:rgba(255,255,255,.28)}
 .as-btn.hi{background:#c8a070;color:#2c1f0e;border-color:#c8a070}
@@ -4941,12 +4941,20 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
     <div className="admin-overlay" onClick={onClose}>
       <div className="admin-panel" onClick={e=>e.stopPropagation()}>
         <div className="admin-head">
-          <span className="admin-head-title">🩺 Arzt-Zugang – Auswertung &amp; Einstellungen</span>
+          <div style={{display:"flex",flexDirection:"column",gap:2}}>
+            <span className="admin-head-title">🩺 Arzt-Zugang</span>
+            <span style={{fontSize:11,color:"#c8a070",fontWeight:400,letterSpacing:".3px"}}>Auswertung · Verlauf · Einstellungen · Datenbank</span>
+          </div>
           <button className="viewer-close" onClick={onClose}>×</button>
         </div>
         {!unlocked?(
           <div className="admin-pin-wrap">
-            <span style={{fontSize:13,color:"#5a4a3a",fontWeight:600}}>PIN eingeben:</span>
+            <div style={{textAlign:"center",marginBottom:12}}>
+              <div style={{fontSize:22,marginBottom:6}}>🔐</div>
+              <div style={{fontSize:15,fontWeight:700,color:"#2c1f0e",marginBottom:4}}>Arzt-Zugang</div>
+              <div style={{fontSize:12,color:"#7a6a5a"}}>Bitte PIN eingeben</div>
+            </div>
+            <span style={{fontSize:13,color:"#5a4a3a",fontWeight:600}}>PIN:</span>
             <input className="admin-pin-input" type="password" maxLength={4} value={pinInput}
               onChange={e=>setPinInput(e.target.value)}
               onKeyDown={e=>e.key==="Enter"&&tryPin()}
@@ -6360,11 +6368,10 @@ function App(){
       <div className="app">
 
         <div className="action-strip">
-          <div className="action-strip-title">🩺 Anamnese- und Osteoporose-Dokumentationshilfe</div>
-          <button className="as-btn" style={{marginLeft:"auto",background:"#c8a070",color:"#2c1f0e",borderColor:"#c8a070",fontWeight:700,fontSize:13}}
-            onClick={()=>{setArztStartTab("auswertung");setAdminOpen(true);}}>
-            🩺 Arzt-Zugang
-          </button>
+          <div className="action-strip-title">📋 Patientenfragebogen</div>
+          <div style={{fontSize:11,color:"#9a8a78",marginTop:1}}>
+            Osteoporose-Anamnese und Risikofaktoren – bitte vollständig ausfüllen
+          </div>
         </div>
 
         {/* ── Letterhead (screen + print) ── */}
@@ -6373,8 +6380,8 @@ function App(){
         {/* ── App Header ── */}
         <div className="hdr">
           <h1>Anamnese- und Osteoporose-Dokumentationshilfe und Risikocheck</h1>
-          <p className="hdr-sub">Systematische Erfassung von Risikofaktoren und Symptomen sekundärer Osteoporoseformen – mit automatischer Berechnung der DVO-Therapieschwellen und Abklärungsempfehlungen.</p>
-          <div className="badge">In Anlehnung an die DVO-Leitlinie 2023 · S3-Leitlinie AWMF 183-001 · Version 2.1</div>
+          <p className="hdr-sub">Bitte füllen Sie diesen Fragebogen sorgfältig aus. Ihre Angaben helfen der Ärztin / dem Arzt, Ihre Knochengesundheit besser einzuschätzen. Nehmen Sie sich Zeit – es gibt keine richtigen oder falschen Antworten.</p>
+          <div className="badge">DVO-Leitlinie 2023 · AWMF 183-001 · Patientenfragebogen</div>
         </div>
 
         {/* ── Save indicator ── */}
@@ -6390,12 +6397,14 @@ function App(){
         {/* ── Disclaimer Gate ── */}
         <div className={"disclaimer-gate no-print"+(disclaimerOk?" accepted":"")}>
           <div className="disclaimer-gate-title">
-            {disclaimerOk?"✅":"⚠️"} Nutzungshinweis
+            {disclaimerOk?"✅":"📋"} Hinweis vor dem Ausfüllen
           </div>
           <div className="disclaimer-gate-text">
-            <strong style={{display:"block",marginBottom:6}}>Medizinisch-fachlicher Hinweis</strong>
-            Basierend auf der DVO-Leitlinie 2023 zur Prophylaxe, Diagnostik und Therapie der Osteoporose (AWMF-Register 183-001, Version 2.1, November 2023 / Juni 2024). Medikamentennamen sind Beispiele in Deutschland zugelassener Präparate (ohne Gewähr auf Vollständigkeit).<br/><br/>
-            <strong>Dieses Instrument dient der Veranschaulichung und Schulung von strukturierter Dokumentation bereits bestehender Befunde. Es ist keine Unterstützung klinischer Entscheidungen und ersetzt keine individuelle ärztliche Beurteilung.</strong>
+            <strong style={{display:"block",marginBottom:6}}>Liebe Patientin, lieber Patient</strong>
+            Dieser Fragebogen hilft Ihrer Ärztin / Ihrem Arzt, Ihre Knochengesundheit besser einzuschätzen.
+            Bitte beantworten Sie alle Fragen so vollständig wie möglich. Es gibt keine richtigen oder falschen Antworten –
+            Ihre ehrlichen Angaben sind am wertvollsten.<br/><br/>
+            <strong>Die Auswertung des Fragebogens erfolgt ausschließlich durch das Praxisteam. Sie erhalten keine automatischen Diagnosen oder Therapieempfehlungen aus diesem Fragebogen.</strong>
             <div style={{marginTop:12,padding:"8px 10px",background:"#fff8f0",borderRadius:5,borderLeft:"3px solid #d4a060",fontSize:12}}>
               <strong>Datenschutz (DSGVO)</strong><br/>
               Alle eingegebenen Daten verbleiben ausschließlich auf dem Gerät des Nutzers. Es findet <strong>keine Übertragung</strong> von Patientendaten an externe Server, Datenbanken oder Dritte statt. Daten werden im lokalen Browserspeicher (localStorage / IndexedDB) des verwendeten Endgeräts gespeichert und können jederzeit gelöscht werden.<br/><br/>
@@ -6413,11 +6422,11 @@ function App(){
           </div>
           <label className="disclaimer-gate-check">
             <input type="checkbox" checked={disclaimerOk} onChange={e=>setDisclaimerOk(e.target.checked)}/>
-            <span>Ich habe den Nutzungshinweis sowie den Datenschutzhinweis gelesen und verstanden. Dieses Tool wird ausschließlich zu Dokumentations-, Schulungs- oder Veranschaulichungszwecken verwendet und ich bin für die datenschutzkonforme Nutzung verantwortlich.</span>
+            <span>Ich habe den Hinweis gelesen und bin damit einverstanden, dass meine Angaben ausschließlich auf diesem Gerät gespeichert und vom behandelnden Praxisteam ausgewertet werden.</span>
           </label>
           {!disclaimerOk&&(
             <div className="disclaimer-gate-blocked">
-              ⛔ Bitte bestätigen Sie den Hinweis, um das Formular auszufüllen.
+              Bitte bestätigen Sie den Hinweis oben, um den Fragebogen auszufüllen.
             </div>
           )}
         </div>
@@ -6536,29 +6545,53 @@ function App(){
           );
         })}
 
-        {/* ── Bottom Bar: Patientenaktionen ── */}
+        {/* ── Bottom Bar ── */}
         {gender&&(
-          <div className="bottom-bar">
-            <div className="bottom-bar-title">📋 Fragebogen abgeschlossen?</div>
-            <div style={{fontSize:13.5,color:"#5a4a3a",marginBottom:14,lineHeight:1.7}}>
-              Wenn Sie alle Fragen beantwortet haben, ist der Fragebogen fertig.
-              <strong> Bitte geben Sie das Gerät an die Praxis weiter</strong> – die Auswertung
-              und der Befundbericht werden vom medizinischen Personal im Arzt-Zugang erstellt.
+          <div className="bottom-bar no-print">
+            {/* Patient completion message */}
+            <div style={{background:"#f0f7f0",border:"2px solid #6aaa64",borderRadius:10,
+              padding:"18px 20px",marginBottom:16,textAlign:"center"}}>
+              <div style={{fontSize:22,marginBottom:6}}>✅</div>
+              <div style={{fontSize:16,fontWeight:700,color:"#2a5a2a",marginBottom:6}}>
+                Fragebogen fertig ausgefüllt?
+              </div>
+              <div style={{fontSize:14,color:"#3a5a3a",lineHeight:1.7,maxWidth:480,margin:"0 auto"}}>
+                Vielen Dank! Bitte geben Sie das Gerät an<br/>
+                <strong>die Arzthelfer·in oder Ärztin / den Arzt</strong> zurück.<br/>
+                <span style={{fontSize:12,color:"#6a8a6a"}}>Die Auswertung erfolgt durch das Praxisteam.</span>
+              </div>
             </div>
-            <div className="btn-row">
-              <button className="btn-calc no-print" style={{background:"#c8a070",color:"#2c1f0e",border:"none",fontWeight:700}}
-                onClick={()=>{setArztStartTab("auswertung");setAdminOpen(true);}}>
-                🩺 Arzt-Zugang öffnen
-              </button>
-              <button className="btn-calc no-print" style={{background:"white",color:"var(--M)",border:"1.5px solid var(--P)"}}
-                onClick={openAllSections}>↕ Alle Abschnitte öffnen</button>
-              <button className="btn-reset no-print" onClick={handleReset}>↺ Eingaben zurücksetzen</button>
+
+            {/* Staff area – visually separated */}
+            <div style={{borderTop:"2px dashed #d8c8b0",paddingTop:14,marginTop:4}}>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:"1.5px",
+                textTransform:"uppercase",color:"#9a8878",marginBottom:10,
+                display:"flex",alignItems:"center",gap:8}}>
+                <span style={{flex:1,height:1,background:"#e0d0b8"}}/>
+                Nur für Praxispersonal
+                <span style={{flex:1,height:1,background:"#e0d0b8"}}/>
+              </div>
+              <div style={{display:"flex",gap:10,flexWrap:"wrap",justifyContent:"center"}}>
+                <button className="btn-calc"
+                  style={{background:"#2c1f0e",color:"#e8d8b0",border:"none",
+                    padding:"13px 26px",fontSize:14,fontWeight:700,letterSpacing:".3px",
+                    borderRadius:7,display:"flex",alignItems:"center",gap:9,boxShadow:"0 3px 12px rgba(44,31,14,.3)"}}
+                  onClick={()=>{setArztStartTab("auswertung");setAdminOpen(true);}}>
+                  <span style={{fontSize:18}}>🩺</span> Arzt-Zugang öffnen
+                </button>
+                <button className="btn-calc"
+                  style={{background:"white",color:"var(--M)",border:"1.5px solid var(--P)",padding:"11px 18px"}}
+                  onClick={openAllSections}>
+                  ↕ Alle Abschnitte öffnen
+                </button>
+                <button className="btn-reset" onClick={handleReset}>↺ Neu starten</button>
+              </div>
             </div>
           </div>
         )}
 
         <div className="disclaimer" style={{marginTop:18}}>
-          Auswertung in Analogie zur <strong>DVO-Leitlinie 2023</strong> · AWMF-Register 183-001, Version 2.1 · November 2023 / Juni 2024
+          Dieser Fragebogen basiert auf der <strong>DVO-Leitlinie 2023</strong> · AWMF-Register 183-001, Version 2.1 · Auswertung durch das Praxisteam im Arzt-Zugang
         </div>
       </div>
 
