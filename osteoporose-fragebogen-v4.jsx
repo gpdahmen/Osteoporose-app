@@ -6416,6 +6416,9 @@ function App(){
             {disclaimerOk?"✅":"📋"} Hinweis vor dem Ausfüllen
           </div>
           <div className="disclaimer-gate-text">
+            <div style={{marginBottom:12,padding:"8px 12px",background:"#fff3cd",border:"1px solid #f0c040",borderRadius:5,color:"#7a5010",fontWeight:700,fontSize:13}}>
+              ⚠ Die vorliegende Version ist als Demo- und Machbarkeitsstudie und daher noch nicht zur klinischen Anwendung vorgesehen.
+            </div>
             <strong style={{display:"block",marginBottom:6}}>Liebe Patientin, lieber Patient</strong>
             Dieser Fragebogen hilft Ihrer Ärztin / Ihrem Arzt, Ihre Knochengesundheit besser einzuschätzen.
             Bitte beantworten Sie alle Fragen so vollständig wie möglich. Es gibt keine richtigen oder falschen Antworten –
