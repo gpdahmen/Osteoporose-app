@@ -821,12 +821,27 @@ function calcAgeFromBirthdate(dob){
   if(m<0||(m===0&&now.getDate()<d.getDate()))age--;
   return age>=0&&age<130?age:null;
 }
+// Buchstaben inkl. Umlaute, Apostroph, Bindestrich – keine Zahlen, keine Sonderzeichen
+const NAME_RE = /^[A-Za-zÄÖÜäöüßÀ-žÁáÉéÍíÓóÚúÂâÊêÎîÔôÛûËëÏïÜüÿŒœÆæ'\-\s]+$/;
+
+function nameFilter(v){
+  // Lässt nur erlaubte Buchstaben durch, blockiert Zahlen + echte Sonderzeichen
+  return v.replace(/[^A-Za-zÄÖÜäöüßÀ-žÁáÉéÍíÓóÚúÂâÊêÎîÔôÛûËëÏïÜüÿŒœÆæ'\-\s]/g, "");
+}
 function autoCapitalizeName(v){
   if(!v)return v;
-  return v.split(/([,\s]+)/).map((p,i,a)=>{
-    if(/^[,\s]+$/.test(p))return p;
+  // Filtert zuerst ungültige Zeichen heraus, dann Großschreibung
+  const f=nameFilter(v);
+  return f.split(/([\-\s]+)/).map(p=>{
+    if(/^[\-\s]+$/.test(p))return p;
     return p.charAt(0).toUpperCase()+p.slice(1);
   }).join("");
+}
+function validateName(v){
+  if(!v||v.trim().length<2) return "Mindestens 2 Buchstaben erforderlich.";
+  if(v.trim().length>100)   return "Maximal 100 Zeichen erlaubt.";
+  if(!NAME_RE.test(v.trim()))return "Nur Buchstaben erlaubt – keine Zahlen oder Sonderzeichen.";
+  return null; // gültig
 }
 function visibleQs(gender){return SECTIONS.filter(s=>!s.onlyFor||s.onlyFor===gender).flatMap(s=>s.qs);}
 
@@ -7008,8 +7023,19 @@ function App(){
   const risk=gender?computeRisk(answers,gender):null;
 
   // Save session to history
+  // Validation helper – returns null if OK, error string if not
+  const validatePatientNames=()=>{
+    const en=validateName(patient.nachname||"");
+    const ev=validateName(patient.vorname||"");
+    if(en) return `Nachname: ${en}`;
+    if(ev) return `Vorname: ${ev}`;
+    return null;
+  };
+
   const saveSession=async()=>{
     if(!gender)return;
+    const nameErr=validatePatientNames();
+    if(nameErr){alert("⚠ Bitte Personalien prüfen:\n\n"+nameErr);return null;}
     // Ensure patient has a DB record
     let pid=patientId;
     const fullName=(patient.nachname||patient.name||"")+" "+(patient.vorname||"");
@@ -7247,10 +7273,53 @@ function App(){
         <div className="pat-card" style={disclaimerOk?{}:{opacity:.35,pointerEvents:"none",userSelect:"none"}}>
           <div className="pat-card-title">👤 Patientendaten &amp; Ausfülldatum</div>
           <div className="pat-grid">
-            <div className="pat-field"><label>Nachname</label>
-              <input value={patient.nachname||""} onChange={e=>setP("nachname",autoCapitalizeName(e.target.value))} placeholder="Mustermann"/></div>
-            <div className="pat-field"><label>Vorname</label>
-              <input value={patient.vorname||""} onChange={e=>setP("vorname",autoCapitalizeName(e.target.value))} placeholder="Maria"/></div>
+            {/* ── Nachname ─────────────────────────── */}
+            <div className="pat-field">
+              <label>
+                Nachname <span style={{color:"#c0392b",fontWeight:700}}>*</span>
+                {(()=>{const e=patient.nachname!==undefined&&patient.nachname!==null?validateName(patient.nachname):null;
+                  return e?<span style={{marginLeft:6,fontSize:11,color:"#c0392b",fontWeight:400}}>⚠ {e}</span>:
+                    (patient.nachname&&patient.nachname.trim().length>=2?
+                      <span style={{marginLeft:6,fontSize:11,color:"#2a7a2a"}}>✓</span>:null);
+                })()}
+              </label>
+              <input
+                value={patient.nachname||""}
+                maxLength={100}
+                onChange={e=>setP("nachname",autoCapitalizeName(e.target.value))}
+                onKeyDown={e=>{if(/[0-9]/.test(e.key)||(e.key.length===1&&!/[A-Za-zÄÖÜäöüßÀ-žÁáÉéÍíÓóÚúÂâÊêÎîÔôÛûËëÏïÜüÿŒœÆæ'\-\s]/.test(e.key)))e.preventDefault();}}
+                placeholder="Mustermann"
+                style={{
+                  borderColor:(()=>{const v=patient.nachname;if(!v&&v!==undefined)return"var(--CM)";const e=validateName(v);return e?"#c0392b":"#2a7a2a";})()
+                }}/>
+              <div style={{fontSize:11,color:"#9a8a7a",marginTop:2}}>
+                {patient.nachname?`${patient.nachname.trim().length}/100 Zeichen`:"Nur Buchstaben, Bindestrich, Apostroph"}
+              </div>
+            </div>
+
+            {/* ── Vorname ──────────────────────────── */}
+            <div className="pat-field">
+              <label>
+                Vorname <span style={{color:"#c0392b",fontWeight:700}}>*</span>
+                {(()=>{const e=patient.vorname!==undefined&&patient.vorname!==null?validateName(patient.vorname):null;
+                  return e?<span style={{marginLeft:6,fontSize:11,color:"#c0392b",fontWeight:400}}>⚠ {e}</span>:
+                    (patient.vorname&&patient.vorname.trim().length>=2?
+                      <span style={{marginLeft:6,fontSize:11,color:"#2a7a2a"}}>✓</span>:null);
+                })()}
+              </label>
+              <input
+                value={patient.vorname||""}
+                maxLength={100}
+                onChange={e=>setP("vorname",autoCapitalizeName(e.target.value))}
+                onKeyDown={e=>{if(/[0-9]/.test(e.key)||(e.key.length===1&&!/[A-Za-zÄÖÜäöüßÀ-žÁáÉéÍíÓóÚúÂâÊêÎîÔôÛûËëÏïÜüÿŒœÆæ'\-\s]/.test(e.key)))e.preventDefault();}}
+                placeholder="Maria"
+                style={{
+                  borderColor:(()=>{const v=patient.vorname;if(!v&&v!==undefined)return"var(--CM)";const e=validateName(v);return e?"#c0392b":"#2a7a2a";})()
+                }}/>
+              <div style={{fontSize:11,color:"#9a8a7a",marginTop:2}}>
+                {patient.vorname?`${patient.vorname.trim().length}/100 Zeichen`:"Nur Buchstaben, Bindestrich, Apostroph"}
+              </div>
+            </div>
             <div className="pat-field"><label>Geburtsdatum</label>
               <GebDatInput
                 value={patient.geburtsdatum}
