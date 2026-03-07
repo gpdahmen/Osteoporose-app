@@ -4977,6 +4977,87 @@ function flattenEntries(id, entries, original){
   return result;
 }
 
+/* ═══ PASSWORT-DOPPELEINGABE ═══════════════════════════════════════════════ */
+function PwDoppelInput({value, onChange, patientId, onReset}){
+  const[show,setShow]=useState(false);
+  const[pw2,setPw2]=useState("");
+  const mismatch = pw2.length>0 && pw2!==value;
+  const match    = pw2.length>0 && pw2===value && value.length>0;
+
+  const inStyle=(err)=>({
+    flex:1, padding:"8px 11px",
+    border:"1.5px solid "+(err?"#c0392b":match?"#2a7a2a":"var(--CM)"),
+    borderRadius:5, fontSize:13.5, color:"var(--D)", outline:"none",
+    fontFamily:"'Source Sans 3',sans-serif", boxSizing:"border-box", width:"100%"
+  });
+
+  return(
+    <div>
+      <label style={{display:"block",marginBottom:8,fontWeight:600,fontSize:13,color:"var(--D)"}}>
+        Passwort{" "}
+        <span style={{fontWeight:400,color:"#9a8a7a",fontSize:12}}>
+          (optional – zum Fortsetzen bei Unterbrechung)
+        </span>
+      </label>
+
+      <div style={{marginBottom:8}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#7a5a38",marginBottom:4,
+          textTransform:"uppercase",letterSpacing:".4px"}}>Passwort eingeben</div>
+        <div style={{display:"flex",gap:6}}>
+          <input type={show?"text":"password"} value={value}
+            onChange={e=>onChange(e.target.value)}
+            placeholder="Passwort…"
+            style={inStyle(false)}/>
+          <button type="button" onClick={()=>setShow(v=>!v)}
+            style={{padding:"8px 11px",background:"#f8f4ee",border:"1px solid #d8c8b0",
+              borderRadius:5,cursor:"pointer",fontSize:13,fontWeight:600,flexShrink:0,
+              color:"#5a4a3a",fontFamily:"'Source Sans 3',sans-serif",whiteSpace:"nowrap"}}>
+            {show?"verbergen":"anzeigen"}
+          </button>
+        </div>
+      </div>
+
+      <div style={{marginBottom:6}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#7a5a38",marginBottom:4,
+          textTransform:"uppercase",letterSpacing:".4px"}}>Passwort wiederholen</div>
+        <div style={{display:"flex",gap:6}}>
+          <input type={show?"text":"password"} value={pw2}
+            onChange={e=>setPw2(e.target.value)}
+            placeholder="Passwort nochmal eingeben…"
+            style={inStyle(mismatch)}/>
+          <button type="button" onClick={()=>setShow(v=>!v)}
+            style={{padding:"8px 11px",background:"#f8f4ee",border:"1px solid #d8c8b0",
+              borderRadius:5,cursor:"pointer",fontSize:13,fontWeight:600,flexShrink:0,
+              color:"#5a4a3a",fontFamily:"'Source Sans 3',sans-serif",whiteSpace:"nowrap"}}>
+            {show?"verbergen":"anzeigen"}
+          </button>
+        </div>
+        {mismatch&&<div style={{fontSize:11,color:"#c0392b",marginTop:3,fontWeight:600}}>
+          ⚠ Passwörter stimmen nicht überein.</div>}
+        {match&&<div style={{fontSize:11,color:"#2a7a2a",marginTop:3}}>
+          ✓ Passwörter stimmen überein.</div>}
+      </div>
+
+      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginTop:4}}>
+        {patientId&&onReset&&(
+          <button type="button"
+            onClick={()=>window.confirm("Passwort wirklich zurücksetzen?")&&onReset()}
+            style={{padding:"6px 13px",background:"#fff8f0",border:"1px solid #d4a060",
+              borderRadius:5,cursor:"pointer",fontSize:12,color:"#7a4a10",
+              fontFamily:"'Source Sans 3',sans-serif"}}>
+            Passwort zurücksetzen
+          </button>
+        )}
+        {patientId&&<div style={{fontSize:11,color:"#6a9a6a"}}>
+          ✓ In Datenbank · ID: {patientId.slice(0,8)}…
+          <span style={{marginLeft:8,cursor:"pointer",color:"#4a7a8a",textDecoration:"underline"}}
+            onClick={()=>cookieSet("osteo_pat",patientId)}>Cookie setzen</span>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
 /* ═══ RESUME MODAL KOMPONENTE ══════════════════════════════════════════════ */
 function ResumeModal({pat,sessions,today,onResume,onNew,onForget}){
   const hasPw=!!pat.passwortHash;
@@ -7367,31 +7448,18 @@ function App(){
                 style={{width:"100%",padding:"8px 11px",border:"1.5px solid var(--CM)",borderRadius:5,
                   fontSize:13.5,color:"var(--D)",outline:"none",fontFamily:"'Source Sans 3',sans-serif"}}/>
             </div>
-            <div className="pat-field"><label>Passwort (für Wiederaufruf / Fortsetzen)</label>
-              <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                <input type="password" value={patientPw} onChange={e=>setPatientPw(e.target.value)}
-                  placeholder="Optional – zum Fortsetzen bei Unterbrechung"
-                  style={{flex:1,padding:"8px 11px",border:"1.5px solid var(--CM)",borderRadius:5,
-                    fontSize:13.5,color:"var(--D)",outline:"none",fontFamily:"'Source Sans 3',sans-serif"}}/>
-                {patientId&&<button onClick={async()=>{
-                    const existing=await idbGetPatient(patientId)||{};
-                    await idbSavePatient({...existing,passwortHash:"",letzterZugriff:new Date().toISOString()});
-                    setPatientPw("");
-                    alert("Passwort wurde zurückgesetzt.");
-                  }}
-                  style={{padding:"7px 11px",background:"#fff8f0",border:"1px solid #d4a060",
-                    borderRadius:5,cursor:"pointer",fontSize:12,color:"#7a4a10",whiteSpace:"nowrap",
-                    fontFamily:"'Source Sans 3',sans-serif"}}>
-                  🔓 PW zurücksetzen
-                </button>}
-              </div>
-              {patientId&&<div style={{fontSize:11,color:"#6a9a6a",marginTop:3}}>
-                ✓ Patient in Datenbank · ID: {patientId.slice(0,8)}…
-                <span style={{marginLeft:8,cursor:"pointer",color:"#4a7a8a",textDecoration:"underline"}}
-                  onClick={()=>cookieSet("osteo_pat",patientId)}>
-                  🍪 Cookie setzen
-                </span>
-              </div>}
+            <div className="pat-field" style={{gridColumn:"span 2"}}>
+              <PwDoppelInput
+                value={patientPw}
+                onChange={setPatientPw}
+                patientId={patientId}
+                onReset={async()=>{
+                  const existing=await idbGetPatient(patientId)||{};
+                  await idbSavePatient({...existing,passwortHash:"",
+                    letzterZugriff:new Date().toISOString()});
+                  setPatientPw("");
+                  alert("Passwort wurde zur\u00fcckgesetzt.");
+                }}/>
             </div>
             <div className="pat-field">
               <label>Größe (cm)</label>
