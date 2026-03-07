@@ -7271,7 +7271,7 @@ function App(){
 
         {/* ── Patient card ── */}
         <div className="pat-card" style={disclaimerOk?{}:{opacity:.35,pointerEvents:"none",userSelect:"none"}}>
-          <div className="pat-card-title">👤 Patientendaten &amp; Ausfülldatum</div>
+          <div className="pat-card-title">👤 Name der Patientin / des Patienten &amp; Ausfülldatum</div>
           <div className="pat-grid">
             {/* ── Nachname ─────────────────────────── */}
             <div className="pat-field">
