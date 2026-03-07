@@ -2135,8 +2135,17 @@ async function storageSet(key,val){
    Store "settings": key/value (Draft, Briefkopf etc.)
 */
 const IDB_NAME   = "osteo_db";
-const IDB_VER    = 1;
+const IDB_VER    = 2;
 let _idb = null;
+
+// Einfacher Hash (kein kryptographischer Anspruch – Daten bleiben lokal)
+function simpleHash(s){ let h=0; for(let i=0;i<s.length;i++){h=(Math.imul(31,h)+s.charCodeAt(i))|0;} return (h>>>0).toString(16).padStart(8,'0'); }
+function hashPw(pw){ return pw?simpleHash(pw+"osteo2024"):"";}
+
+// Cookie-Hilfsfunktionen (30 Tage)
+function cookieSet(k,v){ document.cookie=k+"="+encodeURIComponent(v)+";max-age=2592000;path=/;SameSite=Strict"; }
+function cookieGet(k){ const m=document.cookie.match("(?:^|; )"+k+"=([^;]*)"); return m?decodeURIComponent(m[1]):null; }
+function cookieDel(k){ document.cookie=k+"=;max-age=0;path=/"; }
 
 function openIDB(){
   if(_idb) return Promise.resolve(_idb);
@@ -2144,17 +2153,54 @@ function openIDB(){
     const req = indexedDB.open(IDB_NAME, IDB_VER);
     req.onupgradeneeded = e => {
       const db = e.target.result;
+      const oldVer = e.oldVersion;
+      // v1 → v2: befunde store ggf. anlegen, patienten store neu
       if(!db.objectStoreNames.contains("befunde")){
         const s = db.createObjectStore("befunde",{keyPath:"id"});
-        s.createIndex("patName",  "patName",  {unique:false});
-        s.createIndex("fillDate", "fillDate", {unique:false});
-        s.createIndex("gender",   "gender",   {unique:false});
-        s.createIndex("status",   "status",   {unique:false});
+        s.createIndex("patName",     "patName",     {unique:false});
+        s.createIndex("patientId",   "patientId",   {unique:false});
+        s.createIndex("fillDate",    "fillDate",    {unique:false});
+        s.createIndex("gender",      "gender",      {unique:false});
+        s.createIndex("status",      "status",      {unique:false});
+      } else if(oldVer<2){
+        // Upgrade existing befunde store – add patientId index
+        const bs = e.target.transaction.objectStore("befunde");
+        if(!bs.indexNames.contains("patientId")) bs.createIndex("patientId","patientId",{unique:false});
+      }
+      if(!db.objectStoreNames.contains("patienten")){
+        const p = db.createObjectStore("patienten",{keyPath:"id"});
+        p.createIndex("nachname",      "nachname",      {unique:false});
+        p.createIndex("vorname",       "vorname",       {unique:false});
+        p.createIndex("geburtsdatum",  "geburtsdatum",  {unique:false});
+        p.createIndex("letzterZugriff","letzterZugriff",{unique:false});
       }
     };
     req.onsuccess = e => { _idb = e.target.result; res(_idb); };
     req.onerror   = e => rej(e.target.error);
   });
+}
+
+/* ── Patienten-CRUD ── */
+async function idbSavePatient(pat){
+  const rec={...pat,letzterZugriff:new Date().toISOString()};
+  return idbTx("patienten","readwrite", s=>s.put(rec));
+}
+async function idbGetPatient(id){
+  return openIDB().then(db=>new Promise((res,rej)=>{
+    const req=db.transaction("patienten","readonly").objectStore("patienten").get(id);
+    req.onsuccess=e=>res(e.target.result||null);
+    req.onerror=e=>rej(e.target.error);
+  }));
+}
+async function idbLoadAllPatients(){
+  return openIDB().then(db=>new Promise((res,rej)=>{
+    const req=db.transaction("patienten","readonly").objectStore("patienten").getAll();
+    req.onsuccess=e=>res(e.target.result||[]);
+    req.onerror=e=>rej(e.target.error);
+  }));
+}
+async function idbDeletePatient(id){
+  return idbTx("patienten","readwrite",s=>s.delete(id));
 }
 
 // Hilfsfunktion: IDB-Request als Promise
@@ -2177,7 +2223,8 @@ function idbTx(store,mode,fn){
 async function idbSaveBefund(session){
   const rec={
     ...session,
-    patName: (session.patient?.name||"").toLowerCase(),
+    patName: ((session.patient?.nachname||session.patient?.name||"")).toLowerCase(),
+    patientId: session.patientId||null,
     geaendert: new Date().toISOString(),
     status: session.status||"offen"
   };
@@ -2727,7 +2774,8 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
   lines.push(`  Ausgabedatum: ${d}`);
   lines.push(sep);lines.push("");
   lines.push("PATIENTENDATEN");lines.push(sub);
-  if(patient.name)lines.push(`Name           : ${patient.name}`);
+  const patVollName=[patient.nachname||patient.name,patient.vorname].filter(Boolean).join(", ");
+  if(patVollName)lines.push(`Name           : ${patVollName}`);
   if(patient.geburtsdatum)lines.push(`Geburtsdatum   : ${patient.geburtsdatum}`);
   lines.push(`Geschlecht     : ${gender==="f"?"Frau":"Mann"}`);
   lines.push(`Alter          : ${answers.alter||"–"} Jahre`);
@@ -4569,7 +4617,7 @@ function HistoryPanel({sessions,onLoad,onDelete,onClose,gender}){
             </span>}
           </div>
           <div className="hist-pat">
-            <strong>{s.patient?.name||"(kein Name)"}</strong>
+            <strong>{[s.patient?.nachname||s.patient?.name,s.patient?.vorname].filter(Boolean).join(", ")||"(kein Name)"}</strong>
             &nbsp;·&nbsp;{s.gender==="f"?"Frau ♀":"Mann ♂"}
             {s.patient?.geburtsdatum&&<span style={{color:"#5a4a3a"}}> · *{s.patient.geburtsdatum}</span>}
             <span style={{color:"#8b7a68",fontSize:11,marginLeft:8}}>
@@ -4890,10 +4938,243 @@ function flattenEntries(id, entries, original){
   return result;
 }
 
+/* ═══ RESUME MODAL KOMPONENTE ══════════════════════════════════════════════ */
+function ResumeModal({pat,sessions,today,onResume,onNew,onForget}){
+  const hasPw=!!pat.passwortHash;
+  const[pwIn,setPwIn]=useState("");
+  const[err,setErr]=useState(false);
+
+  const tryLogin=()=>{
+    if(!hasPw||hashPw(pwIn)===pat.passwortHash){
+      const bs=(sessions||[])
+        .filter(s=>s.patientId===pat.id)
+        .sort((a,b)=>b.id.localeCompare(a.id));
+      const s=bs[0]||null;
+      if(s) onResume(s,pat.id,hasPw?pwIn:"");
+      else   onNew();
+    } else {
+      setErr(true);
+    }
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:5000,
+      display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{background:"white",borderRadius:14,padding:"30px 28px",maxWidth:420,
+        width:"100%",boxShadow:"0 12px 50px rgba(0,0,0,.35)",textAlign:"center"}}
+        onClick={e=>e.stopPropagation()}>
+
+        <div style={{fontSize:36,marginBottom:8}}>👋</div>
+        <div style={{fontSize:18,fontWeight:700,color:"#1a1208",marginBottom:6,
+          fontFamily:"'Playfair Display',serif"}}>
+          Willkommen zurück!
+        </div>
+        <div style={{fontSize:14,color:"#5a4a3a",marginBottom:18,lineHeight:1.7,
+          background:"#fdf9f4",padding:"10px 14px",borderRadius:8}}>
+          <strong style={{fontSize:15}}>{pat.nachname}{pat.vorname&&", "+pat.vorname}</strong><br/>
+          {pat.geburtsdatum&&<span>* {pat.geburtsdatum}<br/></span>}
+          <span style={{fontSize:12,color:"#9a8a7a"}}>
+            Letzter Zugriff: {pat.letzterZugriff
+              ?new Date(pat.letzterZugriff).toLocaleDateString("de-DE"):"–"}
+          </span>
+        </div>
+
+        {hasPw&&(
+          <div style={{marginBottom:14}}>
+            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#5a4a3a",
+              marginBottom:6,textTransform:"uppercase",letterSpacing:".5px"}}>
+              🔒 Passwort eingeben
+            </label>
+            <input type="password" value={pwIn} autoFocus
+              onChange={e=>{setPwIn(e.target.value);setErr(false);}}
+              onKeyDown={e=>e.key==="Enter"&&tryLogin()}
+              placeholder="Ihr Passwort…"
+              style={{width:"100%",padding:"11px 12px",
+                border:"1.5px solid "+(err?"#c0392b":"#d0c0a8"),
+                borderRadius:7,fontSize:14,textAlign:"center",fontFamily:"inherit",
+                outline:"none",boxSizing:"border-box"}}/>
+            {err&&<div style={{color:"#c0392b",fontSize:12.5,marginTop:5,fontWeight:600}}>
+              ✗ Falsches Passwort. Bitte erneut versuchen.
+            </div>}
+          </div>
+        )}
+
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4}}>
+          <button onClick={tryLogin}
+            style={{padding:"12px",background:"#2c1f0e",color:"#e8d8b0",border:"none",
+              borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+              letterSpacing:".3px"}}>
+            {hasPw?"🔓 Anmelden & Fragebogen fortsetzen":"▶ Fragebogen fortsetzen"}
+          </button>
+          <button onClick={onNew}
+            style={{padding:"10px",background:"white",color:"#5a4a3a",
+              border:"1.5px solid #d0c0a8",borderRadius:8,fontSize:13,
+              cursor:"pointer",fontFamily:"inherit"}}>
+            ＋ Neuen Fragebogen beginnen
+          </button>
+          <button onClick={onForget}
+            style={{padding:"8px",background:"none",border:"none",color:"#b0a090",
+              fontSize:11.5,cursor:"pointer",fontFamily:"inherit",marginTop:2}}>
+            🍪 Cookie löschen – nicht mehr vorschlagen
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ PATIENTENLISTE KOMPONENTE (Arzt-Zugang) ══════════════════════════════ */
+function PatientenListe({patients,sessions,onSelectPatient,onDeletePatient,onResetPw}){
+  const[q,setQ]=useState({nachname:"",vorname:"",geburtsdatum:"",zugriffAb:"",sort:"zugriff"});
+  const upQ=(k,v)=>setQ(p=>({...p,[k]:v}));
+
+  const filtered=patients
+    .filter(p=>{
+      if(q.nachname&&!((p.nachname||"").toLowerCase().includes(q.nachname.toLowerCase())))return false;
+      if(q.vorname&&!((p.vorname||"").toLowerCase().includes(q.vorname.toLowerCase())))return false;
+      if(q.geburtsdatum&&!(p.geburtsdatum||"").includes(q.geburtsdatum))return false;
+      if(q.zugriffAb&&(p.letzterZugriff||"").slice(0,10)<q.zugriffAb)return false;
+      return true;
+    })
+    .sort((a,b)=>{
+      if(q.sort==="name") return (a.nachname||"").localeCompare(b.nachname||"");
+      if(q.sort==="geb")  return (a.geburtsdatum||"").localeCompare(b.geburtsdatum||"");
+      // Default: letzter Zugriff
+      return (b.letzterZugriff||"").localeCompare(a.letzterZugriff||"");
+    });
+
+  const patBefunde=(pid)=>sessions.filter(s=>s.patientId===pid);
+  const lastBefund=(pid)=>{const bs=patBefunde(pid);return bs.length?bs.sort((a,b)=>b.id.localeCompare(a.id))[0]:null;};
+  const riskColor=(cat)=>({top:"#fee2e2",high:"#fef3c7",mod:"#fff0e0",low:"#f0fdf4"}[cat]||"white");
+  const riskBadgeColor=(cat)=>({top:"#b91c1c",high:"#d97706",mod:"#9a4a10",low:"#065f46"}[cat]||"#9a8a7a");
+
+  const iSt={padding:"7px 10px",border:"1.5px solid #d8c8b0",borderRadius:5,fontSize:12.5,
+    fontFamily:"'Source Sans 3',sans-serif",outline:"none",background:"white"};
+
+  return(
+    <div style={{padding:"8px 14px 14px"}}>
+      {/* Suchleiste */}
+      <div style={{background:"#f8f4ee",border:"1px solid #e0d0b8",borderRadius:8,
+        padding:"12px 14px",marginBottom:14,display:"flex",flexWrap:"wrap",gap:10,alignItems:"flex-end"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:3,flex:"1 1 120px"}}>
+          <label style={{fontSize:11,fontWeight:700,color:"#7a5a38",textTransform:"uppercase",letterSpacing:".5px"}}>Nachname</label>
+          <input style={iSt} value={q.nachname} onChange={e=>upQ("nachname",e.target.value)} placeholder="Suche…"/>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:3,flex:"1 1 120px"}}>
+          <label style={{fontSize:11,fontWeight:700,color:"#7a5a38",textTransform:"uppercase",letterSpacing:".5px"}}>Vorname</label>
+          <input style={iSt} value={q.vorname} onChange={e=>upQ("vorname",e.target.value)} placeholder="Suche…"/>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:3,flex:"1 1 100px"}}>
+          <label style={{fontSize:11,fontWeight:700,color:"#7a5a38",textTransform:"uppercase",letterSpacing:".5px"}}>Geburtsdatum</label>
+          <input style={iSt} value={q.geburtsdatum} onChange={e=>upQ("geburtsdatum",e.target.value)} placeholder="TT.MM.JJJJ"/>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:3}}>
+          <label style={{fontSize:11,fontWeight:700,color:"#7a5a38",textTransform:"uppercase",letterSpacing:".5px"}}>Letzter Zugriff ab</label>
+          <input type="date" style={iSt} value={q.zugriffAb||""} onChange={e=>upQ("zugriffAb",e.target.value)}/>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:3}}>
+          <label style={{fontSize:11,fontWeight:700,color:"#7a5a38",textTransform:"uppercase",letterSpacing:".5px"}}>Sortierung</label>
+          <select style={iSt} value={q.sort} onChange={e=>upQ("sort",e.target.value)}>
+            <option value="zugriff">Letzter Zugriff ↓</option>
+            <option value="name">Name A–Z</option>
+            <option value="geb">Geburtsdatum</option>
+          </select>
+        </div>
+        <div style={{fontSize:12,color:"#9a8a7a",alignSelf:"flex-end",paddingBottom:6}}>
+          {filtered.length} / {patients.length} Patient{patients.length!==1?"en":""}
+        </div>
+      </div>
+
+      {patients.length===0&&(
+        <div style={{textAlign:"center",padding:"30px",color:"#9a8a7a",fontSize:14}}>
+          Noch keine Patienten in der Datenbank.<br/>
+          <span style={{fontSize:12}}>Patienten werden beim ersten Speichern automatisch angelegt.</span>
+        </div>
+      )}
+
+      {/* Patientenkarten */}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {filtered.map(pat=>{
+          const lb=lastBefund(pat.id);
+          const anzBefunde=patBefunde(pat.id).length;
+          const riskCat=lb?.riskSnapshot?.cat||null;
+          return(
+            <div key={pat.id} style={{
+              border:"1.5px solid #e0d0b8",borderRadius:9,background:"white",
+              overflow:"hidden",boxShadow:"0 1px 4px rgba(44,31,14,.07)"}}>
+              {/* Header */}
+              <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",
+                padding:"10px 14px",background:riskCat?riskColor(riskCat):"white",
+                borderBottom:"1px solid #e8d8c0"}}>
+                <div style={{flex:1,minWidth:160}}>
+                  <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,
+                    fontSize:15,color:"#2c1f0e"}}>
+                    {pat.nachname||"–"}{pat.vorname&&", "+pat.vorname}
+                  </div>
+                  <div style={{fontSize:12,color:"#7a5a38",marginTop:2}}>
+                    {pat.geburtsdatum&&<span>* {pat.geburtsdatum}</span>}
+                    {pat.email&&<span style={{marginLeft:10}}>✉ {pat.email}</span>}
+                  </div>
+                </div>
+                {riskCat&&(
+                  <div style={{padding:"3px 10px",borderRadius:5,fontSize:11,fontWeight:700,
+                    background:riskBadgeColor(riskCat),color:"white"}}>
+                    {catLabel(riskCat)}
+                  </div>
+                )}
+                <div style={{fontSize:11,color:"#9a8a7a",textAlign:"right"}}>
+                  <div>{anzBefunde} Befund{anzBefunde!==1?"e":""}</div>
+                  {pat.letzterZugriff&&<div>Zugriff: {new Date(pat.letzterZugriff).toLocaleDateString("de-DE")}</div>}
+                  {pat.passwortHash&&<div style={{color:"#6a9a6a"}}>🔒 PW gesetzt</div>}
+                </div>
+              </div>
+
+              {/* Befund-Vorschau + Aktionen */}
+              <div style={{padding:"8px 14px",display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                {lb&&(
+                  <div style={{fontSize:11.5,color:"#5a4a3a",flex:1}}>
+                    Letzter Befund: {lb.fillDate} · 
+                    {lb.riskSnapshot?.cF!=null&&<span> ×{lb.riskSnapshot.cF.toFixed(2)} komb. Faktor</span>}
+                    {lb.gender&&<span> · {lb.gender==="f"?"♀":"♂"}</span>}
+                  </div>
+                )}
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  <button onClick={()=>onSelectPatient(pat)}
+                    style={{padding:"6px 13px",background:"#2c1f0e",color:"#e8d8b0",
+                      border:"none",borderRadius:5,cursor:"pointer",fontSize:12,
+                      fontWeight:600,fontFamily:"'Source Sans 3',sans-serif"}}>
+                    📂 Befunde laden
+                  </button>
+                  <button onClick={()=>onResetPw(pat)}
+                    style={{padding:"6px 11px",background:"#f0f8ff",color:"#2a4a8a",
+                      border:"1px solid #aac0e0",borderRadius:5,cursor:"pointer",
+                      fontSize:12,fontFamily:"'Source Sans 3',sans-serif"}}>
+                    🔓 PW reset
+                  </button>
+                  <button onClick={()=>{
+                      if(window.confirm(`Patient "${pat.nachname}, ${pat.vorname}" und alle Befunde wirklich löschen?`))
+                        onDeletePatient(pat.id);
+                    }}
+                    style={{padding:"6px 11px",background:"#fff0f0",color:"#b91c1c",
+                      border:"1px solid #fca5a5",borderRadius:5,cursor:"pointer",
+                      fontSize:12,fontFamily:"'Source Sans 3',sans-serif"}}>
+                    ✕ Löschen
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScoringDb,osteoTherapieDb,onSave,onSaveSek,onSaveSekProfile,onSaveSekUnters,onSaveSekQs,onSaveSekScoring,onSaveTherapieDb,onClose,
   // Auswertung props
   gender,answers,patient,anamnese,therapieHistory,lh,onSaveLh,sessions,sekStatus,setSekStatus,
   onExportPdf,onExportTxt,onLoadSession,onDeleteSession,
+  patients,onDeletePatient,onResetPatientPw,
   initialTab,diff}){
   const ICD5_RE=/^[A-Z]\d{2}\.[\d]{2}[XG]?G?$/;
   const validateIcd=(s)=>(s||"").trim()===""||ICD5_RE.test((s||"").trim());
@@ -5070,7 +5351,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
             </div>
 
             {/* Search bar + info – DB tabs only */}
-            {(activeTab!=="auswertung"&&activeTab!=="verlauf"&&activeTab!=="briefkopf")&&<div style={{padding:"8px 14px",background:"#fef9f4",borderBottom:"1px solid #ece5d8",
+            {(activeTab!=="auswertung"&&activeTab!=="verlauf"&&activeTab!=="briefkopf"&&activeTab!=="patienten")&&<div style={{padding:"8px 14px",background:"#fef9f4",borderBottom:"1px solid #ece5d8",
               display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",flexShrink:0}}>
               <input
                 value={search} onChange={e=>setSearch(e.target.value)}
@@ -5173,6 +5454,23 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                     </div>
                   ))}
                 </div>
+              )}
+
+              {/* ═══ PATIENTEN TAB ════════════════════════════════════ */}
+              {activeTab==="patienten"&&(
+                <PatientenListe
+                  patients={patients||[]}
+                  sessions={sessions||[]}
+                  onSelectPatient={(pat)=>{
+                    // Load most recent session for this patient
+                    const bs=(sessions||[])
+                      .filter(s=>s.patientId===pat.id)
+                      .sort((a,b)=>b.id.localeCompare(a.id));
+                    if(bs.length){onLoadSession(bs[0]);onClose();}
+                    else{alert("Keine Befunde für diesen Patienten gefunden.");}
+                  }}
+                  onDeletePatient={onDeletePatient}
+                  onResetPw={onResetPatientPw}/>
               )}
 
               {/* ═══ RISIKOÜBERSICHT TAB ══════════════════════════════ */}
@@ -5927,8 +6225,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
             )}
 
             <div className="admin-footer">
-              {(activeTab!=="auswertung"&&activeTab!=="verlauf"&&activeTab!=="briefkopf"&&activeTab!=="risikoliste")&&<button className="admin-reset-btn" onClick={handleReset}>↩ Auf Standard zurücksetzen</button>}
-              <button className="admin-save-btn" onClick={handleSave}>{(activeTab==="auswertung"||activeTab==="verlauf"||activeTab==="briefkopf")?"✕ Schließen":"✓ Speichern & Schließen"}</button>
+              {(activeTab!=="auswertung"&&activeTab!=="verlauf"&&activeTab!=="briefkopf"&&activeTab!=="risikoliste"&&activeTab!=="patienten")&&<button className="admin-reset-btn" onClick={handleReset}>↩ Auf Standard zurücksetzen</button>}
+              <button className="admin-save-btn" onClick={handleSave}>{(activeTab==="auswertung"||activeTab==="verlauf"||activeTab==="briefkopf"||activeTab==="risikoliste"||activeTab==="patienten")?"✕ Schließen":"✓ Speichern & Schließen"}</button>
             </div>
           </>
         )}
@@ -6633,7 +6931,11 @@ function App(){
   const[openPain,setOpenPain]=useState(true);
   const[sekStatus,setSekStatus]=useState({}); // {[sym]: {bekannt:'ja'|'nein'|'', seitWann:'', behandlung:''}}
   const[answers,setAnswers]=useState({});
-  const[patient,setPatient]=useState({name:"",geburtsdatum:"",email:"",fillDate:today});
+  const[patient,setPatient]=useState({nachname:"",vorname:"",geburtsdatum:"",email:"",fillDate:today});
+  const[patientId,setPatientId]=useState(null); // IDB patienten.id
+  const[patientPw,setPatientPw]=useState("");    // aktuell gesetztes Passwort (Klartext, nur im RAM)
+  const[patientModal,setPatientModal]=useState(null); // null | "resume" | "login" | "new"
+  const[patients,setPatients]=useState([]); // alle Patienten für Arzt-Liste
   const[openSec,setOpenSec]=useState({});
   const[showResult,setShowResult]=useState(false);
   const[showHist,setShowHist]=useState(false);
@@ -6651,6 +6953,7 @@ function App(){
         if(draft.gender)setGender(draft.gender);
         if(draft.answers)setAnswers(draft.answers);
         if(draft.patient)setPatient(p=>({...p,...draft.patient,fillDate:today}));
+        if(draft.patientId)setPatientId(draft.patientId);
       }
       const savedDb=await loadDiagDbAsync();setDiagDb(savedDb);
       setSekDiagDb(loadSekDiagDb());
@@ -6659,6 +6962,14 @@ function App(){
       setSekQsDb(loadSekDb(SEK_QS_KEY, buildSekQsDefaults));
       const sess=await idbLoadAll();
       setSessions(sess.sort((a,b)=>b.id.localeCompare(a.id)));
+      const pats=await idbLoadAllPatients();
+      setPatients(pats);
+      // Cookie-Resume: letzten Patienten anbieten
+      const cookiePat=cookieGet("osteo_pat");
+      if(cookiePat){
+        const patObj=pats.find(p=>p.id===cookiePat);
+        if(patObj)setPatientModal({type:"resume",pat:patObj});
+      }
     })();
   },[]);
 
@@ -6667,7 +6978,7 @@ function App(){
     setSaveStatus("saving");
     clearTimeout(saveTimer.current);
     saveTimer.current=setTimeout(async()=>{
-      await storageSet(STORE_DRAFT,{gender,answers,patient});
+      await storageSet(STORE_DRAFT,{gender,answers,patient,patientId});
       setSaveStatus("ok");
     },1500);
   },[gender,answers,patient]);
@@ -6685,10 +6996,13 @@ function App(){
   const bmi=calcBMI(parseFloat(answers.groesse),parseFloat(answers.gewicht));
 
   // Find previous session for same patient (for diff)
+  const patNach=(patient.nachname||patient.name||"").toLowerCase();
   const prevSession=sessions.filter(s=>{
-    if(!patient.name)return false;
-    return s.patient?.name?.toLowerCase()===patient.name.toLowerCase()&&
-           (!patient.geburtsdatum||s.patient?.geburtsdatum===patient.geburtsdatum);
+    if(!patNach)return false;
+    const sNach=(s.patient?.nachname||s.patient?.name||"").toLowerCase();
+    if(sNach!==patNach)return false;
+    if(patient.geburtsdatum&&s.patient?.geburtsdatum!==patient.geburtsdatum)return false;
+    return true;
   }).slice(-1)[0]||null;
   const diff=prevSession?computeDiff(answers,prevSession,gender):null;
   const risk=gender?computeRisk(answers,gender):null;
@@ -6696,11 +7010,43 @@ function App(){
   // Save session to history
   const saveSession=async()=>{
     if(!gender)return;
+    // Ensure patient has a DB record
+    let pid=patientId;
+    const fullName=(patient.nachname||patient.name||"")+" "+(patient.vorname||"");
+    if(!pid){
+      pid=Date.now().toString()+"_p";
+      const newPat={
+        id:pid,
+        nachname:patient.nachname||patient.name||"",
+        vorname:patient.vorname||"",
+        geburtsdatum:patient.geburtsdatum||"",
+        email:patient.email||"",
+        passwortHash:patientPw?hashPw(patientPw):"",
+        erstelltAm:new Date().toISOString(),
+        letzterZugriff:new Date().toISOString()
+      };
+      await idbSavePatient(newPat);
+      setPatientId(pid);
+      cookieSet("osteo_pat",pid);
+    } else {
+      // Update last access + sync fields
+      const existing=await idbGetPatient(pid)||{};
+      await idbSavePatient({...existing,
+        nachname:patient.nachname||patient.name||existing.nachname||"",
+        vorname:patient.vorname||existing.vorname||"",
+        geburtsdatum:patient.geburtsdatum||existing.geburtsdatum||"",
+        email:patient.email||existing.email||"",
+        passwortHash:patientPw?hashPw(patientPw):(existing.passwortHash||""),
+        letzterZugriff:new Date().toISOString()
+      });
+      cookieSet("osteo_pat",pid);
+    }
     const snap=risk||computeRisk(answers,gender);
     const session={
       id:Date.now().toString(),
       fillDate:today,
       patient:{...patient},
+      patientId:pid,
       gender,
       answers:{...answers},
       riskSnapshot:{cat:snap.cat,cF:snap.cF,r3:snap.r3,r5:snap.r5,r10:snap.r10}
@@ -6708,6 +7054,8 @@ function App(){
     await idbSaveBefund(session);
     const updated=await idbLoadAll();
     setSessions(updated.sort((a,b)=>b.id.localeCompare(a.id)));
+    const updPats=await idbLoadAllPatients();
+    setPatients(updPats);
     return session;
   };
 
@@ -6722,7 +7070,7 @@ function App(){
 
   /* ── helpers ── */
   const makeFilename=(ext)=>{
-    const name=(patient.name||"Patient").replace(/[^a-zA-Z0-9_\-äöüÄÖÜß]/g,"_");
+    const name=((patient.nachname||patient.name||"Patient")+"_"+(patient.vorname||"")).trim().replace(/[^a-zA-Z0-9_\-äöüÄÖÜß]/g,"_");
     const date=today.replace(/\./g,"-");
     return `Osteoporose_${name}_${date}.${ext}`;
   };
@@ -6777,13 +7125,14 @@ function App(){
     setPainMaps({});
     setSekStatus({});
     setTherapieHistory([]);
-    setPatient({name:"",geburtsdatum:"",email:"",fillDate:today});setGender(null);setDisclaimerOk(false);
+    setPatient({nachname:"",vorname:"",geburtsdatum:"",email:"",fillDate:today});setPatientId(null);setPatientPw("");setGender(null);setDisclaimerOk(false);cookieDel("osteo_pat");
     storageSet(STORE_DRAFT,null);
   };
 
   const handleLoadSession=async(s)=>{
     setGender(s.gender);setAnswers(s.answers);
     setPatient({...s.patient,fillDate:today});
+    if(s.patientId)setPatientId(s.patientId);
     setShowHist(false);setShowResult(false);
   };
 
@@ -6898,8 +7247,10 @@ function App(){
         <div className="pat-card" style={disclaimerOk?{}:{opacity:.35,pointerEvents:"none",userSelect:"none"}}>
           <div className="pat-card-title">👤 Patientendaten &amp; Ausfülldatum</div>
           <div className="pat-grid">
-            <div className="pat-field"><label>Name des Patienten / der Patientin</label>
-              <input value={patient.name} onChange={e=>setP("name",autoCapitalizeName(e.target.value))} placeholder="Nachname, Vorname"/></div>
+            <div className="pat-field"><label>Nachname</label>
+              <input value={patient.nachname||""} onChange={e=>setP("nachname",autoCapitalizeName(e.target.value))} placeholder="Mustermann"/></div>
+            <div className="pat-field"><label>Vorname</label>
+              <input value={patient.vorname||""} onChange={e=>setP("vorname",autoCapitalizeName(e.target.value))} placeholder="Maria"/></div>
             <div className="pat-field"><label>Geburtsdatum</label>
               <GebDatInput
                 value={patient.geburtsdatum}
@@ -6915,6 +7266,32 @@ function App(){
                 placeholder="patient@beispiel.de"
                 style={{width:"100%",padding:"8px 11px",border:"1.5px solid var(--CM)",borderRadius:5,
                   fontSize:13.5,color:"var(--D)",outline:"none",fontFamily:"'Source Sans 3',sans-serif"}}/>
+            </div>
+            <div className="pat-field"><label>Passwort (für Wiederaufruf / Fortsetzen)</label>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <input type="password" value={patientPw} onChange={e=>setPatientPw(e.target.value)}
+                  placeholder="Optional – zum Fortsetzen bei Unterbrechung"
+                  style={{flex:1,padding:"8px 11px",border:"1.5px solid var(--CM)",borderRadius:5,
+                    fontSize:13.5,color:"var(--D)",outline:"none",fontFamily:"'Source Sans 3',sans-serif"}}/>
+                {patientId&&<button onClick={async()=>{
+                    const existing=await idbGetPatient(patientId)||{};
+                    await idbSavePatient({...existing,passwortHash:"",letzterZugriff:new Date().toISOString()});
+                    setPatientPw("");
+                    alert("Passwort wurde zurückgesetzt.");
+                  }}
+                  style={{padding:"7px 11px",background:"#fff8f0",border:"1px solid #d4a060",
+                    borderRadius:5,cursor:"pointer",fontSize:12,color:"#7a4a10",whiteSpace:"nowrap",
+                    fontFamily:"'Source Sans 3',sans-serif"}}>
+                  🔓 PW zurücksetzen
+                </button>}
+              </div>
+              {patientId&&<div style={{fontSize:11,color:"#6a9a6a",marginTop:3}}>
+                ✓ Patient in Datenbank · ID: {patientId.slice(0,8)}…
+                <span style={{marginLeft:8,cursor:"pointer",color:"#4a7a8a",textDecoration:"underline"}}
+                  onClick={()=>cookieSet("osteo_pat",patientId)}>
+                  🍪 Cookie setzen
+                </span>
+              </div>}
             </div>
             <div className="pat-field">
               <label>Größe (cm)</label>
@@ -7089,12 +7466,52 @@ function App(){
           onSaveTherapieDb={db=>{setOsteoTherapieDb(db);}}
           gender={gender} answers={answers} patient={patient} anamnese={anamnese}
           therapieHistory={therapieHistory} lh={lh} onSaveLh={handleSaveLh} sessions={sessions}
+          patients={patients}
+          onDeletePatient={async(pid)=>{
+            await idbDeletePatient(pid);
+            const bs=sessions.filter(s=>s.patientId===pid);
+            for(const b of bs) await idbDelete(b.id);
+            const updPats=await idbLoadAllPatients();
+            const updSess=await idbLoadAll();
+            setPatients(updPats);
+            setSessions(updSess.sort((a,b)=>b.id.localeCompare(a.id)));
+          }}
+          onResetPatientPw={async(pat)=>{
+            const newPw=window.prompt(`Neues Passwort für ${pat.nachname}, ${pat.vorname}:
+(Leer lassen = Passwort entfernen)`);
+            if(newPw===null)return; // abgebrochen
+            const existing=await idbGetPatient(pat.id)||{};
+            await idbSavePatient({...existing,passwortHash:newPw?hashPw(newPw):"",letzterZugriff:new Date().toISOString()});
+            const updPats=await idbLoadAllPatients();
+            setPatients(updPats);
+            alert(newPw?"Passwort gesetzt.":"Passwort entfernt.");
+          }}
           sekStatus={sekStatus} setSekStatus={setSekStatus}
           onExportPdf={handlePrint} onExportTxt={handleText}
           onLoadSession={handleLoadSession} onDeleteSession={handleDeleteSession}
           initialTab={arztStartTab||"auswertung"}
           diff={diff}/>
       )}
+            {/* ── Cookie-Resume Modal ── */}
+      {patientModal&&(
+        <ResumeModal
+          pat={patientModal.pat}
+          sessions={sessions}
+          today={today}
+          onResume={(s,pid,pw)=>{
+            setGender(s.gender);setAnswers(s.answers||{});
+            setPatient({...s.patient,fillDate:today});
+            if(s.anamnese)setAnamnese(s.anamnese);
+            if(s.therapieHistory)setTherapieHistory(s.therapieHistory);
+            setPatientId(pid);setPatientPw(pw);
+            setDisclaimerOk(true);
+            cookieSet("osteo_pat",pid);
+            setPatientModal(null);
+          }}
+          onNew={()=>setPatientModal(null)}
+          onForget={()=>{cookieDel("osteo_pat");setPatientModal(null);}}/>
+      )}
+
             {camOpen&&(
         <CameraScanner onMedsFound={handleCamMeds} onClose={()=>setCamOpen(false)}/>
       )}
@@ -7146,7 +7563,7 @@ function App(){
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {patient.email&&(
                 <a href={(()=>{
-                    const subj=encodeURIComponent("Ihr ausgefüllter Osteoporose-Fragebogen \u2013 "+lh.name);
+                    const subj=encodeURIComponent("Osteoporose-Fragebogen für "+(patient.nachname||patient.name||"")+(patient.vorname?", "+patient.vorname:"")+" \u2013 "+lh.name);
                     const body=encodeURIComponent(
                       "Sehr geehrte Patientin, sehr geehrter Patient,\n\n"+
                       "im Anhang finden Sie Ihren ausgefüllten Osteoporose-Fragebogen als PDF.\n\n"+
