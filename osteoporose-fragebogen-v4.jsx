@@ -5175,7 +5175,217 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                 </div>
               )}
 
-              {activeTab==="risiko" ? filteredIds.map(id=>{
+              {/* ═══ RISIKOÜBERSICHT TAB ══════════════════════════════ */}
+              {activeTab==="risikoliste"&&(()=>{
+                const risk=gender?computeRisk(answers,gender):null;
+                const allQs=SECTIONS.flatMap(sec=>
+                  (sec.qs||[]).map(q=>({...q,
+                    sectionTitle:sec.title,
+                    sectionIcon:sec.icon,
+                    onlyFor:sec.onlyFor||null
+                  }))
+                );
+                // Build factor lookup from risk computation
+                const activeFactorIds=new Set((risk?.factors||[]).map(f=>f.id));
+                const top2Ids=new Set((risk?.top2||[]).map(f=>f.id));
+
+                // Group by section
+                const bySection={};
+                for(const q of allQs){
+                  if(!q.faktor&&!q.fmap)continue; // skip non-scoring qs
+                  const key=q.sectionTitle;
+                  if(!bySection[key])bySection[key]={icon:q.sectionIcon,title:q.sectionTitle,onlyFor:q.onlyFor,qs:[]};
+                  bySection[key].qs.push(q);
+                }
+
+                // Color by factor strength
+                const fColor=(f)=>{
+                  if(!f)return"#e8e0d8";
+                  if(f>=3.0)return"#fee2e2";
+                  if(f>=2.0)return"#fef3c7";
+                  if(f>=1.5)return"#fff0e0";
+                  return"#f0f9ff";
+                };
+                const fTextColor=(f)=>{
+                  if(!f)return"#9a8a78";
+                  if(f>=3.0)return"#b91c1c";
+                  if(f>=2.0)return"#d97706";
+                  if(f>=1.5)return"#9a4a10";
+                  return"#1a5a8a";
+                };
+
+                return(
+                  <div style={{padding:"6px 14px 14px"}}>
+                    {/* ── Patient-aktive Faktoren ── */}
+                    <div style={{marginBottom:18,padding:"14px 16px",
+                      background:"#1a1208",borderRadius:10,color:"white"}}>
+                      <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,
+                        fontWeight:700,marginBottom:10,color:"#c8a070"}}>
+                        📊 Aktive Risikofaktoren dieses Patienten
+                      </div>
+                      {!gender?(
+                        <div style={{color:"#9a8a6a",fontSize:13}}>
+                          Kein Geschlecht ausgewählt – bitte zuerst im Fragebogen angeben.
+                        </div>
+                      ):!risk||risk.factors.length===0?(
+                        <div style={{color:"#9a8a6a",fontSize:13}}>
+                          Keine Risikofaktoren angekreuzt.
+                        </div>
+                      ):(
+                        <>
+                          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+                            {risk.factors.map((f,i)=>{
+                              const isTop2=top2Ids.has(f.id);
+                              return(
+                                <div key={i} style={{
+                                  padding:"6px 12px",borderRadius:7,fontSize:12.5,
+                                  background:isTop2?"#c8a070":"#2c2010",
+                                  color:isTop2?"#1a1208":"#e8d8b0",
+                                  border:isTop2?"2px solid #e8c060":"1px solid #4a3a20",
+                                  fontWeight:isTop2?700:400,
+                                  display:"flex",alignItems:"center",gap:7}}>
+                                  {isTop2&&<span style={{fontSize:10,fontWeight:700,
+                                    background:"#1a1208",padding:"1px 5px",borderRadius:3,
+                                    color:"#c8a070"}}>TOP 2</span>}
+                                  <span>×{f.faktor}</span>
+                                  <span style={{opacity:.7,fontSize:11}}>—</span>
+                                  <span style={{maxWidth:220,whiteSpace:"nowrap",
+                                    overflow:"hidden",textOverflow:"ellipsis"}}>
+                                    {f.label||f.grp||f.id}
+                                  </span>
+                                  {f.icd&&<span style={{fontSize:10,opacity:.6,marginLeft:4}}>[{f.icd.split(",")[0]}]</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div style={{display:"flex",gap:20,flexWrap:"wrap",
+                            borderTop:"1px solid #3a2a10",paddingTop:10,fontSize:13}}>
+                            <span style={{color:"#c8a070"}}>
+                              Kombinierter Faktor (Top 2): <strong style={{fontSize:16}}>×{risk.cF.toFixed(2)}</strong>
+                            </span>
+                            {risk.cat&&(
+                              <span style={{color:risk.cat==="top"?"#f87171":risk.cat==="high"?"#fb923c":risk.cat==="mod"?"#fbbf24":"#86efac",fontWeight:700}}>
+                                {catLabel(risk.cat)}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* ── Legende ── */}
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14,fontSize:12}}>
+                      {[["≥3.0","Sehr hoch","#fee2e2","#b91c1c"],["≥2.0","Hoch","#fef3c7","#d97706"],["≥1.5","Mäßig","#fff0e0","#9a4a10"],["<1.5","Gering","#f0f9ff","#1a5a8a"]].map(([f,l,bg,tc])=>(
+                        <div key={f} style={{padding:"3px 10px",background:bg,borderRadius:5,
+                          color:tc,fontWeight:700,border:`1px solid ${tc}30`}}>
+                          ×{f} {l}
+                        </div>
+                      ))}
+                      <div style={{padding:"3px 10px",background:"#f0f0f0",borderRadius:5,
+                        color:"#5a5a5a",fontWeight:600}}>⬤ Aktiv beim Patienten</div>
+                    </div>
+
+                    {/* ── Vollständige Risikoliste nach Abschnitt ── */}
+                    {Object.values(bySection).map(sec=>(
+                      <div key={sec.title} style={{marginBottom:14}}>
+                        <div style={{
+                          padding:"8px 12px",background:"#2c1f0e",color:"#c8a070",
+                          borderRadius:"6px 6px 0 0",fontFamily:"'Playfair Display',serif",
+                          fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:8}}>
+                          <span>{sec.icon}</span>
+                          <span>{sec.title}</span>
+                          {sec.onlyFor&&(
+                            <span style={{marginLeft:"auto",fontSize:11,fontWeight:400,
+                              color:"#9a8a5a",background:"#1a1208",padding:"2px 7px",borderRadius:4}}>
+                              {sec.onlyFor==="f"?"♀ nur Frauen":"♂ nur Männer"}
+                            </span>
+                          )}
+                        </div>
+                        <table style={{width:"100%",borderCollapse:"collapse",
+                          background:"white",fontSize:12.5,border:"1px solid #e0d0b8",
+                          borderRadius:"0 0 6px 6px",overflow:"hidden"}}>
+                          <thead>
+                            <tr style={{background:"#f8f4ee",color:"#5a4a38",fontSize:11,fontWeight:700}}>
+                              <th style={{padding:"6px 10px",textAlign:"left",borderBottom:"1px solid #e0d0b8",width:"38%"}}>Risikofaktor / Frage</th>
+                              <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"8%"}}>Faktor</th>
+                              <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"14%"}}>ICD-10</th>
+                              <th style={{padding:"6px 8px",textAlign:"left",borderBottom:"1px solid #e0d0b8",width:"30%"}}>Diagnose (editierbar)</th>
+                              <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"10%"}}>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sec.qs.map((q,qi)=>{
+                              const isActive=activeFactorIds.has(q.id);
+                              const isTop2=top2Ids.has(q.id);
+                              const activeFactor=risk?.factors.find(f=>f.id===q.id);
+                              const displayFactor=activeFactor?.faktor||q.faktor||
+                                (q.fmap?Math.max(...Object.values(q.fmap)):null);
+                              const dbEntry=diagDb&&diagDb[q.id];
+                              const diagnoseText=dbEntry?.entries?.[0]?.diagnose||
+                                (DIAG_DB_DEFAULTS[q.id]?.entries?.[0]?.diagnose)||"";
+                              const icdText=dbEntry?.entries?.[0]?.icd5||
+                                (DIAG_DB_DEFAULTS[q.id]?.entries?.[0]?.icd5)||"";
+                              const shortLabel=q.label.split("\n")[0].slice(0,70)+(q.label.length>70?"…":"");
+                              const rowBg=isActive
+                                ?(isTop2?"#fffbf0":"#fafffe")
+                                :"white";
+                              return(
+                                <tr key={q.id} style={{
+                                  background:rowBg,
+                                  borderBottom:"1px solid #f0e8d8",
+                                  borderLeft:isTop2?"3px solid #c8a070":isActive?"3px solid #86efac":"3px solid transparent"}}>
+                                  <td style={{padding:"7px 10px",color:"#3a2a18",lineHeight:1.4}}>
+                                    <div style={{fontWeight:isActive?600:400}}>{shortLabel}</div>
+                                    {q.fmap&&<div style={{fontSize:10,color:"#9a8a6a",marginTop:2}}>
+                                      Staffelung: {Object.entries(q.fmap).map(([k,v])=>`×${v}`).join(" / ")}
+                                    </div>}
+                                  </td>
+                                  <td style={{padding:"7px 8px",textAlign:"center"}}>
+                                    {displayFactor&&(
+                                      <span style={{
+                                        padding:"2px 8px",borderRadius:4,fontSize:12,fontWeight:700,
+                                        background:fColor(displayFactor),
+                                        color:fTextColor(displayFactor)}}>
+                                        ×{displayFactor}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td style={{padding:"7px 8px",textAlign:"center",
+                                    color:"#1a3a8a",fontSize:11,fontFamily:"monospace",fontWeight:600}}>
+                                    {q.icd||"—"}
+                                  </td>
+                                  <td style={{padding:"5px 8px"}}>
+                                    <div style={{fontSize:11,color:"#5a4a38"}}>{diagnoseText||<em style={{color:"#bbb"}}>–</em>}</div>
+                                    {icdText&&<div style={{fontSize:10,color:"#1a3a8a",fontFamily:"monospace"}}>{icdText}</div>}
+                                  </td>
+                                  <td style={{padding:"7px 8px",textAlign:"center"}}>
+                                    {!gender?<span style={{color:"#c0b0a0",fontSize:11}}>—</span>
+                                    :isTop2?<span style={{fontSize:11,fontWeight:700,
+                                        padding:"2px 7px",background:"#c8a070",color:"#1a1208",borderRadius:4}}>
+                                        TOP 2
+                                      </span>
+                                    :isActive?<span style={{fontSize:11,fontWeight:700,
+                                        padding:"2px 7px",background:"#d1fae5",color:"#065f46",borderRadius:4}}>
+                                        ✓ Aktiv
+                                      </span>
+                                    :<span style={{color:"#c0b0a0",fontSize:11}}>–</span>}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+                    <div style={{fontSize:11,color:"#9a8a7a",textAlign:"center",paddingTop:8,lineHeight:1.7}}>
+                      Alle Faktoren gemäß DVO-Leitlinie 2023 · AWMF 183-001 · Version 2.1<br/>
+                      ICD-10-GM-Codes sind Richtwerte – die finale Kodierung obliegt der Ärztin / dem Arzt.
+                    </div>
+                  </div>
+                );
+              })()}
+
+                            {activeTab==="risiko" ? filteredIds.map(id=>{
                 const row = draft[id]||{};
                 const entries = normEntries(row);
                 const def = DIAG_DB_DEFAULTS[id]||{};
@@ -5717,7 +5927,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
             )}
 
             <div className="admin-footer">
-              {(activeTab!=="auswertung"&&activeTab!=="verlauf"&&activeTab!=="briefkopf")&&<button className="admin-reset-btn" onClick={handleReset}>↩ Auf Standard zurücksetzen</button>}
+              {(activeTab!=="auswertung"&&activeTab!=="verlauf"&&activeTab!=="briefkopf"&&activeTab!=="risikoliste")&&<button className="admin-reset-btn" onClick={handleReset}>↩ Auf Standard zurücksetzen</button>}
               <button className="admin-save-btn" onClick={handleSave}>{(activeTab==="auswertung"||activeTab==="verlauf"||activeTab==="briefkopf")?"✕ Schließen":"✓ Speichern & Schließen"}</button>
             </div>
           </>
