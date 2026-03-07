@@ -2860,11 +2860,12 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
   return `<!DOCTYPE html>
 <html lang="de"><head>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Fragebogen – ${patName}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#1a1a1a;background:white;padding:24px}
-  @media print{body{padding:0} .no-print{display:none}}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#1a1a1a;background:white;padding:16px}
+  @media print{body{padding:0} .print-bar{display:none!important}}
   h1{font-size:18px;color:#2a1808;margin-bottom:4px}
   .pat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 20px;margin-bottom:20px;
     background:#faf6f0;border:1.5px solid #d4a84b;border-radius:7px;padding:12px 16px}
@@ -2873,8 +2874,63 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
   .pat-item span{font-size:13.5px;font-weight:600;color:#1a1a1a}
   .footer{margin-top:24px;padding-top:10px;border-top:1px solid #ddd;font-size:10.5px;
     color:#888;text-align:center}
+  .print-bar{background:#2c1f0e;color:#f0e8d0;padding:12px 16px;margin:-16px -16px 18px;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .print-bar h2{font-size:14px;font-weight:700;flex:1;margin:0}
+  .print-btn{padding:9px 18px;border:none;border-radius:6px;cursor:pointer;
+    font-size:13px;font-weight:700;font-family:inherit}
+  .print-btn.primary{background:#4a9a4a;color:white}
+  .print-btn.secondary{background:#c8a84a;color:#1a1a0a}
+  .hint{font-size:11px;color:#c8a060;line-height:1.4;flex-basis:100%}
+  @media(max-width:600px){
+    .pat-grid{grid-template-columns:1fr 1fr}
+    .print-bar{flex-direction:column;align-items:flex-start}
+  }
 </style>
+<script>
+(function(){
+  // Plattformerkennung
+  var ua=navigator.userAgent;
+  var isIOS=/iPad|iPhone|iPod/.test(ua)&&!window.MSStream;
+  var isAndroid=/Android/.test(ua);
+  var isMac=/Macintosh/.test(ua)&&navigator.maxTouchPoints>1; // iPad Pro
+  var isMobile=isIOS||isAndroid||isMac;
+
+  function setHint(){
+    var hint=document.getElementById('pf-hint');
+    if(!hint)return;
+    if(isIOS||isMac){
+      hint.textContent='iOS/iPadOS: Teilen-Symbol ↗️ → „Auf AirDrop“ oder „Drucken“ → PDF';
+    } else if(isAndroid){
+      hint.textContent='Android: 3-Punkte-Menü oben rechts → „Drucken“ → „Als PDF speichern“';
+    } else {
+      hint.textContent='Desktop: Klick auf „Drucken / Als PDF“ → Drucker „Als PDF speichern“ wählen';
+    }
+  }
+
+  window.addEventListener('load',function(){
+    setHint();
+    // Web Share API (iOS/Android native Share)
+    var shareBtn=document.getElementById('pf-share');
+    if(shareBtn && navigator.share && isIOS){
+      shareBtn.style.display='inline-block';
+      shareBtn.addEventListener('click',function(){
+        navigator.share({title:document.title,text:'Osteoporose-Fragebogen',url:location.href})
+          .catch(function(){});
+      });
+    }
+  });
+
+  window.doPrint=function(){window.print();};
+})();
+</script>
 </head><body>
+<div class="print-bar no-print">
+  <h2>&#x1F9BE; Osteoporose-Fragebogen &ndash; Patienteneingabe</h2>
+  <button class="print-btn primary" onclick="window.doPrint()">&#x1F5A8; Drucken / Als PDF</button>
+  <button id="pf-share" class="print-btn secondary" style="display:none">&#x1F4E4; Teilen</button>
+  <span id="pf-hint" class="hint"></span>
+</div>
 <h1>Osteoporose-Fragebogen (Patienteneingabe)</h1>
 <div style="font-size:11px;color:#888;margin-bottom:16px">
   Praxis: ${lh.name||""} · ${lh.strasse||""}, ${lh.plz_ort||""} · Ausgefüllt: ${patient.fillDate||"–"}
@@ -7862,34 +7918,21 @@ function App(){
             ):(
               <>
                 <span className="viewer-bar-title">
-                  {viewer.type==="html"?"📄 Patienteneingabe – PDF-Vorschau":"🖨 Befundbericht – Druckansicht"}
+                  {viewer.type==="html"?"📄 Patienteneingabe – Vorschau":"🖨 Befundbericht – Druckansicht"}
                 </span>
-                {/* Primär: neuer Tab öffnen → dort drucken/PDF (funktioniert auf Android) */}
+                {/* Neuer Tab öffnen – dort ist die Print-Bar direkt eingebaut */}
                 <button className="viewer-btn primary" onClick={()=>{
                   const blob=new Blob([viewer.content],{type:"text/html;charset=utf-8"});
                   const url=URL.createObjectURL(blob);
-                  const w=window.open(url,"_blank");
-                  // Desktop: direkt print aufrufen wenn möglich
-                  if(w){
-                    w.addEventListener("load",()=>{try{w.print();}catch(e){}});
+                  const opened=window.open(url,"_blank");
+                  // Fallback: falls Popup geblockt, direkt drucken
+                  if(!opened){
+                    const iframe=document.getElementById("viewer-iframe");
+                    if(iframe&&iframe.contentWindow)iframe.contentWindow.print();
+                    else window.print();
                   }
-                  // Blob URL nach 60s freigeben
-                  setTimeout(()=>URL.revokeObjectURL(url),60000);
-                }}>🖨 Drucken / Als PDF speichern</button>
-                {/* Fallback: HTML-Datei herunterladen */}
-                <button className="viewer-btn" onClick={()=>{
-                  const blob=new Blob([viewer.content],{type:"text/html;charset=utf-8"});
-                  const url=URL.createObjectURL(blob);
-                  const a=document.createElement("a");
-                  a.href=url;
-                  a.download="Fragebogen_"+(new Date().toISOString().slice(0,10))+".html";
-                  document.body.appendChild(a);a.click();
-                  document.body.removeChild(a);
-                  setTimeout(()=>URL.revokeObjectURL(url),5000);
-                }}>⬇ HTML speichern</button>
-                <span style={{fontSize:10,color:"#a09080",marginLeft:2,lineHeight:1.3,display:"block"}}>
-                  Android: Drucken → PDF
-                </span>
+                  setTimeout(()=>URL.revokeObjectURL(url),120000);
+                }}>🖨 In neuem Tab öffnen / Drucken</button>
               </>
             )}
             <button className="viewer-close" onClick={()=>setViewer(null)}>×</button>
