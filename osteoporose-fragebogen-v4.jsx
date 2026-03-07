@@ -2923,7 +2923,7 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
 
   window.doPrint=function(){window.print();};
 })();
-</script>
+<\/script>
 </head><body>
 <div class="print-bar no-print">
   <h2>&#x1F9BE; Osteoporose-Fragebogen &ndash; Patienteneingabe</h2>
