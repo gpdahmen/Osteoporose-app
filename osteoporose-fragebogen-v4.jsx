@@ -7141,6 +7141,20 @@ const ABSETZ_GRUENDE=[
   {id:"sonstige",label:"Sonstiger Grund"},
 ];
 
+/* ── ViewerIframe: uses blob URL for Android compatibility ── */
+function ViewerIframe({content}){
+  const[src,setSrc]=React.useState("");
+  React.useEffect(()=>{
+    const blob=new Blob([content],{type:"text/html;charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+    setSrc(url);
+    return()=>URL.revokeObjectURL(url);
+  },[content]);
+  if(!src)return <div style={{padding:20,color:"#888"}}>Lade Vorschau…</div>;
+  return <iframe id="viewer-iframe" className="viewer-iframe" src={src} title="Druckansicht"/>;
+}
+
+
 function App(){
   const today=new Date().toLocaleDateString("de-DE");
   const[lh,setLh]=useState(DEFAULT_LH);
@@ -7850,13 +7864,31 @@ function App(){
                 <span className="viewer-bar-title">
                   {viewer.type==="html"?"📄 Patienteneingabe – PDF-Vorschau":"🖨 Befundbericht – Druckansicht"}
                 </span>
+                {/* Primär: neuer Tab öffnen → dort drucken/PDF (funktioniert auf Android) */}
                 <button className="viewer-btn primary" onClick={()=>{
-                  const iframe=document.getElementById("viewer-iframe");
-                  if(iframe&&iframe.contentWindow)iframe.contentWindow.print();
-                  else window.print();
+                  const blob=new Blob([viewer.content],{type:"text/html;charset=utf-8"});
+                  const url=URL.createObjectURL(blob);
+                  const w=window.open(url,"_blank");
+                  // Desktop: direkt print aufrufen wenn möglich
+                  if(w){
+                    w.addEventListener("load",()=>{try{w.print();}catch(e){}});
+                  }
+                  // Blob URL nach 60s freigeben
+                  setTimeout(()=>URL.revokeObjectURL(url),60000);
                 }}>🖨 Drucken / Als PDF speichern</button>
-                <span style={{fontSize:11,color:"#a09080",marginLeft:4}}>
-                  → Im Druckdialog „Als PDF speichern" wählen
+                {/* Fallback: HTML-Datei herunterladen */}
+                <button className="viewer-btn" onClick={()=>{
+                  const blob=new Blob([viewer.content],{type:"text/html;charset=utf-8"});
+                  const url=URL.createObjectURL(blob);
+                  const a=document.createElement("a");
+                  a.href=url;
+                  a.download="Fragebogen_"+(new Date().toISOString().slice(0,10))+".html";
+                  document.body.appendChild(a);a.click();
+                  document.body.removeChild(a);
+                  setTimeout(()=>URL.revokeObjectURL(url),5000);
+                }}>⬇ HTML speichern</button>
+                <span style={{fontSize:10,color:"#a09080",marginLeft:2,lineHeight:1.3,display:"block"}}>
+                  Android: Drucken → PDF
                 </span>
               </>
             )}
@@ -7865,7 +7897,7 @@ function App(){
           <div className="viewer-body">
             {viewer.type==="txt"
               ?<textarea id="viewer-ta" className="viewer-txt" readOnly value={viewer.content}/>
-              :<iframe id="viewer-iframe" className="viewer-iframe" srcDoc={viewer.content} title="Druckansicht"/>
+              :<ViewerIframe content={viewer.content}/>
             }
           </div>
         </div>
