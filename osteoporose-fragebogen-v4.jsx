@@ -2803,6 +2803,7 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
   // Sektionen – nur beantwortete Fragen anzeigen (mindestens eine Antwort in Sektion)
   let sectionsHtml = "";
   for(const sec of SECTIONS){
+    if(sec.symcheck) continue;   // Sekundäre Osteoporose gehört nicht in die Patienteneingabe
     // Gender-Filter
     const gok = !sec.gender || sec.gender===gender;
     if(!gok) continue;
