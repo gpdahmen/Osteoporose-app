@@ -819,7 +819,7 @@ function calcAgeFromBirthdate(dob){
   let age=now.getFullYear()-d.getFullYear();
   const m=now.getMonth()-d.getMonth();
   if(m<0||(m===0&&now.getDate()<d.getDate()))age--;
-  return age>=0&&age<130?age:null;
+  return age>=0&&age<=130?age:null;
 }
 // Buchstaben inkl. Umlaute, Apostroph, Bindestrich – keine Zahlen, keine Sonderzeichen
 const NAME_RE = /^[A-Za-zÄÖÜäöüßÀ-žÁáÉéÍíÓóÚúÂâÊêÎîÔôÛûËëÏïÜüÿŒœÆæ'\-\s]+$/;
@@ -4908,8 +4908,27 @@ function CameraScanner({onMedsFound, onClose}){
 
 function GebDatInput({value,onChange}){
   const age=calcAgeFromBirthdate(value);
-  const invalid=age!==null&&(age<18||age>130);
-  const borderColor=invalid?"#c0392b":"var(--CM)";
+  // Determine validation state only when date looks complete (8 digits entered)
+  const digits=(value||"").replace(/\D/g,"").length;
+  const complete=digits>=8;
+
+  let borderColor="var(--CM)";
+  let errMsg=null;
+  if(complete){
+    if(age===null){
+      errMsg="Ungültiges Datum – bitte prüfen.";
+      borderColor="#c0392b";
+    } else if(age<18){
+      errMsg=`Alter ${age} Jahre – Patienten müssen mindestens 18 Jahre alt sein.`;
+      borderColor="#c0392b";
+    } else if(age>130){
+      errMsg=`Alter ${age} Jahre – Maximalalter beträgt 130 Jahre.`;
+      borderColor="#c0392b";
+    } else {
+      borderColor="#2a7a2a"; // gültig
+    }
+  }
+
   return(
     <div>
       <input value={value} onChange={e=>{
@@ -4922,9 +4941,14 @@ function GebDatInput({value,onChange}){
       style={{border:"1.5px solid "+borderColor,borderRadius:5,padding:"8px 11px",
         fontSize:13.5,color:"var(--D)",outline:"none",
         fontFamily:"'Source Sans 3',sans-serif",width:"100%",boxSizing:"border-box"}}/>
-      {invalid&&(
+      {errMsg&&(
         <div style={{fontSize:11,color:"#c0392b",marginTop:3,fontWeight:600}}>
-          ⚠ Alter {age} Jahre – gültig: 18–130 Jahre
+          ⚠ {errMsg}
+        </div>
+      )}
+      {!errMsg&&complete&&(
+        <div style={{fontSize:11,color:"#2a7a2a",marginTop:3}}>
+          ✓ Alter: {age} Jahre
         </div>
       )}
     </div>
@@ -7036,6 +7060,13 @@ function App(){
     if(!gender)return;
     const nameErr=validatePatientNames();
     if(nameErr){alert("⚠ Bitte Personalien prüfen:\n\n"+nameErr);return null;}
+    // Geburtsdatum prüfen
+    const gebAge=calcAgeFromBirthdate(patient.geburtsdatum||"");
+    const gebDigits=(patient.geburtsdatum||"").replace(/\D/g,"").length;
+    if(gebDigits>=8&&(gebAge===null||gebAge<18||gebAge>130)){
+      const msg=gebAge===null?"Ungültiges Datum.": gebAge<18?`Alter ${gebAge} J. – Mindestalter 18 Jahre.`:`Alter ${gebAge} J. – Maximalter 130 Jahre.`;
+      alert("⚠ Geburtsdatum ungültig:\n\n"+msg);return null;
+    }
     // Ensure patient has a DB record
     let pid=patientId;
     const fullName=(patient.nachname||patient.name||"")+" "+(patient.vorname||"");
