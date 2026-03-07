@@ -7408,13 +7408,18 @@ function App(){
     const all={};visibleSecs.forEach(s=>all[s.id]=true);setOpenSec(all);
   };
 
-  /* ── Patienten-PDF: Eingabe ohne Auswertung herunterladen ── */
-  const handleSendToPatient=async()=>{
+  /* ── Patienten-PDF: Eingabe ohne Auswertung ── */
+  const handleSendToPatient=()=>{
     if(!gender){alert("Bitte zuerst Geschlecht auswählen.");return;}
-    await saveSession();
-    const html=buildPatientEingabeHtml(patient,gender,answers,anamnese,lh,SECTIONS);
-    // Zeige im Viewer (Drucken/Als PDF speichern)
-    setViewer({type:"html",content:html,title:"Patienteneingabe PDF"});
+    // Sofort PDF bauen und anzeigen – kein Speichern, kein Blocking
+    let html;
+    try{
+      html=buildPatientEingabeHtml(patient,gender,answers,anamnese,lh,SECTIONS);
+    }catch(e){
+      alert("PDF konnte nicht erstellt werden: "+e.message);
+      return;
+    }
+    setViewer({type:"html",content:html});
   };
 
   return(
