@@ -2774,6 +2774,131 @@ function getIcdArray(entry, gender, answers){
 }
 
 /* ═══════════════════════════════════════════════ TEXT EXPORT ═══ */
+/* ═══ PATIENTEN-EINGABE-PDF (ohne Auswertung) ══════════════════════════════ */
+function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTIONS){
+  const fmt = v => v===undefined||v===null||v===""?"–":String(v);
+  const fmtDate = d => { if(!d)return "–"; const p=d.split(".");return p.length===3?d:d; };
+
+  // Antwort-Darstellung je Fragetyp
+  function renderAnswer(q){
+    const v = answers[q.id];
+    if(q.t==="yn"){
+      if(v===true||v==="true")return '<span style="color:#1a5a1a;font-weight:700">Ja</span>';
+      if(v===false||v==="false")return '<span style="color:#5a1a1a">Nein</span>';
+      return '<span style="color:#888">–</span>';
+    }
+    if(q.t==="radio"||q.t==="select"){
+      return v?`<span style="font-weight:600">${v}</span>`:'<span style="color:#888">–</span>';
+    }
+    if(q.t==="number"||q.t==="text"){
+      return v?`<span style="font-weight:600">${v}</span>`:'<span style="color:#888">–</span>';
+    }
+    if(q.t==="multi"){
+      const sel=Array.isArray(v)?v:[];
+      return sel.length?sel.map(s=>`<span style="display:inline-block;background:#e8f4e8;border:1px solid #aad4aa;border-radius:3px;padding:1px 6px;margin:1px 2px;font-size:12px">${s}</span>`).join(""):'<span style="color:#888">–</span>';
+    }
+    return v?`<span style="font-weight:600">${fmt(v)}</span>`:'<span style="color:#888">–</span>';
+  }
+
+  // Sektionen – nur beantwortete Fragen anzeigen (mindestens eine Antwort in Sektion)
+  let sectionsHtml = "";
+  for(const sec of SECTIONS){
+    // Gender-Filter
+    const gok = !sec.gender || sec.gender===gender;
+    if(!gok) continue;
+    const qs = (sec.qs||[]).filter(q => !q.gender || q.gender===gender);
+    if(!qs.length) continue;
+
+    sectionsHtml += `
+      <div style="margin-bottom:20px;break-inside:avoid">
+        <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;
+          font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px">
+          <span>${sec.icon||""}</span>
+          <span>${sec.title}</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px">`;
+
+    for(const q of qs){
+      const v=answers[q.id];
+      const answered=v!==undefined&&v!==null&&v!=="";
+      const row=answered?"":" style=\"opacity:.55\"";
+      // Kurzlabel: erste Zeile der Frage
+      const shortLabel=q.label.split("\n")[0].slice(0,120);
+      sectionsHtml += `
+          <tr${row} style="border-bottom:1px solid #efe6d8">
+            <td style="padding:6px 10px;vertical-align:top;width:62%;color:#2a1a0a;line-height:1.4">${shortLabel}</td>
+            <td style="padding:6px 10px;vertical-align:top;text-align:right">${renderAnswer(q)}</td>
+          </tr>`;
+    }
+    sectionsHtml += `
+        </table>
+      </div>`;
+  }
+
+  // Anamnese-Zusammenfassung
+  let anamHtml="";
+  if(anamnese){
+    const dxList=(anamnese.diagnosen||[]).filter(d=>d&&d.trim());
+    const fracList=(anamnese.fractures||[]).filter(f=>f&&(f.typ||f.seite));
+    if(dxList.length||fracList.length||(anamnese.weitere||[]).filter(s=>s).length){
+      anamHtml=`
+      <div style="margin-bottom:20px;break-inside:avoid">
+        <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;
+          font-size:13px;font-weight:700">📋 Anamnese / Krankengeschichte</div>
+        <div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12.5px">`;
+      if(dxList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Diagnosen:</strong> ${dxList.join(" · ")}</div>`;
+      if(fracList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Frühere Frakturen:</strong> ${fracList.map(f=>[f.typ,f.seite,f.jahr].filter(Boolean).join(" ")).join(", ")}</div>`;
+      const weitereSet=(anamnese.weitere||[]).filter(s=>s);
+      if(weitereSet.length) anamHtml+=`<div><strong>Weitere Angaben:</strong> ${weitereSet.join(", ")}</div>`;
+      anamHtml+=`</div></div>`;
+    }
+  }
+
+  const patName=[patient.vorname,patient.nachname].filter(Boolean).join(" ")||"–";
+  const genderLabel=gender==="w"?"weiblich":gender==="m"?"männlich":"–";
+
+  return `<!DOCTYPE html>
+<html lang="de"><head>
+<meta charset="UTF-8"/>
+<title>Fragebogen – ${patName}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#1a1a1a;background:white;padding:24px}
+  @media print{body{padding:0} .no-print{display:none}}
+  h1{font-size:18px;color:#2a1808;margin-bottom:4px}
+  .pat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 20px;margin-bottom:20px;
+    background:#faf6f0;border:1.5px solid #d4a84b;border-radius:7px;padding:12px 16px}
+  .pat-item label{font-size:10.5px;font-weight:700;color:#7a5a38;text-transform:uppercase;
+    letter-spacing:.4px;display:block;margin-bottom:2px}
+  .pat-item span{font-size:13.5px;font-weight:600;color:#1a1a1a}
+  .footer{margin-top:24px;padding-top:10px;border-top:1px solid #ddd;font-size:10.5px;
+    color:#888;text-align:center}
+</style>
+</head><body>
+<h1>Osteoporose-Fragebogen (Patienteneingabe)</h1>
+<div style="font-size:11px;color:#888;margin-bottom:16px">
+  Praxis: ${lh.name||""} · ${lh.strasse||""}, ${lh.plz_ort||""} · Ausgefüllt: ${patient.fillDate||"–"}
+</div>
+
+<div class="pat-grid">
+  <div class="pat-item"><label>Name</label><span>${patName}</span></div>
+  <div class="pat-item"><label>Geburtsdatum</label><span>${fmtDate(patient.geburtsdatum)}</span></div>
+  <div class="pat-item"><label>Geschlecht</label><span>${genderLabel}</span></div>
+  ${patient.email?`<div class="pat-item"><label>E-Mail</label><span>${patient.email}</span></div>`:""}
+  ${answers.groesse?`<div class="pat-item"><label>Größe</label><span>${answers.groesse} cm</span></div>`:""}
+  ${answers.gewicht?`<div class="pat-item"><label>Gewicht</label><span>${answers.gewicht} kg</span></div>`:""}
+</div>
+
+${anamHtml}
+${sectionsHtml}
+
+<div class="footer">
+  Osteoporose-Fragebogen · Patienteneingabe ohne ärztliche Auswertung · DVO-Leitlinie 2023 ·
+  Nur für den internen Praxisgebrauch
+</div>
+</body></html>`;
+}
+
 function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds){
   const db=diagDb||DIAG_DB_DEFAULTS;
   const d=new Date().toLocaleDateString("de-DE");
@@ -7283,20 +7408,13 @@ function App(){
     const all={};visibleSecs.forEach(s=>all[s.id]=true);setOpenSec(all);
   };
 
-  /* ── An Patient senden: Druckdialog öffnen (→ PDF), dann mailto ── */
-  const[sendModalOpen,setSendModalOpen]=useState(false);
+  /* ── Patienten-PDF: Eingabe ohne Auswertung herunterladen ── */
   const handleSendToPatient=async()=>{
     if(!gender){alert("Bitte zuerst Geschlecht auswählen.");return;}
     await saveSession();
-    // 1. Alle Abschnitte öffnen + Auswertung anzeigen damit alles im PDF landet
-    const allOpen={};visibleSecs.forEach(s=>allOpen[s.id]=true);
-    setOpenSec(allOpen);setShowResult(false); // kein Result-Panel – nur Fragebogen
-    // 2. Druckdialog öffnen (Patient speichert als PDF)
-    setTimeout(()=>{
-      window.print();
-      // 3. Nach Druckdialog: mailto-Modal zeigen
-      setTimeout(()=>setSendModalOpen(true),800);
-    },400);
+    const html=buildPatientEingabeHtml(patient,gender,answers,anamnese,lh,SECTIONS);
+    // Zeige im Viewer (Drucken/Als PDF speichern)
+    setViewer({type:"html",content:html,title:"Patienteneingabe PDF"});
   };
 
   return(
@@ -7577,12 +7695,10 @@ function App(){
                   fontFamily:"'Source Sans 3',sans-serif"}}>
                 <div style={{fontSize:26,marginBottom:6}}>✅</div>
                 <div style={{fontSize:16,fontWeight:700,color:"#1a5a1a",marginBottom:4}}>
-                  Fragebogen abgeschlossen – als PDF speichern
+                  Fragebogen abschließen – als PDF herunterladen
                 </div>
                 <div style={{fontSize:12.5,color:"#4a7a4a",lineHeight:1.5}}>
-                  {patient.email
-                    ? <span>PDF wird erstellt → anschließend an <strong>{patient.email}</strong> senden</span>
-                    : <span>PDF speichern (E-Mail-Adresse oben eingeben für direktes Versenden)</span>}
+                  PDF der Patienteneingabe erstellen (ohne ärztliche Auswertung)
                 </div>
               </button>
             </div>
@@ -7691,74 +7807,6 @@ function App(){
           }}
           onClose={()=>setTherapieCam(false)}/>
       )}
-      {sendModalOpen&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:4000,
-          display:"flex",alignItems:"center",justifyContent:"center",padding:20}}
-          onClick={()=>setSendModalOpen(false)}>
-          <div style={{background:"white",borderRadius:12,padding:"28px 26px",maxWidth:440,width:"100%",
-            boxShadow:"0 8px 40px rgba(0,0,0,.25)"}}
-            onClick={e=>e.stopPropagation()}>
-            <div style={{textAlign:"center",marginBottom:20}}>
-              <div style={{fontSize:36,marginBottom:8}}>📧</div>
-              <div style={{fontSize:17,fontWeight:700,color:"#1a3a1a",marginBottom:4}}>
-                Fragebogen per E-Mail senden
-              </div>
-              <div style={{fontSize:13,color:"#5a6a5a",lineHeight:1.6}}>
-                Das PDF wurde erstellt (Druckdialog). Bitte nun per E-Mail an den Patienten senden.
-              </div>
-            </div>
-            {patient.email?(
-              <div style={{marginBottom:16}}>
-                <div style={{fontSize:12,fontWeight:700,color:"#5a5a5a",marginBottom:6,textTransform:"uppercase",letterSpacing:".5px"}}>
-                  Empfänger
-                </div>
-                <div style={{padding:"10px 14px",background:"#f0f9f0",border:"1.5px solid #6aaa64",
-                  borderRadius:7,fontSize:14,fontWeight:600,color:"#1a5a1a"}}>
-                  {patient.email}
-                </div>
-              </div>
-            ):(
-              <div style={{marginBottom:16,padding:"10px 14px",background:"#fff8f0",
-                border:"1px solid #f0c060",borderRadius:7,fontSize:13,color:"#7a5010"}}>
-                ⚠ Keine E-Mail-Adresse hinterlegt. Bitte im Patientenkopf eintragen.
-              </div>
-            )}
-            <div style={{marginBottom:20,padding:"10px 14px",background:"#f8f8f8",
-              borderRadius:7,fontSize:12,color:"#5a5a5a",lineHeight:1.7}}>
-              <strong>Betreff:</strong> Ihr ausgefüllter Osteoporose-Fragebogen<br/>
-              <strong>Anhang:</strong> Das soeben gespeicherte PDF aus dem Druckdialog
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {patient.email&&(
-                <a href={(()=>{
-                    const subj=encodeURIComponent("Osteoporose-Fragebogen für "+(patient.nachname||patient.name||"")+(patient.vorname?", "+patient.vorname:"")+" \u2013 "+lh.name);
-                    const body=encodeURIComponent(
-                      "Sehr geehrte Patientin, sehr geehrter Patient,\n\n"+
-                      "im Anhang finden Sie Ihren ausgefüllten Osteoporose-Fragebogen als PDF.\n\n"+
-                      "Bitte bringen Sie das Dokument zu Ihrem n\u00e4chsten Termin mit.\n\n"+
-                      "Mit freundlichen Gr\u00fc\u00dfen\n"+lh.name+"\n"+lh.title+"\n"+lh.strasse+", "+lh.plz_ort
-                    );
-                    return "mailto:"+encodeURIComponent(patient.email)+"?subject="+subj+"&body="+body;
-                  })()}
-                  style={{display:"block",textAlign:"center",padding:"12px 20px",
-                    background:"#2a5a2a",color:"white",borderRadius:7,fontSize:14,
-                    fontWeight:700,textDecoration:"none",letterSpacing:".2px"}}>
-                  📤 E-Mail-Programm öffnen
-                </a>
-              )}
-              <button onClick={()=>setSendModalOpen(false)}
-                style={{padding:"10px",borderRadius:7,border:"1px solid #d0d0d0",
-                  background:"white",cursor:"pointer",fontSize:13,color:"#5a5a5a",
-                  fontFamily:"'Source Sans 3',sans-serif"}}>
-                Schließen
-              </button>
-              <div style={{fontSize:11,color:"#9a9a9a",textAlign:"center",lineHeight:1.5}}>
-                💬 <em>Messenger-Versand (z.B. Rocket.Chat) folgt in einer späteren Version</em>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {viewer&&(
         <div className="viewer-overlay">
           <div className="viewer-bar">
@@ -7794,7 +7842,9 @@ function App(){
               </>
             ):(
               <>
-                <span className="viewer-bar-title">🖨 Befundbericht – Druckansicht</span>
+                <span className="viewer-bar-title">
+                  {viewer.type==="html"?"📄 Patienteneingabe – PDF-Vorschau":"🖨 Befundbericht – Druckansicht"}
+                </span>
                 <button className="viewer-btn primary" onClick={()=>{
                   const iframe=document.getElementById("viewer-iframe");
                   if(iframe&&iframe.contentWindow)iframe.contentWindow.print();
