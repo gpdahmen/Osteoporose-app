@@ -7298,7 +7298,7 @@ function App(){
   const setP=(k,v)=>setPatient(p=>({...p,[k]:v}));
   const toggleSec=(id)=>setOpenSec(p=>({...p,[id]:!p[id]}));
 
-  const visibleSecs=gender?SECTIONS.filter(s=>!s.onlyFor||s.onlyFor===gender):[];
+  const visibleSecs=gender?SECTIONS.filter(s=>(!s.onlyFor||s.onlyFor===gender)&&!s.symcheck):[];
   const totalQ=visibleSecs.flatMap(s=>s.qs).length;
   const answeredQ=Object.values(answers).filter(v=>v!==null&&v!==undefined&&v!=="").length;
   const prog=totalQ>0?Math.round((answeredQ/totalQ)*100):0;
