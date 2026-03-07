@@ -5708,13 +5708,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                       {/* Risiko-Ergebnis */}
                       <ResultCard gender={gender} answers={answers} patient={patient} diff={diff}/>
 
-                      {/* Sekundärformen */}
-                      <div style={{marginTop:12}}>
-                        <SecondaryPanel answers={answers}
-                          sekProfileDb={sekProfileDb} sekUntersDb={sekUntersDb}
-                          sekQsDb={sekQsDb} sekScoringDb={sekScoringDb}
-                          sekStatus={sekStatus} onSekStatus={setSekStatus}/>
-                      </div>
+
                     </>)}
                   </div>
                 );
