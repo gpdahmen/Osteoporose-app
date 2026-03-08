@@ -6088,7 +6088,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                       background:"#1a1208",borderRadius:10,color:"#e8d8b0",lineHeight:1.6}}>
                       <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,
                         fontWeight:700,color:"#c8a070",marginBottom:5}}>
-                        📋 DVO-Leitlinie 2023 – Risikofaktoren & Risikoindikatoren
+                        📋 DVO-Leitlinie 2023 – Risikofaktoren &amp; Risikoindikatoren
                       </div>
                       <div style={{fontSize:12}}>
                         <strong style={{color:"#c8a070"}}>Risikofaktoren</strong> gehen mit RR in den DVO-Risikorechner ein.{" "}
