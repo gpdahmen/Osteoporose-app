@@ -3329,7 +3329,7 @@ function AutoTextarea({value,onChange,placeholder,style,minRows=2,maxRows=10,...
   const rows=Math.min(Math.max(lineCount,minRows),maxRows);
   return(
     <textarea rows={rows} value={value} onChange={onChange} placeholder={placeholder}
-      style={{...style,resize:"vertical",boxSizing:"border-box",minHeight:undefined,height:undefined}}
+      style={{...style,resize:"none",boxSizing:"border-box",minHeight:undefined,height:undefined}}
       {...rest}/>
   );
 }
@@ -5477,8 +5477,8 @@ function PatientenListe({patients,sessions,onSelectPatient,onDeletePatient,onRes
   const riskColor=(cat)=>({top:"#fee2e2",high:"#fef3c7",mod:"#fff0e0",low:"#f0fdf4"}[cat]||"white");
   const riskBadgeColor=(cat)=>({top:"#b91c1c",high:"#d97706",mod:"#9a4a10",low:"#065f46"}[cat]||"#9a8a7a");
 
-  const iSt={padding:"7px 10px",border:"1.5px solid #d8c8b0",borderRadius:5,fontSize:12.5,
-    fontFamily:"'Source Sans 3',sans-serif",outline:"none",background:"white"};
+  const iSt={padding:"6px 10px",border:"1.5px solid #d8c8b0",borderRadius:5,fontSize:12.5,
+    fontFamily:"'Source Sans 3',sans-serif",outline:"none",background:"white",height:36,boxSizing:"border-box"};
 
   return(
     <div style={{padding:"8px 14px 14px"}}>
@@ -5898,7 +5898,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
               {/* ═══ AUSWERTUNG TAB ═══════════════════════════════════════ */}
               {activeTab==="auswertung"&&(()=>{
                 const risk=gender?computeRisk(answers,gender):null;
-                const iSt={padding:"5px 9px",border:"1px solid #d8c8b0",borderRadius:6,fontSize:13,fontFamily:"inherit",background:"white",outline:"none"};
+                const iSt={padding:"5px 9px",border:"1px solid #d8c8b0",borderRadius:6,fontSize:13,fontFamily:"inherit",background:"white",outline:"none",height:34,boxSizing:"border-box"};
                 return(
                   <div style={{padding:"6px 0"}}>
                     {!gender&&(
@@ -6242,7 +6242,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                         style={{width:"100%",fontSize:12,padding:"5px 8px",fontFamily:"monospace",
                                           border:`1px solid ${icdOk?"#e0d0b8":"#f87171"}`,
                                           borderRadius:4,background:icdOk?"#fafaf8":"#fff5f5",
-                                          outline:"none",boxSizing:"border-box",height:38}}/>
+                                          outline:"none",boxSizing:"border-box",height:36}}/>
                                     </td>
                                     {/* Aktionen */}
                                     <td style={{padding:"6px 6px",textAlign:"center",verticalAlign:"top",whiteSpace:"nowrap"}}>
@@ -6326,9 +6326,9 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                 if(!grouped[grp])grouped[grp]=[];
                 grouped[grp].push(sym);
               }
-              const inputSt={padding:"7px 10px",border:"1.5px solid #d4c4a8",borderRadius:5,
+              const inputSt={padding:"6px 10px",border:"1.5px solid #d4c4a8",borderRadius:5,
                 fontSize:12.5,fontFamily:"inherit",width:"100%",background:"#fff",outline:"none",
-                boxSizing:"border-box",lineHeight:1.5};
+                boxSizing:"border-box",lineHeight:1.5,height:36};
               const labelSt={fontSize:10,fontWeight:700,color:"#8b6a3a",textTransform:"uppercase",
                 letterSpacing:".8px",marginBottom:3,display:"block"};
               const icdSt=(ok)=>({...inputSt,width:130,border:`1.5px solid ${ok?"#d4c4a8":"#dc2626"}`,
