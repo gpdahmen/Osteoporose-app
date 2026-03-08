@@ -3320,28 +3320,17 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
 
 /* ═══════════════════════════════════════════════ COMPONENTS ═══ */
 
-/* ── AutoTextarea: wächst mit Inhalt, kein Leerraum ── */
+/* ── AutoTextarea: Zeilenzahl aus Inhalt berechnet, kein Leerraum ── */
 function AutoTextarea({value,onChange,placeholder,style,minRows=2,maxRows=10,...rest}){
-  const ref=useRef(null);
-  const resize=()=>{
-    const el=ref.current;
-    if(!el)return;
-    // CSS min-height auf 0 setzen, damit scrollHeight unverfälscht gemessen wird
-    el.style.minHeight="0";
-    el.style.height="auto";
-    const lh=parseFloat(getComputedStyle(el).lineHeight)||19;
-    const pad=parseFloat(getComputedStyle(el).paddingTop)+parseFloat(getComputedStyle(el).paddingBottom)||14;
-    const minH=minRows*lh+pad;
-    const maxH=maxRows*lh+pad;
-    const target=Math.min(Math.max(el.scrollHeight,minH),maxH);
-    el.style.height=target+"px";
-    el.style.overflowY=el.scrollHeight>maxH?"auto":"hidden";
-  };
-  useEffect(()=>{resize();},[value,minRows,maxRows]);
+  const text=value||"";
+  // Zeilen zählen: echte Umbrüche + Zeilenumbrüche durch Zeilenbreite (~52 Zeichen)
+  const charsPerLine=52;
+  const lineCount=text.split("\n").reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/charsPerLine)),0);
+  const rows=Math.min(Math.max(lineCount,minRows),maxRows);
   return(
-    <textarea ref={ref} value={value} onChange={onChange} placeholder={placeholder}
-      style={{...style,resize:"none",overflowY:"hidden",boxSizing:"border-box",minHeight:undefined}}
-      onInput={resize} {...rest}/>
+    <textarea rows={rows} value={value} onChange={onChange} placeholder={placeholder}
+      style={{...style,resize:"vertical",boxSizing:"border-box",minHeight:undefined,height:undefined}}
+      {...rest}/>
   );
 }
 
