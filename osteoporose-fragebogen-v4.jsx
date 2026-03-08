@@ -6946,7 +6946,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
     indikation:["Osteoporose","manifeste Osteoporose"],
     wirkstoff:"Alendronsäure",
     handelsnamen:"Fosamax® 70 mg · Tevanate® 70 mg · Alendronat-Actavis® 70 mg · Alendronat AL 70® · Alendronat Aurobindo 70 mg® · Alendronat Bluefish 70 mg® · Alendronat Heumann 70 mg® · Alendronat HEXAL 70 mg® · Alendronat-ratiopharm® 70 mg · Alendronat Sandoz® 70 mg · Alendronat Stada® 70 mg · Alendronat TAD® 70 mg · Alendronat Winthrop® 70 mg · Alendronsäure Aristo® 70 mg · Alendronsäure-CT 70 mg® · Binosto® 70 mg (brausetablette)",
-    dosierung:"70 mg 1× pro Woche oral (nüchtern, 30 min vor Mahlzeit, mit mind. 200 ml Leitungswasser, danach aufrecht bleiben)",
+    dosierung:"🦴 Osteoporose / manifeste Osteoporose (Fachinformation):\n70 mg einmal wöchentlich oral. Einnahme nüchtern, mindestens 30 Minuten vor der ersten Mahlzeit, dem ersten Getränk (außer Leitungswasser) oder Arzneimittel des Tages. Tablette mit einem vollen Glas Leitungswasser (mind. 200 ml) schlucken. Danach mindestens 30 Minuten aufrecht bleiben (sitzen oder stehen), nicht hinlegen.\n\n✅ In der Praxis üblich:\n70 mg 1× pro Woche, z.B. montags nüchtern. Binosto® 70 mg als Brausetablette (in Wasser auflösen) bei Schluckproblemen oder Ösophagus-Empfindlichkeit. Alternativ täglich 10 mg (seltener verwendet). Glukokortikoid-induziert: 10 mg täglich oder 70 mg wöchentlich.",
     zulassung:"Postmenopausale Osteoporose (F); Osteoporose beim Mann (M); Glukokortikoid-induzierte Osteoporose",
     anmerkung:"Häufigstes Bisphosphonat in Deutschland. Binosto® als Brausetablette bei Schluckproblemen.",
     nw:[
@@ -6966,7 +6966,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
     indikation:["Osteoporose","manifeste Osteoporose"],
     wirkstoff:"Risedronsäure",
     handelsnamen:"Actonel® 35 mg (wöchentlich) · Actonel® 75 mg (2 Tage/Monat) · Actonel Combi® (mit Kalzium+Vit.D) · Actonel Combi D® · Risedronat AL® · Risedronat Aristo® · Risedronat Aurobindo® · Risedronat Bluefish® · Risedronat Heumann® · Risedronat HEXAL® · Risedronat-ratiopharm® · Risedronat Sandoz® · Risedronat Stada® · Risedronat Winthrop® · Risedronsäure Actavis® · Risedronsäure-CT®",
-    dosierung:"35 mg 1× pro Woche oral (alternativ 75 mg an 2 aufeinanderfolgenden Tagen/Monat)",
+    dosierung:"🦴 Osteoporose / manifeste Osteoporose (Fachinformation):\n35 mg einmal wöchentlich oral. Einnahme nüchtern, mindestens 30 Minuten vor der ersten Mahlzeit des Tages, mit einem Glas klarem Wasser (kein Mineralwasser), aufrecht sitzen oder stehen (mind. 30 min). Alternativ: 75 mg an 2 aufeinanderfolgenden Tagen pro Monat. Für Glukokortikoid-Osteoporose: 5 mg täglich.\n\n✅ In der Praxis üblich:\n35 mg 1× wöchentlich – bevorzugt bei Patienten mit GI-Empfindlichkeit gegenüber Alendronat. Actonel Combi D® enthält zusätzlich Kalzium + Vitamin D als Beutel an den anderen 6 Wochentagen.",
     zulassung:"Postmenopausale Osteoporose (F); Glukokortikoid-induzierte Osteoporose; Osteoporose beim Mann",
     anmerkung:"Etwas besser ösophagusverträglich als Alendronsäure. Actonel Combi® enthält Kalzium + Vitamin D in Beutelform.",
     nw:[
@@ -6985,7 +6985,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
     indikation:["Osteoporose"],
     wirkstoff:"Ibandronsäure (oral, monatlich)",
     handelsnamen:"Bonviva® 150 mg Tablette · Bondronat® 50 mg (täglich, onkologisch) · Ibandronsäure Actavis® 150 mg · Ibandronsäure AL 150 mg® · Ibandronsäure Aurobindo 150 mg® · Ibandronsäure Bluefish 150 mg® · Ibandronsäure Heumann 150 mg® · Ibandronsäure HEXAL 150 mg® · Ibandronsäure-ratiopharm® 150 mg · Ibandronsäure Sandoz® 150 mg · Ibandronsäure Stada® 150 mg · Ibandronsäure Winthrop® 150 mg",
-    dosierung:"150 mg 1× pro Monat oral (nüchtern, 60 min vor Mahlzeit)",
+    dosierung:"🦴 Osteoporose (Fachinformation):\n150 mg einmal monatlich oral. Einnahme nüchtern, mindestens 60 Minuten vor der ersten Mahlzeit, dem ersten Getränk (außer Leitungswasser) oder Arzneimittel des Tages. Mit einem Glas klarem Leitungswasser (mind. 180 ml), aufrecht bleiben (sitzen/stehen, nicht hinlegen) für mindestens 60 Minuten nach Einnahme.\n\n✅ In der Praxis üblich:\n150 mg einmal monatlich, z.B. immer am 1. des Monats. Gute Option bei wöchentlicher Einnahme-Compliance-Problemen. Keine manifeste Osteoporose-Zulassung (nur postmenopausale OP).\n\n⚠ Bondronat® 50 mg täglich oral: ausschließlich onkologische Zulassung (Prävention skelettbezogener Komplikationen bei Knochenmetastasen, Mammakarzinom) – NICHT für Osteoporose.",
     zulassung:"Postmenopausale Osteoporose",
     anmerkung:"Monatliche Einnahme verbessert Adhärenz. Bondronat® 50 mg täglich ist onkologisch zugelassen (nicht für Osteoporose).",
     nw:[
@@ -7034,7 +7034,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
     indikation:["Osteoporose","manifeste Osteoporose","Tumortherapie"],
     wirkstoff:"Zoledronsäure",
     handelsnamen:"Aclasta® 5 mg/100 ml Infusionslösung · Zoledronsäure Accord® 5 mg · Zoledronsäure Actavis® 5 mg · Zoledronsäure AL 5 mg® · Zoledronsäure Aurobindo® 5 mg · Zoledronsäure Bluefish® · Zoledronsäure Fresenius Kabi® 5 mg · Zoledronsäure Heumann® 5 mg · Zoledronsäure HEXAL® 5 mg · Zoledronsäure Kabi® · Zoledronsäure-ratiopharm® 5 mg · Zoledronsäure Sandoz® 5 mg · Zoledronsäure Stada® 5 mg · Zoledronsäure Sun® · Zometa® 4 mg (onkologisch, andere Konzentration)",
-    dosierung:"5 mg IV als Kurzinfusion 1× jährlich (mind. 15 min, ausreichend hydriert)",
+    dosierung:"🦴 Osteoporose / manifeste Osteoporose (Aclasta® – Fachinformation):\n5 mg als einmalige IV-Infusion über mindestens 15 Minuten, 1× jährlich. Patient muss ausreichend hydriert sein (Trinken vor der Infusion empfohlen). Kalzium und Vitamin D vor/nach Gabe sicherstellen. Kontraindiziert bei GFR < 35 ml/min.\n\n💉 Tumortherapie / Knochenmetastasen (Zometa® – Fachinformation):\n4 mg als IV-Infusion über mindestens 15 Minuten, alle 3–4 Wochen. Bei GFR 30–60 ml/min Dosisreduktion erforderlich (3,0–3,5 mg). Kontraindiziert bei GFR < 30 ml/min.\n\n✅ In der Praxis üblich:\nOsteoporose: 5 mg i.v. 1× jährlich (Aclasta®). Tumortherapie: 4 mg i.v. alle 4 Wochen (Zometa®), im Verlauf Intervall auf alle 12 Wochen verlängerbar (nach Leitlinie bei stabiler Situation). Cave: Unterschiedliche Konzentration und Indikation – Aclasta® ≠ Zometa®!",
     zulassung:"Postmenopausale Osteoporose (F); Osteoporose beim Mann (M); Glukokortikoid-induzierte Osteoporose; Morbus Paget (einmalig 5 mg)",
     anmerkung:"Beste Adhärenz durch jährliche Einmalgabe. Akutphasenreaktion v.a. nach Erstgabe (ca. 30%). Kontraindikation: GFR < 35 ml/min.",
     nw:[
@@ -7054,7 +7054,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
     indikation:["Osteoporose"],
     wirkstoff:"Ibandronsäure (intravenös, quartalsweise)",
     handelsnamen:"Bonviva® 3 mg/3 ml Injektionslösung · Ibandronsäure Actavis® 3 mg · Ibandronsäure AL 3 mg® · Ibandronsäure Aurobindo® 3 mg · Ibandronsäure HEXAL® 3 mg · Ibandronsäure-ratiopharm® 3 mg · Ibandronsäure Sandoz® 3 mg · Ibandronsäure Stada® 3 mg · Bondronat® 2 mg / 6 mg (onkologisch)",
-    dosierung:"3 mg IV Bolusinjektion alle 3 Monate (15–30 sec, keine Infusion nötig)",
+    dosierung:"🦴 Osteoporose (Bonviva® i.v. – Fachinformation):\n3 mg als IV-Bolusinjektion über 15–30 Sekunden alle 3 Monate. Kein Infusionsgerät erforderlich. Keine Einschränkung hinsichtlich Nahrungsaufnahme. GFR-Grenze: nicht empfohlen bei GFR < 30 ml/min.\n\n💉 Tumortherapie / Knochenmetastasen (Bondronat® – Fachinformation):\n6 mg als IV-Infusion über 1 Stunde, alle 3–4 Wochen. Bei GFR 30–50 ml/min: 4 mg über 1 Stunde. Bei GFR < 30 ml/min: 2 mg über 1 Stunde. Nur für Knochenmetastasen bei Mammakarzinom zugelassen.\n\n✅ In der Praxis üblich:\nOsteoporose: 3 mg i.v. alle 3 Monate (Quartalsspritze) – praxistauglich da kurze Injektionszeit. Kein Akutphasensyndrom. Tumortherapie: 6 mg i.v. alle 3–4 Wochen (Bondronat®).",
     zulassung:"Postmenopausale Osteoporose",
     anmerkung:"Quartalsgabe; Injektion als schneller Bolus möglich (kein Infusionsgerät erforderlich). Kein Akutphasensyndrom wie bei Zoledronsäure.",
     nw:[
@@ -7071,7 +7071,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
     indikation:["Tumortherapie"],
     wirkstoff:"Pamidronsäure (intravenös)",
     handelsnamen:"Aredia® 15 mg / 30 mg / 60 mg / 90 mg · Pamidronat Medac® · Pamidronat Gry® · Pamidronat Hexal® – überwiegend onkologisch",
-    dosierung:"Osteoporose: 30 mg IV alle 3 Monate (off-label bei oraler Bisphosphonat-Unverträglichkeit)",
+    dosierung:"💉 Tumortherapie / Knochenmetastasen (Fachinformation):\nHyperkalzämie: 15–90 mg IV als Einzelinfusion (Dosis nach Kalziumspiegel). Knochenmetastasen (Mamma-Ca, Myelom): 90 mg IV alle 4 Wochen als Infusion über mind. 2 Stunden. Morbus Paget: 30 mg IV wöchentlich × 3 (Infusion 4 Stunden).\n\n🔄 Off-label Osteoporose:\n30 mg IV alle 3 Monate – wird eingesetzt bei oraler Bisphosphonat-Unverträglichkeit und wenn Zoledronsäure kontraindiziert (z.B. GFR 30–35 ml/min). Keine DE-Zulassung für diese Indikation.\n\n✅ In der Praxis üblich:\nTumortherapie: 90 mg alle 4 Wochen i.v. (Aredia®/Pamidronat Medac®). Infusion über 2–4 Stunden (langsamer als Zoledronsäure). Cave: stärkere Akutphasenreaktion und Nephrotoxizität als neuere Bisphosphonate.",
     zulassung:"In DE keine Zulassung für Osteoporose; zugelassen für Morbus Paget, tumor-induzierte Hyperkalzämie, Knochenmetastasen, Osteogenesis imperfecta",
     anmerkung:"Wird off-label bei Patienten mit GI-Unverträglichkeit auf orale Bisphosphonate und fehlender Zoledronsäure-Indikation eingesetzt.",
     nw:[
@@ -7123,7 +7123,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
       "Xbonzy® 120 mg/1,7 ml (Dr. Reddy's/Alvotech – EU-Zulassung Nov. 2025, onkologisch)",
       "Degevma® 120 mg/1,7 ml (Teva – EU-Zulassung Nov. 2025, onkologisch)",
     ].join(" · "),
-    dosierung:"60 mg subkutan alle 6 Monate (Injektionsabstand darf NICHT überschritten werden – Rebound-Gefahr!)",
+    dosierung:"🦴 Osteoporose / manifeste Osteoporose (Prolia® – Fachinformation):\n60 mg subkutan als Einzelinjektion alle 6 Monate. Injektionsort: Oberschenkel, Bauch oder Oberarm (hinten). Gleichzeitig Kalzium ≥ 1000 mg/Tag und Vitamin D ≥ 400 IE/Tag supplementieren.\n⚠ INJEKTIONSINTERVALL DARF NICHT ÜBERSCHRITTEN WERDEN – Reboundgefahr mit multiplen Wirbelkörperfrakturen bei Verzögerung > 7 Monate!\n\n💉 Tumortherapie / Knochenmetastasen (Xgeva® – Fachinformation):\n120 mg subkutan alle 4 Wochen. In den ersten 2 Wochen: zusätzliche Gaben am Tag 8 und 15 der ersten Therapiewoche (sog. Loading Dose bei Riesenzelltumor). Keine Dosisanpassung bei Niereninsuffizienz erforderlich (Vorteil gegenüber Bisphosphonaten).\n\n✅ In der Praxis üblich:\nOsteoporose: Prolia® 60 mg s.c. alle 6 Monate (z.B. Januar + Juli). Konsequente Termintreue essenziell, ggf. Recall-System einrichten.\nTumortherapie: Xgeva® 120 mg s.c. alle 4 Wochen – Prolia® und Xgeva® sind NICHT austauschbar (unterschiedliche Indikation, Dosis und Zulassung).\n\n🔄 Absetzen: Immer mit Anschlusstherapie (Bisphosphonat, z.B. Zoledronat oder Alendronat) – sonst Reboundfrakturen!",
     zulassung:"Postmenopausale Osteoporose (F); Osteoporose beim Mann (M); Knochenschwund bei antihormoneller Tumortherapie; Glukokortikoid-induzierte Osteoporose",
     anmerkung:"⚠ WICHTIG: Absetzen ohne Anschlusspräparat (Bisphosphonat) führt zu schwerem Rebound mit multiplen Wirbelkörperfrakturen! Strenge Adhärenz und Übergangstherapie zwingend.",
     nw:[
