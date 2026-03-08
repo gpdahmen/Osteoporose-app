@@ -7494,7 +7494,7 @@ function App(){
 
         {/* ── Letterhead display (screen + print, editing in Arzt-Zugang) ── */}
         <div className="lh-wrap">
-          <div className="lh-display">
+          <div className="lh-display" style={{display:"flex",alignItems:"center",gap:12}}>
             <div className="lh-logo">⚕</div>
             <div className="lh-text">
               <div className="lh-name">{lh.name}</div>
@@ -7510,6 +7510,13 @@ function App(){
             </div>
 
           </div>
+          <button
+            onClick={()=>{setArztStartTab("auswertung");setAdminOpen(true);}}
+            style={{marginLeft:"auto",padding:"8px 16px",background:"#2c1f0e",color:"#e8d8b0",
+              border:"none",borderRadius:6,fontSize:13,fontWeight:700,cursor:"pointer",
+              display:"flex",alignItems:"center",gap:7,whiteSpace:"nowrap",flexShrink:0}}>
+            🩺 Arzt-Zugang
+          </button>
         </div>
 
         {/* ── App Header ── */}
