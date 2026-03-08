@@ -6463,6 +6463,22 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                         <div style={{flex:1}}>
                           <span style={{fontWeight:700,fontSize:13,color:"#3a2010"}}>{med.wirkstoff}</span>
                           <span style={{fontSize:11.5,color:"#7a6a5a",marginLeft:8}}>{med.handelsnamen.split(",")[0]}</span>
+                          <div style={{marginTop:3,display:"flex",gap:4,flexWrap:"wrap"}}>
+                            {(med.indikation||[]).map(ind=>{
+                              const cfg={
+                                "Osteoporose":          {bg:"#dbeafe",color:"#1e40af",border:"#93c5fd"},
+                                "manifeste Osteoporose":{bg:"#ffedd5",color:"#c2410c",border:"#fdba74"},
+                                "Tumortherapie":        {bg:"#fce7f3",color:"#9d174d",border:"#f9a8d4"},
+                              }[ind]||{bg:"#f3f4f6",color:"#374151",border:"#d1d5db"};
+                              return(
+                                <span key={ind} style={{fontSize:10,fontWeight:700,padding:"1px 6px",
+                                  borderRadius:9,background:cfg.bg,color:cfg.color,
+                                  border:`1px solid ${cfg.border}`,whiteSpace:"nowrap"}}>
+                                  {ind}
+                                </span>
+                              );
+                            })}
+                          </div>
                         </div>
                         <span style={{fontSize:12,color:"#9b7a5a"}}>{expanded?"▲":"▼"}</span>
                       </div>
@@ -6497,6 +6513,37 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                               }
                             </div>
                           ))}
+                          {/* Indikation */}
+                          <div style={{marginBottom:10}}>
+                            <label style={{fontSize:11.5,fontWeight:700,color:"#6b5a4a",display:"block",marginBottom:5}}>Indikation</label>
+                            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                              {["Osteoporose","manifeste Osteoporose","Tumortherapie"].map(opt=>{
+                                const cfg={
+                                  "Osteoporose":          {bg:"#dbeafe",color:"#1e40af",border:"#93c5fd"},
+                                  "manifeste Osteoporose":{bg:"#ffedd5",color:"#c2410c",border:"#fdba74"},
+                                  "Tumortherapie":        {bg:"#fce7f3",color:"#9d174d",border:"#f9a8d4"},
+                                }[opt];
+                                const checked=(med.indikation||[]).includes(opt);
+                                return(
+                                  <label key={opt} style={{display:"flex",alignItems:"center",gap:5,cursor:"pointer",
+                                    padding:"4px 10px",borderRadius:8,border:`1.5px solid ${checked?cfg.border:"#d8c8b0"}`,
+                                    background:checked?cfg.bg:"#fffcf8",userSelect:"none"}}>
+                                    <input type="checkbox" checked={checked}
+                                      onChange={()=>{
+                                        setTherapieDraft(d=>d.map((m,i)=>{
+                                          if(i!==mi)return m;
+                                          const cur=m.indikation||[];
+                                          return{...m,indikation:checked?cur.filter(x=>x!==opt):[...cur,opt]};
+                                        }));
+                                      }}
+                                      style={{accentColor:cfg.color}}/>
+                                    <span style={{fontSize:12,fontWeight:checked?700:400,
+                                      color:checked?cfg.color:"#7a6a5a"}}>{opt}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
                           {/* Nebenwirkungen */}
                           <div style={{marginTop:10}}>
                             <div style={{fontSize:12,fontWeight:700,color:"#7a5a3a",marginBottom:6,
@@ -6910,6 +6957,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
      ═══════════════════════════════════════════════════════════════════ */
   {
     id:"alendronat",gruppe:"Bisphosphonate (oral)",
+    indikation:["Osteoporose","manifeste Osteoporose"],
     wirkstoff:"Alendronsäure",
     handelsnamen:"Fosamax® 70 mg · Tevanate® 70 mg · Alendronat-Actavis® 70 mg · Alendronat AL 70® · Alendronat Aurobindo 70 mg® · Alendronat Bluefish 70 mg® · Alendronat Heumann 70 mg® · Alendronat HEXAL 70 mg® · Alendronat-ratiopharm® 70 mg · Alendronat Sandoz® 70 mg · Alendronat Stada® 70 mg · Alendronat TAD® 70 mg · Alendronat Winthrop® 70 mg · Alendronsäure Aristo® 70 mg · Alendronsäure-CT 70 mg® · Binosto® 70 mg (brausetablette)",
     dosierung:"70 mg 1× pro Woche oral (nüchtern, 30 min vor Mahlzeit, mit mind. 200 ml Leitungswasser, danach aufrecht bleiben)",
@@ -6929,6 +6977,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
   },
   {
     id:"risedronat",gruppe:"Bisphosphonate (oral)",
+    indikation:["Osteoporose","manifeste Osteoporose"],
     wirkstoff:"Risedronsäure",
     handelsnamen:"Actonel® 35 mg (wöchentlich) · Actonel® 75 mg (2 Tage/Monat) · Actonel Combi® (mit Kalzium+Vit.D) · Actonel Combi D® · Risedronat AL® · Risedronat Aristo® · Risedronat Aurobindo® · Risedronat Bluefish® · Risedronat Heumann® · Risedronat HEXAL® · Risedronat-ratiopharm® · Risedronat Sandoz® · Risedronat Stada® · Risedronat Winthrop® · Risedronsäure Actavis® · Risedronsäure-CT®",
     dosierung:"35 mg 1× pro Woche oral (alternativ 75 mg an 2 aufeinanderfolgenden Tagen/Monat)",
@@ -6947,6 +6996,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
   },
   {
     id:"ibandronat_oral",gruppe:"Bisphosphonate (oral)",
+    indikation:["Osteoporose"],
     wirkstoff:"Ibandronsäure (oral, monatlich)",
     handelsnamen:"Bonviva® 150 mg Tablette · Bondronat® 50 mg (täglich, onkologisch) · Ibandronsäure Actavis® 150 mg · Ibandronsäure AL 150 mg® · Ibandronsäure Aurobindo 150 mg® · Ibandronsäure Bluefish 150 mg® · Ibandronsäure Heumann 150 mg® · Ibandronsäure HEXAL 150 mg® · Ibandronsäure-ratiopharm® 150 mg · Ibandronsäure Sandoz® 150 mg · Ibandronsäure Stada® 150 mg · Ibandronsäure Winthrop® 150 mg",
     dosierung:"150 mg 1× pro Monat oral (nüchtern, 60 min vor Mahlzeit)",
@@ -6963,6 +7013,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
   },
   {
     id:"etidronat",gruppe:"Bisphosphonate (oral)",
+    indikation:[],
     wirkstoff:"Etidronat (historisch, kaum noch verwendet)",
     handelsnamen:"Didronel® 400 mg · Didrokit® (mit Kalzium, zyklisch) · Diphos® – alle Präparate in Deutschland nicht mehr aktiv vermarktet",
     dosierung:"400 mg/Tag für 14 Tage, dann 76 Tage Kalzium (zyklisch)",
@@ -6976,6 +7027,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
   },
   {
     id:"clodronat_oral",gruppe:"Bisphosphonate (oral)",
+    indikation:["Osteoporose"],
     wirkstoff:"Clodronsäure (oral)",
     handelsnamen:"Bonefos® 400 mg Kapseln · Clodronat Hexal® · Ostac® – primär onkologische Indikation",
     dosierung:"1600 mg/Tag oral (bei Osteoporose, off-label; zugelassen für Hyperkalzämie/Knochenmetastasen)",
@@ -6993,6 +7045,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
      ═══════════════════════════════════════════════════════════════════ */
   {
     id:"zoledronat",gruppe:"Bisphosphonate (intravenös)",
+    indikation:["Osteoporose","manifeste Osteoporose","Tumortherapie"],
     wirkstoff:"Zoledronsäure",
     handelsnamen:"Aclasta® 5 mg/100 ml Infusionslösung · Zoledronsäure Accord® 5 mg · Zoledronsäure Actavis® 5 mg · Zoledronsäure AL 5 mg® · Zoledronsäure Aurobindo® 5 mg · Zoledronsäure Bluefish® · Zoledronsäure Fresenius Kabi® 5 mg · Zoledronsäure Heumann® 5 mg · Zoledronsäure HEXAL® 5 mg · Zoledronsäure Kabi® · Zoledronsäure-ratiopharm® 5 mg · Zoledronsäure Sandoz® 5 mg · Zoledronsäure Stada® 5 mg · Zoledronsäure Sun® · Zometa® 4 mg (onkologisch, andere Konzentration)",
     dosierung:"5 mg IV als Kurzinfusion 1× jährlich (mind. 15 min, ausreichend hydriert)",
@@ -7012,6 +7065,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
   },
   {
     id:"ibandronat_iv",gruppe:"Bisphosphonate (intravenös)",
+    indikation:["Osteoporose"],
     wirkstoff:"Ibandronsäure (intravenös, quartalsweise)",
     handelsnamen:"Bonviva® 3 mg/3 ml Injektionslösung · Ibandronsäure Actavis® 3 mg · Ibandronsäure AL 3 mg® · Ibandronsäure Aurobindo® 3 mg · Ibandronsäure HEXAL® 3 mg · Ibandronsäure-ratiopharm® 3 mg · Ibandronsäure Sandoz® 3 mg · Ibandronsäure Stada® 3 mg · Bondronat® 2 mg / 6 mg (onkologisch)",
     dosierung:"3 mg IV Bolusinjektion alle 3 Monate (15–30 sec, keine Infusion nötig)",
@@ -7028,6 +7082,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
   },
   {
     id:"pamidronat_iv",gruppe:"Bisphosphonate (intravenös)",
+    indikation:["Tumortherapie"],
     wirkstoff:"Pamidronsäure (intravenös)",
     handelsnamen:"Aredia® 15 mg / 30 mg / 60 mg / 90 mg · Pamidronat Medac® · Pamidronat Gry® · Pamidronat Hexal® – überwiegend onkologisch",
     dosierung:"Osteoporose: 30 mg IV alle 3 Monate (off-label bei oraler Bisphosphonat-Unverträglichkeit)",
@@ -7047,6 +7102,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
      ═══════════════════════════════════════════════════════════════════ */
   {
     id:"denosumab",gruppe:"RANKL-Antikörper",
+    indikation:["Osteoporose","manifeste Osteoporose","Tumortherapie"],
     wirkstoff:"Denosumab",
     handelsnamen:[
       // ── Originalpräparat ──────────────────────────────────────────────────────
@@ -7101,6 +7157,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
      ═══════════════════════════════════════════════════════════════════ */
   {
     id:"teriparatid",gruppe:"Parathormon-Analoga (anabol)",
+    indikation:["manifeste Osteoporose"],
     wirkstoff:"Teriparatid (PTH 1-34)",
     handelsnamen:"Forsteo® 20 µg/80 µl Fertigpen · Terrosa® 20 µg Fertigpen · Movymia® 20 µg Fertigpen · Teriparatid Accord® · Teriparatid Gedeon Richter® · Teriparatid Pfizer® · Teriparatid SUN® · Teriparatid Stada® · Teriparatid Alvogen® · Teriparatid Aristo®",
     dosierung:"20 µg subkutan täglich (max. Gesamtdauer 24 Monate im Leben – lebenslange Beschränkung)",
@@ -7121,6 +7178,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
   },
   {
     id:"abaloparatid",gruppe:"Parathormon-Analoga (anabol)",
+    indikation:["manifeste Osteoporose"],
     wirkstoff:"Abaloparatid (PTHrP-Analogon)",
     handelsnamen:"Eladynos® 80 µg/dose Fertigpen (seit 2023 EU-Zulassung, Einführung in DE schrittweise)",
     dosierung:"80 µg subkutan täglich (max. 18 Monate Gesamtdauer)",
@@ -7138,6 +7196,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
   },
   {
     id:"pth84",gruppe:"Parathormon-Analoga (anabol)",
+    indikation:[],
     wirkstoff:"Parathormon 1-84 (intaktes PTH)",
     handelsnamen:"Preotact® 100 µg Fertigpen – in DE seit 2012 nicht mehr vermarktet (Marktrücknahme aus kommerziellen Gründen)",
     dosierung:"100 µg subkutan täglich (max. 24 Monate)",
@@ -7156,6 +7215,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
      ═══════════════════════════════════════════════════════════════════ */
   {
     id:"romosozumab",gruppe:"Sklerostin-Antikörper (anabol + antiresorptiv)",
+    indikation:["manifeste Osteoporose"],
     wirkstoff:"Romosozumab",
     handelsnamen:"Evenity® 105 mg/1,17 ml Fertigspritze (2 Spritzen à 105 mg = 210 mg pro Monat)",
     dosierung:"210 mg subkutan 1× pro Monat (2 getrennte Injektionen à 105 mg) – maximal 12 Monate Gesamttherapie, danach Antiresorptivum",
@@ -7178,6 +7238,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
      ═══════════════════════════════════════════════════════════════════ */
   {
     id:"raloxifen",gruppe:"SERM (Selektive Östrogen-Rezeptor-Modulatoren)",
+    indikation:["Osteoporose"],
     wirkstoff:"Raloxifen",
     handelsnamen:"Evista® 60 mg Filmtablette · Optruma® 60 mg Filmtablette · Raloxifen AL 60 mg® · Raloxifen Aristo® 60 mg · Raloxifen Aurobindo® 60 mg · Raloxifen Heumann 60 mg® · Raloxifen HEXAL® 60 mg · Raloxifen-ratiopharm® 60 mg · Raloxifen Sandoz® 60 mg · Raloxifen Stada® 60 mg",
     dosierung:"60 mg täglich oral (mit oder ohne Mahlzeit, kein nüchternes Einnehmen erforderlich)",
@@ -7195,6 +7256,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
   },
   {
     id:"bazedoxifen",gruppe:"SERM (Selektive Östrogen-Rezeptor-Modulatoren)",
+    indikation:["Osteoporose"],
     wirkstoff:"Bazedoxifen",
     handelsnamen:"Conbriza® 20 mg Filmtablette · Duavive® 20 mg / 0,625 mg (Bazedoxifen + konjugierte Östrogene – für Wechseljahresbeschwerden + Osteoporoseschutz)",
     dosierung:"20 mg täglich oral",
@@ -7214,6 +7276,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
      ═══════════════════════════════════════════════════════════════════ */
   {
     id:"kalzium_vitd",gruppe:"Basistherapie (Kalzium + Vitamin D)",
+    indikation:["Osteoporose","manifeste Osteoporose"],
     wirkstoff:"Kalzium + Vitamin D3 (Kombinationspräparate)",
     handelsnamen:"Calcimagon-D3® · Calcivit D Forte® · Calcivit D3® · Calcicare D3® · Calcium D3 AL® · Calcium D3-ratiopharm® · Calcium D3 Stada® · Calcium-D3 HEXAL® · Calcium Sandoz D Osteo® · Calos D3® · Caltrate® · Ideos® · Kalzium D3-Sandoz® · Macrokal D3® · Ossoforte D3® · Osteocare® · Osteoplus D3® · Os-Cal® · Vigantoletten® (nur Vit.D) · Dekristol® (nur Vit.D, hochdosiert)",
     dosierung:"1000–1200 mg Kalzium/Tag + 800–2000 IE Vitamin D3/Tag (individuelle Anpassung nach Spiegel)",
@@ -7232,6 +7295,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
      ═══════════════════════════════════════════════════════════════════ */
   {
     id:"hrt",gruppe:"Hormontherapie (HRT / Östrogen)",
+    indikation:["Osteoporose"],
     wirkstoff:"Östrogen-Gestagen-Kombinationen / Östrogene (HRT)",
     handelsnamen:"Klimonorm® · Kliogest® · Trisequens® · Femoston® · Femoston conti® · Angeliq® · Activelle® · Climen® · Cycloprogynova® · Fem7® (Pflaster) · Estradot® (Pflaster) · Climara® (Pflaster) · Evorel® (Pflaster) · Dermestril® (Pflaster) · Estreva® (Gel) · Gynokadin® (Gel) · Sandrena® (Gel) · Vagifem® (lokal) · Tibolon: Liviella® · Xyvion®",
     dosierung:"Individuell; niedrigste wirksame Dosis. Systemisch (oral, transdermal) bei ausgeprägten Wechseljahresbeschwerden + Osteoporose.",
@@ -7252,6 +7316,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
      ═══════════════════════════════════════════════════════════════════ */
   {
     id:"strontium",gruppe:"Historisch (nicht mehr erhältlich in DE)",
+    indikation:[],
     wirkstoff:"Strontiumranelat",
     handelsnamen:"Protelos® 2 g Granulat · Osseor® 2 g Granulat (beide seit Oktober 2017 in DE vom Markt genommen)",
     dosierung:"2 g täglich oral (abends, mind. 2 h nach Mahlzeit, in Wasser aufgelöst)",
@@ -7269,6 +7334,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
   },
   {
     id:"kalzitonin",gruppe:"Historisch (Zulassung für Osteoporose entzogen)",
+    indikation:[],
     wirkstoff:"Lachskalzitonin (synthetisch)",
     handelsnamen:"Miacalcic® 200 IE Nasenspray · Miacalcic® 50 / 100 IE Injektionslösung · Karil® Nasenspray – Zulassung für Osteoporose in EU seit 2013 widerrufen",
     dosierung:"200 IE/Tag intranasal (historisch); 100 IE subkutan/i.m. bei akuten Schmerzen (Wirbelkörperfraktur)",
@@ -7284,6 +7350,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
   },
   {
     id:"ipriflavon",gruppe:"Historisch (kein Standard, Zulassung DE erloschen)",
+    indikation:[],
     wirkstoff:"Ipriflavon (Isoflavon-Derivat)",
     handelsnamen:"Ossiplex® Retard – Zulassung in Deutschland erloschen",
     dosierung:"600 mg/Tag oral (200 mg 3×/Tag)",
@@ -7296,6 +7363,7 @@ const OSTEO_THERAPIE_DEFAULTS = [
   },
   {
     id:"fluorid",gruppe:"Historisch (kein Standard mehr)",
+    indikation:[],
     wirkstoff:"Natriumfluorid / Monofluorphosphat",
     handelsnamen:"Tridin® · Ossopan® · Fluoretten® · Natriumfluorid Leiras® – alle nicht mehr für Osteoporose vermarktet",
     dosierung:"20–40 mg Fluorid/Tag oral (historisch)",
