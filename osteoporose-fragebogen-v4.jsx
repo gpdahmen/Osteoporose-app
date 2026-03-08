@@ -903,6 +903,14 @@ const DIAG_DB_DEFAULTS = {
   wachstumsmangel:  {diagnose:"Hypophyseninsuffizienz / Wachstumshormonmangel",                   icd5:"E23.00G"},
   rauchen:          {diagnose:"Nikotinkonsum (aktiv, > 10 Zigaretten/Tag)",                       icd5:"F17.20G"},
   alkohol:          {diagnose:"Chronischer Alkoholmissbrauch (> 50 g/Tag)",                        icd5:"F10.10G"},
+  // Sturzrisiko & Mobilität
+  sturz:            {entries:[
+                      {diagnose:"Sturzgeschehen in den letzten 12 Monaten (einmal)",              icd5:"W19.XXXG"},
+                      {diagnose:"Rezidivierende Stürze in den letzten 12 Monaten (> 1×)",        icd5:"R29.60G"},
+                    ]},
+  immobilitaet:     {diagnose:"Eingeschränkte Mobilität / Hilfsmittelbedarf (Rollator, Gehstock, Rollstuhl)", icd5:"R26.89G"},
+  tug:              {diagnose:"Pathologischer TUG-Test (> 12 s) – erhöhtes Sturzrisiko",          icd5:"R26.89G"},
+  andere_fraktur:   {diagnose:"Niedrigtraumatische Fraktur, sonstige Lokalisation (z. B. Rippe, Klavikula, Knie)", icd5:"M80.08G"},
 };
 // Stabiler Schlüssel – nie versionieren, damit Nutzeränderungen alle Updates überleben
 const DIAG_DB_OVERRIDES_KEY = "osteo_diagdb_overrides_v1";
