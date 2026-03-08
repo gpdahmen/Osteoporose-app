@@ -3663,7 +3663,6 @@ const PAIN_VIEWS=[
 ];
 
 function PainBodySection({painMaps,setPainMaps,open,onToggle}){
-  const [activeView,setActiveView]=useState("kopf_vorn");
   const [brushColor,setBrushColor]=useState("#e63946");
   const [brushSize,setBrushSize]=useState(10);
   const [erasing,setErasing]=useState(false);
@@ -3709,12 +3708,12 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
     img.src=BODY_IMGS[vid]||"";
   };
 
-  // Redraw active view whenever painMaps or open changes
+  // Redraw all views whenever painMaps or open changes
   useEffect(()=>{
     if(!open) return;
-    const t=setTimeout(()=>redrawCanvas(activeView),30);
+    const t=setTimeout(()=>PAIN_VIEWS.forEach(v=>redrawCanvas(v.id)),50);
     return ()=>clearTimeout(t);
-  },[open,activeView,painMaps]);
+  },[open,painMaps]);
 
   // Redraw ALL views on open (so saved marks are restored)
   useEffect(()=>{
@@ -3781,8 +3780,84 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
   };
 
   const hasDrawing=Object.values(painMaps).some(v=>v);
-  const av=PAIN_VIEWS.find(v=>v.id===activeView)||PAIN_VIEWS[0];
-  const isBody=av.w===200;
+
+  // Sidebar: shared toolbar rendered next to each canvas
+  const Sidebar=({vid})=>(
+    <div style={{
+      minWidth:170,maxWidth:200,flexShrink:0,
+      display:"flex",flexDirection:"column",gap:10,
+      paddingTop:2,
+    }}>
+      {/* Title */}
+      <div style={{fontWeight:700,fontSize:14,color:"#5a3e2a",lineHeight:1.3}}>
+        {(PAIN_VIEWS.find(v=>v.id===vid)||{}).label}
+      </div>
+      <div style={{fontSize:12,color:"#9b8a7a",lineHeight:1.5}}>
+        Mit Finger, Stift oder Maus Schmerzbereiche einmalen.
+      </div>
+
+      {/* Color picker */}
+      <div>
+        <div style={{fontSize:11,fontWeight:700,color:"#6b5a4a",marginBottom:6,
+          textTransform:"uppercase",letterSpacing:".8px"}}>Farbe &amp; Bedeutung</div>
+        {COLORS.map(({c,l})=>(
+          <button key={c} title={l}
+            onClick={()=>{setBrushColor(c);setErasing(false);}}
+            style={{
+              display:"flex",alignItems:"center",gap:8,width:"100%",
+              padding:"5px 8px",marginBottom:4,
+              borderRadius:6,border:brushColor===c&&!erasing?"2px solid #333":"1.5px solid #d8c8b0",
+              background:brushColor===c&&!erasing?"#fdf4e8":"white",
+              cursor:"pointer",textAlign:"left",fontFamily:"inherit",
+            }}>
+            <span style={{width:18,height:18,borderRadius:"50%",background:c,
+              flexShrink:0,border:"1px solid rgba(0,0,0,.15)",display:"inline-block"}}/>
+            <span style={{fontSize:12,color:"#3a2a1a",fontWeight:brushColor===c&&!erasing?700:400}}>{l}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Brush size */}
+      <div>
+        <div style={{fontSize:11,fontWeight:700,color:"#6b5a4a",marginBottom:6,
+          textTransform:"uppercase",letterSpacing:".8px"}}>Pinselgröße</div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {[[6,"S"],[12,"M"],[22,"L"],[36,"XL"]].map(([sz,lbl])=>(
+            <button key={sz} onClick={()=>setBrushSize(sz)}
+              style={{
+                padding:"4px 10px",borderRadius:5,fontFamily:"inherit",fontSize:12,
+                cursor:"pointer",fontWeight:brushSize===sz?700:400,
+                border:brushSize===sz?"2px solid #9b7a5a":"1.5px solid #c8b8a0",
+                background:brushSize===sz?"#f7efe0":"white",
+              }}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Eraser + clear */}
+      <div style={{display:"flex",flexDirection:"column",gap:5}}>
+        <button onClick={()=>setErasing(e=>!e)}
+          style={{
+            padding:"6px 10px",borderRadius:5,fontFamily:"inherit",fontSize:12,
+            cursor:"pointer",fontWeight:erasing?700:400,textAlign:"left",
+            border:erasing?"2px solid #dc2626":"1.5px solid #c8b8a0",
+            background:erasing?"#fee2e2":"white",
+          }}>
+          ✦ Radierer {erasing?"(aktiv)":""}
+        </button>
+        <button onClick={()=>clearView(vid)}
+          style={{
+            padding:"6px 10px",borderRadius:5,fontFamily:"inherit",fontSize:12,
+            cursor:"pointer",textAlign:"left",
+            border:"1.5px solid #fca5a5",background:"#fff1f2",color:"#b91c1c",
+          }}>
+          🗑 Ansicht löschen
+        </button>
+      </div>
+    </div>
+  );
 
   return(
     <div className="section-card" style={{marginBottom:12,overflow:"hidden"}}>
@@ -3801,120 +3876,49 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
       </div>
 
       {open&&(
-        <div>
-          {/* ── All views sequential, controls on the right ── */}
-          <div className="pain-no-print" style={{padding:"10px 14px 14px",borderTop:"1px solid #e8d8c0",background:"white"}}>
-            {PAIN_VIEWS.map((v,vi)=>(
-              <div key={v.id} style={{
-                display:"flex",gap:0,alignItems:"flex-start",
-                marginBottom: vi<PAIN_VIEWS.length-1 ? 18 : 0,
-                borderBottom: vi<PAIN_VIEWS.length-1 ? "1px solid #e8d8c0" : "none",
-                paddingBottom: vi<PAIN_VIEWS.length-1 ? 18 : 0,
+        <div style={{padding:"14px 16px",display:"flex",flexDirection:"column",gap:24,background:"white"}}>
+          {PAIN_VIEWS.map(v=>(
+            <div key={v.id} className="pain-no-print" style={{
+              display:"flex",gap:20,alignItems:"flex-start",
+              paddingBottom:20,
+              borderBottom:"1px solid #ede5d8",
+            }}>
+              {/* Canvas */}
+              <div style={{
+                maxWidth: v.w > v.h
+                  ? "min(65vw, "+v.w+"px)"
+                  : "min(45vw, "+v.w+"px, 340px)",
+                maxHeight:"clamp(260px,75vh,860px)",
+                aspectRatio:v.w+"/"+v.h,
+                width:"100%",
+                height:"auto",
+                border:"1px solid #d0c0a8",
+                borderRadius:10,
+                overflow:"hidden",
+                boxShadow:"0 3px 14px rgba(0,0,0,.12)",
+                flexShrink:0,
+                background:"#fffdf8",
+                position:"relative",
+                alignSelf:"flex-start",
               }}>
-
-                {/* ── Canvas ── */}
-                <div style={{
-                  flexShrink:0,
-                  width: v.w > v.h
-                    ? "min(72vw, "+v.w+"px)"
-                    : "min(42vw, "+v.w+"px, 340px)",
-                  aspectRatio: v.w+"/"+v.h,
-                  border:"1px solid #d0c0a8",
-                  borderRadius:10,
-                  overflow:"hidden",
-                  boxShadow:"0 3px 14px rgba(0,0,0,.12)",
-                  background:"#fffdf8",
-                  position:"relative",
-                }}>
-                  <canvas
-                    ref={el=>{if(el) canvasRefs.current[v.id]=el;}}
-                    width={v.w} height={v.h}
-                    style={{width:"100%",height:"100%",display:"block",touchAction:"none",
-                      cursor:erasing?"cell":"crosshair"}}
-                    onMouseDown={e=>startDraw(e,v.id)}
-                    onMouseMove={e=>doDraw(e,v.id)}
-                    onMouseUp={()=>endDraw(v.id)}
-                    onMouseLeave={()=>endDraw(v.id)}
-                    onTouchStart={e=>startDraw(e,v.id)}
-                    onTouchMove={e=>doDraw(e,v.id)}
-                    onTouchEnd={()=>endDraw(v.id)}
-                  />
-                </div>
-
-                {/* ── Right sidebar: title + legend + controls ── */}
-                <div style={{
-                  paddingLeft:16,
-                  minWidth:150,
-                  flex:1,
-                  display:"flex",
-                  flexDirection:"column",
-                  gap:10,
-                }}>
-                  {/* Title */}
-                  <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:14,color:"#3a2010"}}>
-                    {v.label}
-                    {painMaps[v.id]&&<span style={{marginLeft:8,fontSize:11,color:"#e63946",fontWeight:600}}>● eingezeichnet</span>}
-                  </div>
-
-                  {/* Hint */}
-                  <div style={{fontSize:11.5,color:"#9b8a7a",lineHeight:1.5}}>
-                    Mit Finger, Stift oder Maus Schmerzbereiche einmalen.
-                  </div>
-
-                  {/* Color legend + picker */}
-                  <div>
-                    <div style={{fontSize:10.5,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",color:"#7a6a58",marginBottom:6}}>Farbe</div>
-                    {COLORS.map(({c,l})=>(
-                      <button key={c} title={l}
-                        onClick={()=>{setBrushColor(c);setErasing(false);}}
-                        style={{
-                          display:"flex",alignItems:"center",gap:8,width:"100%",
-                          padding:"5px 8px",marginBottom:4,
-                          border:brushColor===c&&!erasing?"2px solid #5a3a10":"1px solid #e0d0b8",
-                          borderRadius:7,background:brushColor===c&&!erasing?"#fdf0e0":"white",
-                          cursor:"pointer",fontFamily:"inherit",textAlign:"left",
-                        }}>
-                        <span style={{width:14,height:14,borderRadius:"50%",background:c,
-                          flexShrink:0,border:"1px solid rgba(0,0,0,.15)",display:"inline-block"}}/>
-                        <span style={{fontSize:12,fontWeight:brushColor===c&&!erasing?700:400,color:"#4a3020"}}>{l}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Brush size */}
-                  <div>
-                    <div style={{fontSize:10.5,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",color:"#7a6a58",marginBottom:6}}>Pinselgröße</div>
-                    <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                      {[[6,"S"],[12,"M"],[22,"L"],[36,"XL"]].map(([sz,lbl])=>(
-                        <button key={sz} onClick={()=>setBrushSize(sz)}
-                          style={{padding:"4px 10px",borderRadius:5,fontFamily:"inherit",fontSize:12,cursor:"pointer",
-                            border:brushSize===sz?"2px solid #9b7a5a":"1px solid #c8b8a0",
-                            background:brushSize===sz?"#f7efe0":"white",fontWeight:brushSize===sz?700:400}}>
-                          {lbl}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Eraser + delete */}
-                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    <button onClick={()=>setErasing(e=>!e)}
-                      style={{padding:"6px 10px",borderRadius:6,fontFamily:"inherit",fontSize:12,cursor:"pointer",
-                        border:erasing?"2px solid #dc2626":"1px solid #c8b8a0",
-                        background:erasing?"#fee2e2":"white",fontWeight:erasing?700:400,textAlign:"left"}}>
-                      ✦ Radierer {erasing?"(aktiv)":""}
-                    </button>
-                    <button onClick={()=>clearView(v.id)}
-                      style={{padding:"6px 10px",borderRadius:6,fontFamily:"inherit",fontSize:12,cursor:"pointer",
-                        border:"1px solid #fca5a5",background:"#fff1f2",color:"#b91c1c",textAlign:"left"}}>
-                      🗑 Diese Ansicht löschen
-                    </button>
-                  </div>
-                </div>
-
+                <canvas
+                  ref={el=>{if(el) canvasRefs.current[v.id]=el;}}
+                  width={v.w} height={v.h}
+                  style={{width:"100%",height:"100%",display:"block",touchAction:"none",
+                    cursor:erasing?"cell":"crosshair"}}
+                  onMouseDown={e=>startDraw(e,v.id)}
+                  onMouseMove={e=>doDraw(e,v.id)}
+                  onMouseUp={()=>endDraw(v.id)}
+                  onMouseLeave={()=>endDraw(v.id)}
+                  onTouchStart={e=>startDraw(e,v.id)}
+                  onTouchMove={e=>doDraw(e,v.id)}
+                  onTouchEnd={()=>endDraw(v.id)}
+                />
               </div>
-            ))}
-          </div>
+              {/* Sidebar */}
+              <Sidebar vid={v.id}/>
+            </div>
+          ))}
 
           {/* Print grid */}
           <div className="pain-print-grid">
@@ -3946,7 +3950,6 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
             ))}
           </div>
         </div>
-      )}
       )}
     </div>
   );
