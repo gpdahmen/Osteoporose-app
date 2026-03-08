@@ -6076,7 +6076,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                 // Group by section
                 const bySection={};
                 for(const q of allQs){
-                  if(!q.faktor&&!q.fmap)continue; // skip non-scoring qs
+                  if(!q.faktor&&!q.fmap&&!RISIKOINDIKATOR_IDS.has(q.id))continue; // skip pure info-qs
                   const key=q.sectionTitle;
                   if(!bySection[key])bySection[key]={icon:q.sectionIcon,title:q.sectionTitle,onlyFor:q.onlyFor,qs:[]};
                   bySection[key].qs.push(q);
@@ -6196,8 +6196,15 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                           ×{f} {l}
                         </div>
                       ))}
+                      <div style={{padding:"3px 10px",background:"#fef3c7",borderRadius:5,
+                        color:"#92400e",fontWeight:700,border:"1px solid #f59e0b30"}}>
+                        🔔 Risikoindikator
+                      </div>
                       <div style={{padding:"3px 10px",background:"#f0f0f0",borderRadius:5,
                         color:"#5a5a5a",fontWeight:600}}>⬤ Aktiv beim Patienten</div>
+                    </div>
+                    <div style={{fontSize:10.5,color:"#9a8a7a",marginBottom:10,lineHeight:1.5}}>
+                      <sup style={{color:"#b45309"}}>*</sup> Basisdiagnostik (DXA + Labor) auch vor dem 50. Lebensjahr erwägen
                     </div>
 
                     {/* ── Vollständige Risikoliste nach Abschnitt ── */}
@@ -6230,8 +6237,11 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                           </thead>
                           <tbody>
                             {sec.qs.map((q,qi)=>{
-                              const isActive=activeFactorIds.has(q.id);
-                              const isTop2=top2Ids.has(q.id);
+                              const isIndicator=RISIKOINDIKATOR_IDS.has(q.id);
+                              const isActive=isIndicator
+                                ?(risk?.indicators||[]).some(i=>i.id===q.id)
+                                :activeFactorIds.has(q.id);
+                              const isTop2=!isIndicator&&top2Ids.has(q.id);
                               const activeFactor=risk?.factors.find(f=>f.id===q.id);
                               const displayFactor=activeFactor?.faktor||q.faktor||
                                 (q.fmap?Math.max(...Object.values(q.fmap)):null);
@@ -6246,12 +6256,21 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                 :"white";
                               return(
                                 <tr key={q.id} style={{
-                                  background:rowBg,
+                                  background:isIndicator&&isActive?"#fffbeb":rowBg,
                                   borderBottom:"1px solid #f0e8d8",
-                                  borderLeft:isTop2?"3px solid #c8a070":isActive?"3px solid #86efac":"3px solid transparent"}}>
+                                  borderLeft:isTop2?"3px solid #c8a070":isIndicator&&isActive?"3px solid #f59e0b":isActive?"3px solid #86efac":"3px solid transparent"}}>
                                   <td style={{padding:"7px 10px",color:"#3a2a18",lineHeight:1.4}}>
-                                    <div style={{fontWeight:isActive?600:400}}>{shortLabel}</div>
-                                    {q.fmap&&<div style={{fontSize:10,color:"#9a8a6a",marginTop:2}}>
+                                    <div style={{fontWeight:isActive?600:400}}>
+                                      {shortLabel}
+                                      {isIndicator&&INDICATOR_ASTERISK.has(q.id)&&
+                                        <sup style={{color:"#b45309",marginLeft:3,fontSize:9}}>*</sup>}
+                                    </div>
+                                    {isIndicator&&(
+                                      <div style={{fontSize:10,color:"#92400e",marginTop:2,lineHeight:1.4}}>
+                                        Risikoindikator – kein RR im DVO-Rechner, begründet Basisdiagnostik (DXA + Labor)
+                                      </div>
+                                    )}
+                                    {!isIndicator&&q.fmap&&<div style={{fontSize:10,color:"#9a8a6a",marginTop:2}}>
                                       Staffelung: {Object.entries(q.fmap).map(([k,v])=>`×${v}`).join(" / ")}
                                     </div>}
                                   </td>
@@ -6284,6 +6303,10 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                     :isTop2?<span style={{fontSize:11,fontWeight:700,
                                         padding:"2px 7px",background:"#c8a070",color:"#1a1208",borderRadius:4}}>
                                         TOP 2
+                                      </span>
+                                    :isIndicator&&isActive?<span style={{fontSize:11,fontWeight:700,
+                                        padding:"2px 7px",background:"#fef3c7",color:"#92400e",borderRadius:4}}>
+                                        ⚠ Aktiv
                                       </span>
                                     :isActive?<span style={{fontSize:11,fontWeight:700,
                                         padding:"2px 7px",background:"#d1fae5",color:"#065f46",borderRadius:4}}>
