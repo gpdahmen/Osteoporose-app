@@ -2796,9 +2796,9 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
   // Antwort-Darstellung je Fragetyp
   function renderAnswer(q){
     const v = answers[q.id];
-    if(q.t==="yn"){
-      if(v===true||v==="true")return '<span style="color:#1a5a1a;font-weight:700">Ja</span>';
-      if(v===false||v==="false")return '<span style="color:#5a1a1a">Nein</span>';
+    if(q.t==="yn"||q.t==="yn_inv"){
+      if(v==="ja"||v===true||v==="true")return '<span style="color:#1a5a1a;font-weight:700">✓ Ja</span>';
+      if(v==="nein"||v===false||v==="false")return '<span style="color:#5a1a1a">✗ Nein</span>';
       return '<span style="color:#888">–</span>';
     }
     if(q.t==="radio"||q.t==="select"){
