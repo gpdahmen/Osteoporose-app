@@ -6244,7 +6244,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                     </div>
                   </div>
                 );
-              })()}}) : (()=>{
+              })()}
+              {(()=>{
               if(activeTab!=="sek") return null;
               // ── SEK TAB (full editor) ────────────────────────────────
               // Build sym→questions lookup from SECTIONS at render time
