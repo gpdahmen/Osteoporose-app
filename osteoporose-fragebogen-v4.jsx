@@ -7307,6 +7307,8 @@ const ABSETZ_GRUENDE=[
 /* ── ViewerIframe: uses blob URL, with Android fallback ── */
 function ViewerIframe({content,onDownload}){
   const isAndroid=/Android/i.test(navigator.userAgent);
+  const isIOSv=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isMobileOS=isAndroid||isIOSv;
   const[src,setSrc]=React.useState("");
   React.useEffect(()=>{
     const blob=new Blob([content],{type:"text/html;charset=utf-8"});
@@ -7314,7 +7316,7 @@ function ViewerIframe({content,onDownload}){
     setSrc(url);
     return()=>URL.revokeObjectURL(url);
   },[content]);
-  if(isAndroid){
+  if(isMobileOS){
     // Android: iframe unreliable – show download prompt instead
     return(
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",
@@ -8036,7 +8038,7 @@ function App(){
                   {viewer.type==="html"?"📄 Patienteneingabe – Vorschau":"🖨 Befundbericht – Druckansicht"}
                 </span>
                 {/* Neuer Tab öffnen – dort ist die Print-Bar direkt eingebaut */}
-                {/Android/i.test(navigator.userAgent)?(
+                {/(Android|iPhone|iPad|iPod)/i.test(navigator.userAgent)?(
                   <a className="viewer-btn primary"
                     href={URL.createObjectURL(new Blob([viewer.content],{type:"text/html;charset=utf-8"}))}
                     download="Osteoporose-Fragebogen.html"
