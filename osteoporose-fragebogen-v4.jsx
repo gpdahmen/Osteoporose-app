@@ -475,6 +475,8 @@ const SECTIONS=[
     {id:"humerus",t:"yn",label:"Haben Sie jemals den Oberarmknochen gebrochen?",faktor:1.7,icd:"S42.2, M80.02"},
     {id:"becken",t:"yn",label:"Haben Sie jemals einen Knochen im Becken gebrochen?",faktor:1.7,icd:"S32, M80.0"},
     {id:"unterarm",t:"yn",label:"Haben Sie jemals den Unterarmknochen (Speiche) gebrochen?",faktor:1.6,icd:"S52, M80.03"},
+    {id:"andere_fraktur",t:"yn",label:"Hatten Sie einen anderen Knochenbruch durch einen leichten Sturz oder ohne besonderen Unfall?\nBeispiele: Knie, Schlüsselbein, Rippe – nicht Finger, Zehen oder Schädel.",
+      hint:"Jede niedrigtraumatische Fraktur bei postmenopausalen Frauen oder Männern ab 60 Jahren ist laut DVO 2023 ein Risikoindikator – Basisdiagnostik (DXA, Labor) ist dann empfohlen.",icd:"M84.40G"},
     {id:"eltern",t:"yn",label:"Hat Ihre Mutter oder Ihr Vater jemals einen Hüftbruch gehabt?",faktor:1.3,icd:"Z82.61"},
   ]},
   {id:"meds",icon:"💊",title:"Medikamente – Knochen & Sturzrisiko",sub:"Regelmäßig eingenommene Medikamente mit Einfluss auf Knochen oder Sturzrisiko",qs:[
@@ -904,6 +906,44 @@ const DIAG_DB_DEFAULTS = {
 };
 // Stabiler Schlüssel – nie versionieren, damit Nutzeränderungen alle Updates überleben
 const DIAG_DB_OVERRIDES_KEY = "osteo_diagdb_overrides_v1";
+
+/* ══════════════════════════════════════════════════════════════════════
+   RISIKOINDIKATOREN  –  DVO-Leitlinie 2023, Kapitel 7.2
+   Kein quantifiziertes RR im DVO-Rechner, aber Indikation zur
+   Basisdiagnostik (DXA + Labor). Fließen NICHT in cF-Berechnung ein.
+   ══════════════════════════════════════════════════════════════════════ */
+const RISIKOINDIKATOR_IDS = new Set([
+  "aromatasehemmer", // Aromatasehemmer-Therapie (Mammakarzinom)
+  "cushing",         // Cushing-Syndrom / subklinischer Hyperkortisolismus
+  "wachstumsmangel", // Wachstumshormonmangel / Hypophyseninsuffizienz
+  "hormonablation",  // Hypogonadismus – Hormonablative Therapie
+  "hypogonadismus",  // Hypogonadismus anderer Ursache
+  "lupus",           // Systemischer Lupus erythematodes (SLE)
+  "zoeliakie",       // Zöliakie
+  "crohn",           // Morbus Crohn / Colitis ulcerosa
+  "magenop",         // BII-Magenresektion / Gastrektomie
+  "bariatrie",       // Bariatrische Operation
+  "hiv",             // HIV-Infektion
+  "andere_fraktur",  // Andere niedrigtraumatische Fraktur (postmenopausal / ♂ ≥60)
+]);
+
+const INDICATOR_LABELS = {
+  aromatasehemmer: "Aromatasehemmer-Therapie (Mammakarzinom)",
+  cushing:         "Cushing-Syndrom / subklinischer Hyperkortisolismus",
+  wachstumsmangel: "Wachstumshormonmangel bei Hypophyseninsuffizienz",
+  hormonablation:  "Männl. Hypogonadismus – Hormonablative Therapie",
+  hypogonadismus:  "Männl. Hypogonadismus anderer Ursache",
+  lupus:           "Systemischer Lupus erythematodes (SLE)",
+  zoeliakie:       "Zöliakie (glutensensitive Enteropathie)",
+  crohn:           "Morbus Crohn / Colitis ulcerosa",
+  magenop:         "BII-Magenresektion oder Gastrektomie",
+  bariatrie:       "Bariatrische Operation (Sleeve / Bypass)",
+  hiv:             "HIV-Infektion",
+  andere_fraktur:  "Andere niedrigtraumatische Fraktur (postmenopausal / ♂ ≥60)",
+};
+
+// * = Basisdiagnostik auch vor Alter 50 erwägen
+const INDICATOR_ASTERISK = new Set(["lupus","crohn","bariatrie","hiv","aromatasehemmer"]);
 
 /* ─── Sekundäre Osteoporose: Diagnose-DB (sym-key → diagnose + icd5) ─── */
 const SEK_DIAG_DB_DEFAULTS = {
@@ -2022,6 +2062,23 @@ async function loadDiagDbAsync(){
   return{...DIAG_DB_DEFAULTS};
 }
 
+function getIndicators(answers,gender){
+  const res=[];
+  for(const q of visibleQs(gender)){
+    if(!RISIKOINDIKATOR_IDS.has(q.id))continue;
+    const val=answers[q.id];
+    if(val!=="ja"&&val!==true)continue;
+    const diagEntry=DIAG_DB_DEFAULTS[q.id];
+    res.push({
+      id:q.id,
+      label:INDICATOR_LABELS[q.id]||q.label.split("\n")[0],
+      icd:diagEntry?.icd5||q.icd||"",
+      asterisk:INDICATOR_ASTERISK.has(q.id),
+    });
+  }
+  return res;
+}
+
 function getFactors(answers,gender){
   const res=[];
   const bmi=calcBMI(parseFloat(answers.groesse),parseFloat(answers.gewicht));
@@ -2040,6 +2097,7 @@ function getFactors(answers,gender){
     if(f)res.push({id:"tbs",label:l,faktor:f,icd:"M85.8",grp:"other"});
   }
   for(const q of visibleQs(gender)){
+    if(RISIKOINDIKATOR_IDS.has(q.id))continue; // Risikoindikator – nicht im Rechner
     const val=answers[q.id];if(!val)continue;
     let f=null;
     if(q.t==="yn"&&val==="ja"&&q.faktor)f=q.faktor;
@@ -2093,7 +2151,8 @@ function computeRisk(answers,gender){
   else if(r5)cat="high";
   else if(r3)cat="mod";
   else if(r3===false)cat="low";
-  return{factors,top2,cF,t3,t5,t10,r3,r5,r10,genInd,cat};
+  const indicators=getIndicators(answers,gender);
+  return{factors,top2,cF,t3,t5,t10,r3,r5,r10,genInd,cat,indicators};
 }
 function catLabel(c){return{top:"Sehr hohes Risiko / Generelle Indikation",high:"Deutlich erhöhtes Risiko",mod:"Mäßig erhöhtes Risiko",low:"Kein erhöhtes Risiko erkennbar"}[c]||"—";}
 function catShort(c){return{top:"Sehr hoch",high:"Hoch",mod:"Erhöht",low:"Gering"}[c]||"—";}
@@ -3141,6 +3200,20 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
     if(f.rx&&f.rx.length>0)lines.push(`  Medikamente: ${f.rx.join(", ")}`);
     lines.push("");
   }
+  // ── Risikoindikatoren ──
+  const activeInds=risk.indicators||[];
+  if(activeInds.length){
+    lines.push("RISIKOINDIKATOREN (DVO 2023) – BASISDIAGNOSTIK EMPFOHLEN");lines.push(sub);
+    lines.push("Folgende Befunde begründen eine Indikation zur Basisdiagnostik (DXA + Labor).");
+    lines.push("Sie fließen NICHT in den DVO-Risikorechner ein.");
+    lines.push("");
+    for(const ind of activeInds){
+      const icdStr=ind.icd?` {${ind.icd}}`:"";
+      lines.push(`• ${ind.label}${icdStr}${ind.asterisk?" *":""}`);
+    }
+    if(activeInds.some(i=>i.asterisk))lines.push("  * Basisdiagnostik auch vor dem 50. Lebensjahr erwägen");
+    lines.push("");
+  }
   lines.push("RISIKOBERECHNUNG (Top 2, DVO-Algorithmus)");lines.push(sub);
   if(risk.top2.length){
     risk.top2.forEach((f,i)=>lines.push(`  ${i+1}. ${f.label} (×${f.faktor})`));
@@ -3197,6 +3270,13 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
         lines.push(icd?text+" {"+icd+"};":text+";");
       });
     }
+  }
+  // Risikoindikator-Diagnosen
+  for(const ind of activeInds){
+    const diag=db[ind.id]||DIAG_DB_DEFAULTS[ind.id]||{};
+    const diagText=diag.diagnose||ind.label;
+    const icdStr=ind.icd||"";
+    lines.push(icdStr?diagText+" {"+icdStr+"};":diagText+";");
   }
   // Menopause since
   if(isPostMeno&&answers?.menopause_seit){
@@ -3527,7 +3607,7 @@ function DiffCard({diff,currRisk}){
 
 function ResultCard({gender,answers,patient,diff}){
   const risk=computeRisk(answers,gender);
-  const{factors,top2,cF,t3,t5,t10,r3,r5,r10,genInd,cat}=risk;
+  const{factors,top2,cF,t3,t5,t10,r3,r5,r10,genInd,cat,indicators}=risk;
   // Zulassungsgerechte Therapieempfehlungen nach deutschen Fachinformationen (Stand 2024)
   // Romosozumab (Evenity®): in Deutschland nur für postmenopausale Frauen zugelassen
   // Raloxifen, Bazedoxifen: nur für Frauen zugelassen
@@ -3603,6 +3683,35 @@ function ResultCard({gender,answers,patient,diff}){
           </>
         ):(<div style={{fontSize:12,color:"#8b7a68",textAlign:"center",padding:"6px 0"}}>Keine Risikofaktoren erfasst</div>)}
       </div>
+      {/* ── Risikoindikatoren (DVO 2023) ── */}
+      {indicators&&indicators.length>0&&(
+        <div style={{background:"#fffbeb",border:"1.5px solid #f59e0b",borderRadius:8,
+          padding:"12px 14px",marginBottom:12}}>
+          <div style={{fontWeight:700,fontSize:13,color:"#92400e",marginBottom:6}}>
+            🔔 Risikoindikatoren (DVO 2023)
+          </div>
+          <div style={{fontSize:11.5,color:"#78350f",marginBottom:8,lineHeight:1.5}}>
+            Diese Befunde begründen eine Indikation zur Basisdiagnostik (DXA + Labor), fließen aber nicht in den Risikorechner ein.
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:5}}>
+            {indicators.map((ind,i)=>(
+              <div key={i} style={{display:"flex",gap:7,alignItems:"flex-start"}}>
+                <span style={{color:"#f59e0b",flexShrink:0,fontSize:13}}>⚠</span>
+                <span style={{fontSize:12,color:"#2a1a0a",flex:1}}>{ind.label}
+                  {ind.asterisk&&<sup style={{color:"#b45309",fontSize:9,marginLeft:2}}>*</sup>}
+                </span>
+                {ind.icd&&<span style={{fontSize:10,fontFamily:"monospace",color:"#6a4a9a",
+                  background:"#f3e8ff",padding:"1px 6px",borderRadius:3,whiteSpace:"nowrap",flexShrink:0}}>{ind.icd}</span>}
+              </div>
+            ))}
+          </div>
+          {indicators.some(i=>i.asterisk)&&(
+            <div style={{fontSize:10,color:"#9a6a3a",marginTop:8,fontStyle:"italic"}}>
+              * Basisdiagnostik auch vor dem Alter von 50 Jahren erwägen
+            </div>
+          )}
+        </div>
+      )}
       {factors.length>0&&(
         <>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:"var(--L)",marginBottom:8}}>Alle erfassten Risikofaktoren</div>
@@ -6039,6 +6148,37 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                       )}
                     </div>
 
+                    {/* ── Aktive Risikoindikatoren ── */}
+                    {(()=>{
+                      const activeInds=(risk?.indicators||[]);
+                      if(!activeInds.length)return null;
+                      return(
+                        <div style={{marginBottom:14,background:"#fffbeb",border:"1.5px solid #f59e0b",
+                          borderRadius:10,padding:"14px 16px"}}>
+                          <div style={{fontFamily:"'Playfair Display',serif",fontSize:13,fontWeight:700,
+                            color:"#92400e",marginBottom:8}}>
+                            🔔 Aktive Risikoindikatoren (DVO 2023) – Basisdiagnostik empfohlen
+                          </div>
+                          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+                            {activeInds.map((ind,i)=>(
+                              <div key={i} style={{padding:"5px 11px",borderRadius:6,fontSize:12,
+                                background:"#fef3c7",color:"#78350f",border:"1px solid #f59e0b",
+                                display:"flex",alignItems:"center",gap:5}}>
+                                ⚠ {ind.label}
+                                {ind.asterisk&&<sup style={{fontSize:9,color:"#b45309"}}>*</sup>}
+                                {ind.icd&&<span style={{fontSize:10,fontFamily:"monospace",
+                                  color:"#6a4a9a",background:"#f3e8ff",padding:"1px 5px",
+                                  borderRadius:3}}>{ind.icd}</span>}
+                              </div>
+                            ))}
+                          </div>
+                          <div style={{fontSize:11,color:"#78350f",lineHeight:1.5}}>
+                            Diese Befunde fließen nicht in den DVO-Risikorechner ein, begründen aber eine Indikation zur Basisdiagnostik (DXA + Labor).
+                            {activeInds.some(i=>i.asterisk)&&<span style={{fontStyle:"italic"}}> * Auch vor dem 50. Lebensjahr erwägen.</span>}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {/* ── Legende ── */}
                     <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14,fontSize:12}}>
                       {[["≥3.0","Sehr hoch","#fee2e2","#b91c1c"],["≥2.0","Hoch","#fef3c7","#d97706"],["≥1.5","Mäßig","#fff0e0","#9a4a10"],["<1.5","Gering","#f0f9ff","#1a5a8a"]].map(([f,l,bg,tc])=>(
@@ -6072,11 +6212,11 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                           borderRadius:"0 0 6px 6px",overflow:"hidden"}}>
                           <thead>
                             <tr style={{background:"#f8f4ee",color:"#5a4a38",fontSize:11,fontWeight:700}}>
-                              <th style={{padding:"6px 10px",textAlign:"left",borderBottom:"1px solid #e0d0b8",width:"38%"}}>Risikofaktor / Frage</th>
-                              <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"8%"}}>Faktor</th>
+                              <th style={{padding:"6px 10px",textAlign:"left",borderBottom:"1px solid #e0d0b8",width:"35%"}}>Risikofaktor / Frage</th>
+                              <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"10%"}}>Faktor / Typ</th>
                               <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"14%"}}>ICD-10</th>
                               <th style={{padding:"6px 8px",textAlign:"left",borderBottom:"1px solid #e0d0b8",width:"30%"}}>Diagnose (editierbar)</th>
-                              <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"10%"}}>Status</th>
+                              <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"11%"}}>Status</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -6107,14 +6247,20 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                     </div>}
                                   </td>
                                   <td style={{padding:"7px 8px",textAlign:"center"}}>
-                                    {displayFactor&&(
+                                    {RISIKOINDIKATOR_IDS.has(q.id)?(
+                                      <span style={{padding:"2px 7px",borderRadius:4,fontSize:10,
+                                        fontWeight:700,background:"#fef3c7",color:"#92400e",
+                                        border:"1px solid #f59e0b",whiteSpace:"nowrap"}}>
+                                        🔔 Indikator
+                                      </span>
+                                    ):displayFactor?(
                                       <span style={{
                                         padding:"2px 8px",borderRadius:4,fontSize:12,fontWeight:700,
                                         background:fColor(displayFactor),
                                         color:fTextColor(displayFactor)}}>
                                         ×{displayFactor}
                                       </span>
-                                    )}
+                                    ):null}
                                   </td>
                                   <td style={{padding:"7px 8px",textAlign:"center",
                                     color:"#1a3a8a",fontSize:11,fontFamily:"monospace",fontWeight:600}}>
