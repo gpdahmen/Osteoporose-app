@@ -5836,7 +5836,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
           <>
             {/* Tab bar */}
             <div style={{display:"flex",background:"#1a1208",borderBottom:"2px solid #c8a070",flexShrink:0}}>
-              {[["auswertung","📊 Auswertung"],["verlauf","👥 Patienten"],["risiko","🦴 Risikofaktoren"],["sek","🔎 Sekundäre Osteoporose"],["therapie","💊 Osteoporose-Therapie"],["briefkopf","✏ Briefkopf"]].map(([key,label])=>(
+              {[["auswertung","📊 Auswertung"],["verlauf","👥 Patienten"],["risiko","🦴 Risikofaktoren & -indikatoren"],["sek","🔎 Sekundäre Osteoporose"],["therapie","💊 Osteoporose-Therapie"],["briefkopf","✏ Briefkopf"]].map(([key,label])=>(
                 <button key={key} onClick={()=>setActiveTab(key)}
                   style={{padding:"10px 20px",border:"none",cursor:"pointer",
                     fontFamily:"'Source Sans 3',sans-serif",fontSize:13,fontWeight:700,
