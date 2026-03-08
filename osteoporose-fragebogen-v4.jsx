@@ -6141,7 +6141,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                             </tr>
                           </thead>
                           <tbody>
-                            {sec.qs.map((q)=>{
+                            {sec.qs.flatMap((q)=>{
                               const isIndicator=RISIKOINDIKATOR_IDS.has(q.id);
                               const displayFactor=q.faktor||(q.fmap?Math.max(...Object.values(q.fmap)):null);
                               const row=draft[q.id]||{};
@@ -6151,15 +6151,17 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                               return entries.map((entry,idx)=>{
                                 const icdOk=validateIcd(entry.icd5);
                                 const isFirst=idx===0;
+                                const rowBg=isIndicator?"#fffdf7":"white";
+                                const borderL=isIndicator?"3px solid #f59e0b":"3px solid transparent";
                                 return(
                                   <tr key={q.id+"-"+idx} style={{
-                                    background:isIndicator?"#fffdf7":"white",
+                                    background:rowBg,
                                     borderBottom:"1px solid #f0e8d8",
-                                    borderLeft:isIndicator?"3px solid #f59e0b":"3px solid transparent"}}>
-                                    {/* Frage-Spalte – nur in erster Zeile des Eintrags */}
-                                    {isFirst?(
-                                      <td style={{padding:"7px 10px",color:"#3a2a18",lineHeight:1.4,
-                                        verticalAlign:"top",rowSpan:entries.length}}>
+                                    borderLeft:borderL}}>
+                                    {/* Frage-Spalte */}
+                                    <td style={{padding:"7px 10px",color:"#3a2a18",lineHeight:1.4,verticalAlign:"top",
+                                      borderTop:isFirst?"none":"1px dashed #f0e0c8"}}>
+                                      {isFirst&&<>
                                         <div style={{fontWeight:500,fontSize:11.5}}>{shortLabel}
                                           {isIndicator&&INDICATOR_ASTERISK.has(q.id)&&
                                             <sup style={{color:"#b45309",marginLeft:2,fontSize:9}}>*</sup>}
@@ -6180,27 +6182,20 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                             {def.icd5_m&&<span style={{marginLeft:6}}>♂ {def.icd5_m}</span>}
                                           </div>
                                         )}
-                                      </td>
-                                    ):null}
-                                    {/* RR-Badge – nur erste Zeile */}
-                                    {isFirst?(
-                                      <td style={{padding:"6px 8px",textAlign:"center",verticalAlign:"top",
-                                        rowSpan:entries.length}}>
-                                        {isIndicator?(
-                                          <span style={{padding:"2px 6px",borderRadius:4,fontSize:10,
-                                            fontWeight:700,background:"#fef3c7",color:"#92400e",
-                                            border:"1px solid #f59e0b",whiteSpace:"nowrap"}}>
-                                            🔔
-                                          </span>
-                                        ):displayFactor?(
-                                          <span style={{padding:"2px 7px",borderRadius:4,fontSize:11,fontWeight:700,
-                                            background:fColor(displayFactor),color:fTextColor(displayFactor),
-                                            whiteSpace:"nowrap"}}>
-                                            ×{displayFactor}
-                                          </span>
-                                        ):null}
-                                      </td>
-                                    ):null}
+                                      </>}
+                                    </td>
+                                    {/* RR-Badge */}
+                                    <td style={{padding:"6px 8px",textAlign:"center",verticalAlign:"top"}}>
+                                      {isFirst&&(isIndicator?(
+                                        <span style={{padding:"2px 6px",borderRadius:4,fontSize:10,
+                                          fontWeight:700,background:"#fef3c7",color:"#92400e",
+                                          border:"1px solid #f59e0b",whiteSpace:"nowrap"}}>🔔</span>
+                                      ):displayFactor?(
+                                        <span style={{padding:"2px 7px",borderRadius:4,fontSize:11,fontWeight:700,
+                                          background:fColor(displayFactor),color:fTextColor(displayFactor),
+                                          whiteSpace:"nowrap"}}>×{displayFactor}</span>
+                                      ):null)}
+                                    </td>
                                     {/* Diagnose – editierbar */}
                                     <td style={{padding:"4px 6px",verticalAlign:"middle"}}>
                                       <input
@@ -6217,25 +6212,21 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                         value={entry.icd5||""}
                                         placeholder="z. B. M80.05G"
                                         onChange={e=>updateEntry(q.id,idx,"icd5",e.target.value.toUpperCase())}
-                                        style={{width:"100%",fontSize:11,padding:"4px 7px",
-                                          fontFamily:"monospace",
+                                        style={{width:"100%",fontSize:11,padding:"4px 7px",fontFamily:"monospace",
                                           border:`1px solid ${icdOk?"#e0d0b8":"#f87171"}`,
                                           borderRadius:4,background:icdOk?"#fafaf8":"#fff5f5",
                                           outline:"none",boxSizing:"border-box"}}/>
                                     </td>
                                     {/* Aktionen */}
                                     <td style={{padding:"4px 6px",textAlign:"center",verticalAlign:"middle",whiteSpace:"nowrap"}}>
-                                      <button
-                                        onClick={()=>addEntry(q.id)}
-                                        title="Diagnose-Zeile hinzufügen"
-                                        style={{fontSize:13,background:"none",border:"none",
-                                          cursor:"pointer",color:"#6a9a4a",padding:"2px 5px"}}>＋</button>
-                                      <button
-                                        onClick={()=>removeEntry(q.id,idx)}
+                                      <button onClick={()=>addEntry(q.id)} title="Zeile hinzufügen"
+                                        style={{fontSize:13,background:"none",border:"none",cursor:"pointer",
+                                          color:"#6a9a4a",padding:"2px 5px"}}>＋</button>
+                                      <button onClick={()=>removeEntry(q.id,idx)}
                                         disabled={entries.length===1&&!entry.diagnose&&!entry.icd5}
                                         title="Zeile löschen"
-                                        style={{fontSize:12,background:"none",border:"none",
-                                          cursor:"pointer",color:"#c05050",padding:"2px 5px",
+                                        style={{fontSize:12,background:"none",border:"none",cursor:"pointer",
+                                          color:"#c05050",padding:"2px 5px",
                                           opacity:entries.length===1&&!entry.diagnose&&!entry.icd5?0.3:1}}>✕</button>
                                     </td>
                                   </tr>
