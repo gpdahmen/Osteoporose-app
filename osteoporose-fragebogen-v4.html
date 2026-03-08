@@ -6061,7 +6061,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
 
               {/* ═══ RISIKOÜBERSICHT TAB ══════════════════════════════ */}
               {activeTab==="risiko"&&(()=>{
-                // Pure reference table – no patient context
+                // ── Unified editable reference table ──
                 const allQs=SECTIONS.flatMap(sec=>
                   (sec.qs||[]).map(q=>({...q,
                     sectionTitle:sec.title,
@@ -6069,17 +6069,13 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                     onlyFor:sec.onlyFor||null
                   }))
                 );
-
-                // Group by section
                 const bySection={};
                 for(const q of allQs){
-                  if(!q.faktor&&!q.fmap&&!RISIKOINDIKATOR_IDS.has(q.id))continue; // skip pure info-qs
+                  if(!q.faktor&&!q.fmap&&!RISIKOINDIKATOR_IDS.has(q.id))continue;
                   const key=q.sectionTitle;
                   if(!bySection[key])bySection[key]={icon:q.sectionIcon,title:q.sectionTitle,onlyFor:q.onlyFor,qs:[]};
                   bySection[key].qs.push(q);
                 }
-
-                // Color by factor strength
                 const fColor=(f)=>{
                   if(!f)return"#e8e0d8";
                   if(f>=3.0)return"#fee2e2";
@@ -6094,44 +6090,40 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                   if(f>=1.5)return"#9a4a10";
                   return"#1a5a8a";
                 };
-
                 return(
                   <div style={{padding:"6px 14px 14px"}}>
-                    <div style={{marginBottom:16,padding:"12px 16px",
+                    {/* Header */}
+                    <div style={{marginBottom:14,padding:"12px 16px",
                       background:"#1a1208",borderRadius:10,color:"#e8d8b0",lineHeight:1.6}}>
                       <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,
-                        fontWeight:700,color:"#c8a070",marginBottom:6}}>
-                        📋 DVO-Leitlinie 2023 – Vollständige Referenztabelle
+                        fontWeight:700,color:"#c8a070",marginBottom:5}}>
+                        📋 DVO-Leitlinie 2023 – Risikofaktoren & Risikoindikatoren
                       </div>
                       <div style={{fontSize:12}}>
-                        <strong style={{color:"#c8a070"}}>Risikofaktoren</strong> gehen mit einem Relativen Risiko (RR) in den DVO-Risikorechner ein.
-                        {" "}<strong style={{color:"#f59e0b"}}>🔔 Risikoindikatoren</strong> begründen die Indikation zur Basisdiagnostik (DXA + Labor), fließen aber <em>nicht</em> in die Risikokalkulation ein.
+                        <strong style={{color:"#c8a070"}}>Risikofaktoren</strong> gehen mit RR in den DVO-Risikorechner ein.{" "}
+                        <strong style={{color:"#f59e0b"}}>🔔 Risikoindikatoren</strong> begründen Basisdiagnostik (DXA + Labor), fließen aber <em>nicht</em> in die Risikokalkulation ein.{" "}
+                        Diagnosen und ICD-10-Codes sind direkt editierbar.
                       </div>
                     </div>
-
-
-
-                    {/* ── Legende ── */}
-                    <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14,fontSize:12}}>
-                      {[["≥3.0","Sehr hoch","#fee2e2","#b91c1c"],["≥2.0","Hoch","#fef3c7","#d97706"],["≥1.5","Mäßig","#fff0e0","#9a4a10"],["<1.5","Gering","#f0f9ff","#1a5a8a"]].map(([f,l,bg,tc])=>(
-                        <div key={f} style={{padding:"3px 10px",background:bg,borderRadius:5,
-                          color:tc,fontWeight:700,border:`1px solid ${tc}30`}}>
-                          ×{f} {l}
-                        </div>
+                    {/* Legende */}
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:8,fontSize:12}}>
+                      {[["≥3.0","Sehr hoch","#fee2e2","#b91c1c"],["≥2.0","Hoch","#fef3c7","#d97706"],
+                        ["≥1.5","Mäßig","#fff0e0","#9a4a10"],["<1.5","Gering","#f0f9ff","#1a5a8a"]].map(([f,l,bg,tc])=>(
+                        <div key={f} style={{padding:"2px 9px",background:bg,borderRadius:4,
+                          color:tc,fontWeight:700,border:`1px solid ${tc}30`,fontSize:11}}>×{f} {l}</div>
                       ))}
-                      <div style={{padding:"3px 10px",background:"#fef3c7",borderRadius:5,
-                        color:"#92400e",fontWeight:700,border:"1px solid #f59e0b30"}}>
+                      <div style={{padding:"2px 9px",background:"#fef3c7",borderRadius:4,
+                        color:"#92400e",fontWeight:700,border:"1px solid #f59e0b40",fontSize:11}}>
                         🔔 Risikoindikator
                       </div>
-
                     </div>
-                    <div style={{fontSize:10.5,color:"#9a8a7a",marginBottom:10,lineHeight:1.5}}>
-                      <sup style={{color:"#b45309"}}>*</sup> Basisdiagnostik (DXA + Labor) auch vor dem 50. Lebensjahr erwägen
+                    <div style={{fontSize:10.5,color:"#9a8a7a",marginBottom:12}}>
+                      <sup style={{color:"#b45309"}}>*</sup> Basisdiagnostik auch vor dem 50. Lebensjahr erwägen
                     </div>
 
-                    {/* ── Vollständige Risikoliste nach Abschnitt ── */}
+                    {/* Unified table per section */}
                     {Object.values(bySection).map(sec=>(
-                      <div key={sec.title} style={{marginBottom:14}}>
+                      <div key={sec.title} style={{marginBottom:18}}>
                         <div style={{
                           padding:"8px 12px",background:"#2c1f0e",color:"#c8a070",
                           borderRadius:"6px 6px 0 0",fontFamily:"'Playfair Display',serif",
@@ -6146,155 +6138,129 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                           )}
                         </div>
                         <table style={{width:"100%",borderCollapse:"collapse",
-                          background:"white",fontSize:12.5,border:"1px solid #e0d0b8",
+                          fontSize:12,border:"1px solid #e0d0b8",
                           borderRadius:"0 0 6px 6px",overflow:"hidden"}}>
                           <thead>
                             <tr style={{background:"#f8f4ee",color:"#5a4a38",fontSize:11,fontWeight:700}}>
-                              <th style={{padding:"6px 10px",textAlign:"left",borderBottom:"1px solid #e0d0b8",width:"35%"}}>Risikofaktor / Frage</th>
-                              <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"10%"}}>Faktor / Typ</th>
-                              <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"14%"}}>ICD-10</th>
-                              <th style={{padding:"6px 8px",textAlign:"left",borderBottom:"1px solid #e0d0b8",width:"30%"}}>Diagnose (editierbar)</th>
-                              <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"11%"}}>Kategorie</th>
+                              <th style={{padding:"6px 10px",textAlign:"left",borderBottom:"1px solid #e0d0b8",width:"28%"}}>Frage / Befund</th>
+                              <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"9%"}}>RR / Typ</th>
+                              <th style={{padding:"6px 8px",textAlign:"left",borderBottom:"1px solid #e0d0b8",width:"33%"}}>Diagnose-Klarschrift</th>
+                              <th style={{padding:"6px 8px",textAlign:"left",borderBottom:"1px solid #e0d0b8",width:"18%"}}>ICD-10-GM</th>
+                              <th style={{padding:"6px 6px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"12%"}}>Aktionen</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {sec.qs.map((q,qi)=>{
+                            {sec.qs.map((q)=>{
                               const isIndicator=RISIKOINDIKATOR_IDS.has(q.id);
-                              const displayFactor=q.faktor||
-                                (q.fmap?Math.max(...Object.values(q.fmap)):null);
-                              const dbEntry=diagDb&&diagDb[q.id];
-                              const diagnoseText=dbEntry?.entries?.[0]?.diagnose||
-                                (DIAG_DB_DEFAULTS[q.id]?.entries?.[0]?.diagnose)||"";
-                              const icdText=dbEntry?.entries?.[0]?.icd5||
-                                (DIAG_DB_DEFAULTS[q.id]?.entries?.[0]?.icd5)||"";
-                              const shortLabel=q.label.split("\n")[0].slice(0,70)+(q.label.length>70?"…":"");
-                              return(
-                                <tr key={q.id} style={{
-                                  background:"white",
-                                  borderBottom:"1px solid #f0e8d8",
-                                  borderLeft:isIndicator?"3px solid #f59e0b30":"3px solid transparent"}}>
-                                  <td style={{padding:"7px 10px",color:"#3a2a18",lineHeight:1.4}}>
-                                    <div style={{fontWeight:400}}>
-                                      {shortLabel}
-                                      {isIndicator&&INDICATOR_ASTERISK.has(q.id)&&
-                                        <sup style={{color:"#b45309",marginLeft:3,fontSize:9}}>*</sup>}
-                                    </div>
-                                    {isIndicator&&(
-                                      <div style={{fontSize:10,color:"#92400e",marginTop:2,lineHeight:1.4}}>
-                                        Risikoindikator – kein RR im DVO-Rechner, begründet Basisdiagnostik (DXA + Labor)
-                                      </div>
-                                    )}
-                                    {!isIndicator&&q.fmap&&<div style={{fontSize:10,color:"#9a8a6a",marginTop:2}}>
-                                      Staffelung: {Object.entries(q.fmap).map(([k,v])=>`×${v}`).join(" / ")}
-                                    </div>}
-                                  </td>
-                                  <td style={{padding:"7px 8px",textAlign:"center"}}>
-                                    {RISIKOINDIKATOR_IDS.has(q.id)?(
-                                      <span style={{padding:"2px 7px",borderRadius:4,fontSize:10,
-                                        fontWeight:700,background:"#fef3c7",color:"#92400e",
-                                        border:"1px solid #f59e0b",whiteSpace:"nowrap"}}>
-                                        🔔 Indikator
-                                      </span>
-                                    ):displayFactor?(
-                                      <span style={{
-                                        padding:"2px 8px",borderRadius:4,fontSize:12,fontWeight:700,
-                                        background:fColor(displayFactor),
-                                        color:fTextColor(displayFactor)}}>
-                                        ×{displayFactor}
-                                      </span>
+                              const displayFactor=q.faktor||(q.fmap?Math.max(...Object.values(q.fmap)):null);
+                              const row=draft[q.id]||{};
+                              const entries=normEntries(row);
+                              const def=DIAG_DB_DEFAULTS[q.id]||{};
+                              const shortLabel=q.label.split("\n")[0].slice(0,65)+(q.label.split("\n")[0].length>65?"…":"");
+                              return entries.map((entry,idx)=>{
+                                const icdOk=validateIcd(entry.icd5);
+                                const isFirst=idx===0;
+                                return(
+                                  <tr key={q.id+"-"+idx} style={{
+                                    background:isIndicator?"#fffdf7":"white",
+                                    borderBottom:"1px solid #f0e8d8",
+                                    borderLeft:isIndicator?"3px solid #f59e0b":"3px solid transparent"}}>
+                                    {/* Frage-Spalte – nur in erster Zeile des Eintrags */}
+                                    {isFirst?(
+                                      <td style={{padding:"7px 10px",color:"#3a2a18",lineHeight:1.4,
+                                        verticalAlign:"top",rowSpan:entries.length}}>
+                                        <div style={{fontWeight:500,fontSize:11.5}}>{shortLabel}
+                                          {isIndicator&&INDICATOR_ASTERISK.has(q.id)&&
+                                            <sup style={{color:"#b45309",marginLeft:2,fontSize:9}}>*</sup>}
+                                        </div>
+                                        {isIndicator&&(
+                                          <div style={{fontSize:10,color:"#92400e",marginTop:2,lineHeight:1.3}}>
+                                            Indikator – kein RR
+                                          </div>
+                                        )}
+                                        {!isIndicator&&q.fmap&&(
+                                          <div style={{fontSize:10,color:"#9a8a6a",marginTop:2}}>
+                                            Staffelung: {Object.entries(q.fmap).map(([k,v])=>"×"+v).join(" / ")}
+                                          </div>
+                                        )}
+                                        {(def.icd5_f_meno||def.icd5_m)&&(
+                                          <div style={{fontSize:9.5,color:"#6a5a88",marginTop:3}}>
+                                            {def.icd5_f_meno&&<span>♀ {def.icd5_f_meno}</span>}
+                                            {def.icd5_m&&<span style={{marginLeft:6}}>♂ {def.icd5_m}</span>}
+                                          </div>
+                                        )}
+                                      </td>
                                     ):null}
-                                  </td>
-                                  <td style={{padding:"7px 8px",textAlign:"center",
-                                    color:"#1a3a8a",fontSize:11,fontFamily:"monospace",fontWeight:600}}>
-                                    {q.icd||"—"}
-                                  </td>
-                                  <td style={{padding:"5px 8px"}}>
-                                    <div style={{fontSize:11,color:"#5a4a38"}}>{diagnoseText||<em style={{color:"#bbb"}}>–</em>}</div>
-                                    {icdText&&<div style={{fontSize:10,color:"#1a3a8a",fontFamily:"monospace"}}>{icdText}</div>}
-                                  </td>
-                                  <td style={{padding:"7px 8px",textAlign:"center"}}>
-                                    {isIndicator?(
-                                      <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",
-                                        background:"#fef3c7",color:"#92400e",borderRadius:4,
-                                        border:"1px solid #f59e0b"}}>Indikator</span>
-                                    ):(
-                                      <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",
-                                        background:"#e0f2fe",color:"#075985",borderRadius:4}}>Risikofaktor</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
+                                    {/* RR-Badge – nur erste Zeile */}
+                                    {isFirst?(
+                                      <td style={{padding:"6px 8px",textAlign:"center",verticalAlign:"top",
+                                        rowSpan:entries.length}}>
+                                        {isIndicator?(
+                                          <span style={{padding:"2px 6px",borderRadius:4,fontSize:10,
+                                            fontWeight:700,background:"#fef3c7",color:"#92400e",
+                                            border:"1px solid #f59e0b",whiteSpace:"nowrap"}}>
+                                            🔔
+                                          </span>
+                                        ):displayFactor?(
+                                          <span style={{padding:"2px 7px",borderRadius:4,fontSize:11,fontWeight:700,
+                                            background:fColor(displayFactor),color:fTextColor(displayFactor),
+                                            whiteSpace:"nowrap"}}>
+                                            ×{displayFactor}
+                                          </span>
+                                        ):null}
+                                      </td>
+                                    ):null}
+                                    {/* Diagnose – editierbar */}
+                                    <td style={{padding:"4px 6px",verticalAlign:"middle"}}>
+                                      <input
+                                        value={entry.diagnose||""}
+                                        placeholder="Klarschrift-Diagnose…"
+                                        onChange={e=>updateEntry(q.id,idx,"diagnose",e.target.value)}
+                                        style={{width:"100%",fontSize:11.5,padding:"4px 7px",
+                                          border:"1px solid #e0d0b8",borderRadius:4,
+                                          background:"#fafaf8",outline:"none",boxSizing:"border-box"}}/>
+                                    </td>
+                                    {/* ICD-10 – editierbar */}
+                                    <td style={{padding:"4px 6px",verticalAlign:"middle"}}>
+                                      <input
+                                        value={entry.icd5||""}
+                                        placeholder="z. B. M80.05G"
+                                        onChange={e=>updateEntry(q.id,idx,"icd5",e.target.value.toUpperCase())}
+                                        style={{width:"100%",fontSize:11,padding:"4px 7px",
+                                          fontFamily:"monospace",
+                                          border:`1px solid ${icdOk?"#e0d0b8":"#f87171"}`,
+                                          borderRadius:4,background:icdOk?"#fafaf8":"#fff5f5",
+                                          outline:"none",boxSizing:"border-box"}}/>
+                                    </td>
+                                    {/* Aktionen */}
+                                    <td style={{padding:"4px 6px",textAlign:"center",verticalAlign:"middle",whiteSpace:"nowrap"}}>
+                                      <button
+                                        onClick={()=>addEntry(q.id)}
+                                        title="Diagnose-Zeile hinzufügen"
+                                        style={{fontSize:13,background:"none",border:"none",
+                                          cursor:"pointer",color:"#6a9a4a",padding:"2px 5px"}}>＋</button>
+                                      <button
+                                        onClick={()=>removeEntry(q.id,idx)}
+                                        disabled={entries.length===1&&!entry.diagnose&&!entry.icd5}
+                                        title="Zeile löschen"
+                                        style={{fontSize:12,background:"none",border:"none",
+                                          cursor:"pointer",color:"#c05050",padding:"2px 5px",
+                                          opacity:entries.length===1&&!entry.diagnose&&!entry.icd5?0.3:1}}>✕</button>
+                                    </td>
+                                  </tr>
+                                );
+                              });
                             })}
                           </tbody>
                         </table>
                       </div>
                     ))}
-                    <div style={{fontSize:11,color:"#9a8a7a",textAlign:"center",paddingTop:8,lineHeight:1.7}}>
-                      Alle Faktoren gemäß DVO-Leitlinie 2023 · AWMF 183-001 · Version 2.1<br/>
-                      ICD-10-GM-Codes sind Richtwerte – die finale Kodierung obliegt der Ärztin / dem Arzt.
+                    <div style={{fontSize:11,color:"#9a8a7a",textAlign:"center",paddingTop:6,lineHeight:1.7}}>
+                      Alle Faktoren gemäß DVO-Leitlinie 2023 · AWMF 183-001 · ICD-10-GM-Codes sind Richtwerte
                     </div>
                   </div>
                 );
-              })()}
-
-                            {activeTab==="risiko" ? filteredIds.map(id=>{
-                const row = draft[id]||{};
-                const entries = normEntries(row);
-                const def = DIAG_DB_DEFAULTS[id]||{};
-                const label = labelMap[id]||id;
-                return(
-                  <div key={id} className="admin-card">
-                    {/* Row 1: ID + question label */}
-                    <div className="admin-card-header">
-                      <span className="admin-card-id">{id}</span>
-                      <span className="admin-card-label">{label}</span>
-                    </div>
-
-                    {/* Row 2+: one diagnosis row per entry */}
-                    <div className="admin-card-body">
-                      {/* Column labels (only shown once per card) */}
-                      <div className="admin-diag-labels">
-                        <span className="admin-diag-col-label">Klarschrift-Diagnose</span>
-                        <span className="admin-diag-col-label">ICD-10-GM (mit G)</span>
-                        <span></span>
-                      </div>
-
-                      {entries.map((entry,idx)=>{
-                        const icdOk = validateIcd(entry.icd5);
-                        return(
-                          <div key={idx} className="admin-diag-row">
-                            <input className="admin-input"
-                              value={entry.diagnose||""}
-                              placeholder="Klarschrift-Diagnose…"
-                              onChange={e=>updateEntry(id,idx,"diagnose",e.target.value)}/>
-                            <input className={"admin-icd-input"+(icdOk?"":" invalid")}
-                              value={entry.icd5||""}
-                              placeholder="z. B. M80.05G"
-                              onChange={e=>updateEntry(id,idx,"icd5",e.target.value.toUpperCase())}/>
-                            <button className="admin-del-btn"
-                              title="Zeile löschen"
-                              disabled={entries.length===1&&!entry.diagnose&&!entry.icd5}
-                              onClick={()=>removeEntry(id,idx)}>✕</button>
-                          </div>
-                        );
-                      })}
-
-                      {/* + Zeile hinzufügen */}
-                      <button className="admin-add-btn" onClick={()=>addEntry(id)}>
-                        ＋ Diagnose-Zeile hinzufügen
-                      </button>
-
-                      {/* Gender-specific hint */}
-                      {(def.icd5_f_meno||def.icd5_m)&&(
-                        <div className="admin-gender-hint">
-                          {def.icd5_f_meno&&<span>♀ postmenopausal: <strong>{row.icd5_f_meno||def.icd5_f_meno}</strong>&emsp;</span>}
-                          {def.icd5_m&&<span>♂ Mann: <strong>{row.icd5_m||def.icd5_m}</strong></span>}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              }) : (()=>{
+              })()}}) : (()=>{
               if(activeTab!=="sek") return null;
               // ── SEK TAB (full editor) ────────────────────────────────
               // Build sym→questions lookup from SECTIONS at render time
