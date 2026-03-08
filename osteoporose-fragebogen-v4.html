@@ -6518,9 +6518,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                               <div style={{background:"#f8f4ee",border:"1px solid #d8c8b0",borderRadius:5,
                                 padding:"8px 10px",fontSize:12,lineHeight:1.7,color:"#2a1a0a",
                                 whiteSpace:"pre-wrap"}}>
-                                {med.besonderheit.split(/(https?:\/\/[^\s
-]+)/g).map((part,pi)=>
-                                  /^https?:\/\//.test(part)
+                                {med.besonderheit.split(new RegExp("(https?://[^\\s\\n]+)","g")).map((part,pi)=>
+                                  new RegExp("^https?://").test(part)
                                     ?<a key={pi} href={part} target="_blank" rel="noopener noreferrer"
                                         style={{color:"#1a5a9a",textDecoration:"underline",wordBreak:"break-all"}}>
                                         🔗 {part}
