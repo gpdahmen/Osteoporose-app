@@ -7304,8 +7304,9 @@ const ABSETZ_GRUENDE=[
   {id:"sonstige",label:"Sonstiger Grund"},
 ];
 
-/* ── ViewerIframe: uses blob URL for Android compatibility ── */
-function ViewerIframe({content}){
+/* ── ViewerIframe: uses blob URL, with Android fallback ── */
+function ViewerIframe({content,onDownload}){
+  const isAndroid=/Android/i.test(navigator.userAgent);
   const[src,setSrc]=React.useState("");
   React.useEffect(()=>{
     const blob=new Blob([content],{type:"text/html;charset=utf-8"});
@@ -7313,6 +7314,33 @@ function ViewerIframe({content}){
     setSrc(url);
     return()=>URL.revokeObjectURL(url);
   },[content]);
+  if(isAndroid){
+    // Android: iframe unreliable – show download prompt instead
+    return(
+      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",
+        justifyContent:"center",padding:28,gap:18,background:"#f5f0e8"}}>
+        <div style={{fontSize:48}}>📄</div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:700,
+          color:"#2c1f0e",textAlign:"center"}}>
+          Vorschau auf Android nicht verfügbar
+        </div>
+        <div style={{fontSize:13,color:"#7a6a58",textAlign:"center",lineHeight:1.6,maxWidth:300}}>
+          Bitte laden Sie die HTML-Datei herunter und öffnen Sie sie im Browser —
+          dort können Sie sie drucken oder als PDF teilen.
+        </div>
+        <a href={src} download="Osteoporose-Fragebogen.html"
+          style={{padding:"13px 28px",background:"#2c7a2c",color:"white",borderRadius:8,
+            fontSize:14,fontWeight:700,textDecoration:"none",
+            display:"flex",alignItems:"center",gap:9,
+            boxShadow:"0 3px 12px rgba(44,122,44,.3)"}}>
+          ⬇️ HTML-Datei herunterladen
+        </a>
+        <div style={{fontSize:11.5,color:"#9a8878",textAlign:"center",maxWidth:300}}>
+          Tipp: Nach dem Öffnen im Browser → Menü → Drucken / Als PDF speichern
+        </div>
+      </div>
+    );
+  }
   if(!src)return <div style={{padding:20,color:"#888"}}>Lade Vorschau…</div>;
   return <iframe id="viewer-iframe" className="viewer-iframe" src={src} title="Druckansicht"/>;
 }
@@ -8008,18 +8036,26 @@ function App(){
                   {viewer.type==="html"?"📄 Patienteneingabe – Vorschau":"🖨 Befundbericht – Druckansicht"}
                 </span>
                 {/* Neuer Tab öffnen – dort ist die Print-Bar direkt eingebaut */}
-                <button className="viewer-btn primary" onClick={()=>{
-                  const blob=new Blob([viewer.content],{type:"text/html;charset=utf-8"});
-                  const url=URL.createObjectURL(blob);
-                  const opened=window.open(url,"_blank");
-                  // Fallback: falls Popup geblockt, direkt drucken
-                  if(!opened){
-                    const iframe=document.getElementById("viewer-iframe");
-                    if(iframe&&iframe.contentWindow)iframe.contentWindow.print();
-                    else window.print();
-                  }
-                  setTimeout(()=>URL.revokeObjectURL(url),120000);
-                }}>🖨 In neuem Tab öffnen / Drucken</button>
+                {/Android/i.test(navigator.userAgent)?(
+                  <a className="viewer-btn primary"
+                    href={URL.createObjectURL(new Blob([viewer.content],{type:"text/html;charset=utf-8"}))}
+                    download="Osteoporose-Fragebogen.html"
+                    style={{textDecoration:"none",display:"inline-flex",alignItems:"center",gap:7}}>
+                    ⬇️ HTML herunterladen
+                  </a>
+                ):(
+                  <button className="viewer-btn primary" onClick={()=>{
+                    const blob=new Blob([viewer.content],{type:"text/html;charset=utf-8"});
+                    const url=URL.createObjectURL(blob);
+                    const opened=window.open(url,"_blank");
+                    if(!opened){
+                      const iframe=document.getElementById("viewer-iframe");
+                      if(iframe&&iframe.contentWindow)iframe.contentWindow.print();
+                      else window.print();
+                    }
+                    setTimeout(()=>URL.revokeObjectURL(url),120000);
+                  }}>🖨 In neuem Tab öffnen / Drucken</button>
+                )}
               </>
             )}
             <button className="viewer-close" onClick={()=>setViewer(null)}>×</button>
