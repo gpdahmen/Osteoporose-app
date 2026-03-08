@@ -1583,7 +1583,7 @@ const SEK_SCORING_DEFAULTS = {
   hpth: {
     titel: "Grenzwerte pHPT-Diagnose (AWMF / Endocrine Society)",
     quelle: "Bilezikian JP et al. J Bone Miner Res 2022; AWMF S2k-Leitlinie",
-    url: "https://www.awmf.org",
+    url: "https://doi.org/10.1002/jbmr.4677",
     stufen: [
       {name: "Serumkalzium (Gesamt)",  beschreibung: "Normal: 2,15–2,55 mmol/l | Hyperkalzämie: >2,55 mmol/l (Wiederholung nüchtern)"},
       {name: "PTH intakt",             beschreibung: "Normal: 10–65 pg/ml | pHPT: PTH erhöht bei gleichzeitiger Hyperkalzämie"},
@@ -1614,7 +1614,7 @@ const SEK_SCORING_DEFAULTS = {
   hypogonadismus_f: {
     titel: "Hypogonadismus Frau / Amenorrhoe (ESHRE/DGGG 2023)",
     quelle: "ESHRE Guideline Amenorrhea 2023",
-    url: "https://www.eshre.eu",
+    url: "https://doi.org/10.1093/humrep/deae003",
     stufen: [
       {name: "Östradiol",     beschreibung: "Prämenopausal normal: 100–400 pmol/l | Hypogonadismus: <100 pmol/l | Postmenopause: <80 pmol/l"},
       {name: "FSH/LH",        beschreibung: "Primäre Ovarialinsuffizienz (POI): FSH >25 IU/l (2× im Abstand von 4 Wo.) | Hypothalamisch: FSH/LH niedrig-normal"},
@@ -1624,7 +1624,7 @@ const SEK_SCORING_DEFAULTS = {
   hyperthyreose: {
     titel: "TSH-basierte Klassifikation Hyperthyreose (ETA / AWMF 2023)",
     quelle: "ETA Guidelines 2023; DGIM/AWMF S2k Schilddrüse",
-    url: "https://www.awmf.org",
+    url: "https://doi.org/10.1089/thy.2016.0397",
     stufen: [
       {name: "Subklinische Hyperthyreose", beschreibung: "TSH <0,4 mIU/l bei normalem fT3 + fT4 | Grad 1: TSH 0,1–0,4 mIU/l | Grad 2: TSH <0,1 mIU/l – erhöhtes Osteoporoserisiko!"},
       {name: "Manifeste Hyperthyreose",    beschreibung: "TSH <0,1 mIU/l + fT4 >22 pmol/l oder fT3 >6,8 pmol/l"},
@@ -4646,14 +4646,17 @@ function SecondaryPanel({answers,sekProfileDb,sekUntersDb,sekQsDb,sekScoringDb,s
               return(
                 <div className="sek-scoring-box">
                   <div className="sek-scoring-title">
-                    <span>📊 {sc.titel||"Klassifikation"}</span>
+                    {sc.url
+                      ?<a href={sc.url} target="_blank" rel="noopener noreferrer"
+                          style={{color:"#3a1a6a",fontWeight:700,textDecoration:"underline",fontSize:"inherit"}}>
+                          📊 {sc.titel||"Klassifikation"}
+                        </a>
+                      :<span>📊 {sc.titel||"Klassifikation"}</span>
+                    }
                     {sc.quelle&&(
-                      sc.quelle&&(
-                        <div style={{marginTop:6,display:"flex",flexWrap:"wrap",gap:5,alignItems:"center"}}>
-                          <span style={{fontSize:10.5,color:"#6a4a9a",fontWeight:600}}>{sc.quelle}</span>
-                          {sc.url&&<LitLinks url={sc.url}/>}
-                        </div>
-                      )
+                      <div style={{marginTop:4,display:"flex",flexWrap:"wrap",gap:4,alignItems:"center"}}>
+                        <LitLinks url={sc.url} label={sc.quelle}/>
+                      </div>
                     )}
                   </div>
                   <div className="sek-scoring-grid">
@@ -5726,10 +5729,12 @@ function LitLinks({url,label}){
 
   return(
     <span style={{display:"inline-flex",flexWrap:"wrap",gap:4,margin:"2px 0",alignItems:"center"}}>
-      {/* Direkter Link */}
+      {/* Link – mit Label: Zitationstext als Link; ohne Label: monospace URL */}
       <a href={url} target="_blank" rel="noopener noreferrer"
-        style={{fontFamily:"'Courier New',monospace",fontSize:11,color:"#1a5a9a",
-          textDecoration:"underline",wordBreak:"break-all"}}>
+        style={label
+          ?{fontSize:10.5,color:"#4a2a8a",fontWeight:600,textDecoration:"underline",wordBreak:"break-word"}
+          :{fontFamily:"'Courier New',monospace",fontSize:11,color:"#1a5a9a",textDecoration:"underline",wordBreak:"break-all"}
+        }>
         {shortLabel}
       </a>
       {/* Ladeindikator */}
