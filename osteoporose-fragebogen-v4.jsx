@@ -6328,11 +6328,11 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
               }
               const inputSt={padding:"7px 10px",border:"1.5px solid #d4c4a8",borderRadius:5,
                 fontSize:12.5,fontFamily:"inherit",width:"100%",background:"#fff",outline:"none",
-                minHeight:38,boxSizing:"border-box",lineHeight:1.5};
+                boxSizing:"border-box",lineHeight:1.5};
               const labelSt={fontSize:10,fontWeight:700,color:"#8b6a3a",textTransform:"uppercase",
                 letterSpacing:".8px",marginBottom:3,display:"block"};
               const icdSt=(ok)=>({...inputSt,width:130,border:`1.5px solid ${ok?"#d4c4a8":"#dc2626"}`,
-                flexShrink:0,background:ok?"#fff":"#fef2f2",fontFamily:"monospace",fontSize:12,minHeight:52});
+                flexShrink:0,background:ok?"#fff":"#fef2f2",fontFamily:"monospace",fontSize:12,height:36,padding:"7px 9px"});
               return groupOrder.flatMap(grp=>{
                 if(!(grp in grouped))return[];
                 return[
@@ -6386,7 +6386,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                             <div>
                               <label style={labelSt}>📋 Klinischer Hinweis (Auswertungstext)</label>
                               <AutoTextarea style={{...inputSt,lineHeight:1.6}}
-                                minRows={3} maxRows={12}
+                                minRows={2} maxRows={12}
                                 value={profRow.hinweis||""}
                                 placeholder="Klinischer Hinweis für die Auswertungsansicht…"
                                 onChange={e=>setSekProfileDraft(d=>({...d,[sym]:{...d[sym]||{},hinweis:e.target.value}}))}/>
@@ -6397,7 +6397,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                               <label style={labelSt}>🏥 Diagnose & ICD-10 bei Bestätigung (Textexport)</label>
                               <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
                                 <AutoTextarea style={{...inputSt,flex:1,lineHeight:1.55}}
-                                  minRows={1} maxRows={6}
+                                  minRows={1} maxRows={5}
                                   value={diagRow.diagnose||""}
                                   placeholder="Diagnosebezeichnung für den Textexport…"
                                   onChange={e=>setSekDraft(d=>({...d,[sym]:{...d[sym],diagnose:e.target.value}}))}/>
@@ -6445,7 +6445,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                     </div>
                                     <label style={{...labelSt,marginTop:6,marginBottom:3}}>Fragetext</label>
                                     <AutoTextarea style={{...inputSt,fontSize:12,lineHeight:1.6,whiteSpace:"pre-wrap"}}
-                                      minRows={2} maxRows={8}
+                                      minRows={2} maxRows={6}
                                       value={qRow.label||""}
                                       placeholder="Fragetext…"
                                       onChange={e=>setSekQsDraft(d=>({...d,[q.id]:{...d[q.id]||{},label:e.target.value}}))}/>
@@ -6562,7 +6562,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                               return{...d,[sym]:{...(d[sym]||{}),stufen:rows}};
                                             })}/>
                                           <AutoTextarea style={{...inputSt,flex:1,fontSize:12,lineHeight:1.6}}
-                                            minRows={1} maxRows={6}
+                                            minRows={1} maxRows={5}
                                             value={st.beschreibung||""}
                                             placeholder="Kriterien, Grenzwerte, klinische Bedeutung…"
                                             onChange={e=>setSekScoringDraft(d=>{
