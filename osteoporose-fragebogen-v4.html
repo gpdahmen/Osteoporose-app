@@ -6479,12 +6479,14 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                             <div key={field} style={{marginBottom:8}}>
                               <label style={{fontSize:11.5,fontWeight:700,color:"#6b5a4a",display:"block",marginBottom:3}}>{lbl}</label>
                               {type==="textarea"
-                                ? <textarea rows={2} placeholder={ph}
+                                ? <textarea placeholder={ph}
+                                    ref={el=>{if(el){el.style.height="auto";el.style.height=(el.scrollHeight+2)+"px";}}}
                                     style={{width:"100%",boxSizing:"border-box",padding:"5px 8px",
                                       border:"1px solid #d8c8b0",borderRadius:5,fontSize:12,fontFamily:"inherit",
-                                      resize:"vertical",outline:"none"}}
+                                      resize:"vertical",outline:"none",overflow:"hidden",minHeight:36}}
                                     value={med[field]||""}
                                     onChange={e=>{const v=e.target.value;
+                                      const el=e.target;el.style.height="auto";el.style.height=(el.scrollHeight+2)+"px";
                                       setTherapieDraft(d=>d.map((m,i)=>i===mi?{...m,[field]:v}:m));}}/>
                                 : <input placeholder={ph}
                                     style={{width:"100%",boxSizing:"border-box",padding:"5px 8px",
