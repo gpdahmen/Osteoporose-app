@@ -5496,6 +5496,9 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
   const[unlocked,setUnlocked]=useState(false);
   const[search,setSearch]=useState("");
   const[activeTab,setActiveTab]=useState(initialTab||"auswertung"); // "auswertung" | "risiko" | "sek" | "therapie"
+  const[patSearch,setPatSearch]=useState("");
+  const[patSortCol,setPatSortCol]=useState("lastDate");
+  const[patSortDir,setPatSortDir]=useState("desc");
   // Secondary DB draft
   const sekAllIds=Object.keys(SEK_DIAG_DB_DEFAULTS);
   const[sekDraft,setSekDraft]=useState(()=>{
@@ -5616,7 +5619,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
         <div className="admin-head">
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
             <span className="admin-head-title">🩺 Arzt-Zugang</span>
-            <span style={{fontSize:11,color:"#c8a070",fontWeight:400,letterSpacing:".3px"}}>Auswertung · Verlauf · Einstellungen · Datenbank</span>
+            <span style={{fontSize:11,color:"#c8a070",fontWeight:400,letterSpacing:".3px"}}>Auswertung · Patienten · Einstellungen · Datenbank</span>
           </div>
           <button className="viewer-close" onClick={onClose}>×</button>
         </div>
@@ -5639,7 +5642,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
           <>
             {/* Tab bar */}
             <div style={{display:"flex",background:"#1a1208",borderBottom:"2px solid #c8a070",flexShrink:0}}>
-              {[["auswertung","📊 Auswertung"],["verlauf","📂 Verlauf"],["risiko","🦴 Risikofaktoren"],["sek","🔎 Sekundäre Osteoporose"],["therapie","💊 Osteoporose-Therapie"],["briefkopf","✏ Briefkopf"]].map(([key,label])=>(
+              {[["auswertung","📊 Auswertung"],["verlauf","👥 Patienten"],["risiko","🦴 Risikofaktoren"],["sek","🔎 Sekundäre Osteoporose"],["therapie","💊 Osteoporose-Therapie"],["briefkopf","✏ Briefkopf"]].map(([key,label])=>(
                 <button key={key} onClick={()=>setActiveTab(key)}
                   style={{padding:"10px 20px",border:"none",cursor:"pointer",
                     fontFamily:"'Source Sans 3',sans-serif",fontSize:13,fontWeight:700,
@@ -5716,42 +5719,126 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
               })()}
 
               {/* ═══ VERLAUF TAB ════════════════════════════════════════════ */}
-              {activeTab==="verlauf"&&(
-                <div style={{padding:"6px 0"}}>
-                  <div style={{marginBottom:10,padding:"8px 12px",background:"#f0f8ff",border:"1px solid #c0d8f0",borderRadius:7,fontSize:12.5,color:"#2a4a7a"}}>
-                    Gespeicherte Befundsitzungen dieses Geräts. Klick auf „Laden" stellt den Befund wieder her.
+              {activeTab==="verlauf"&&(()=>{
+                const sessList=sessions||[];
+                const byKey={};
+                for(const s of sessList){
+                  const key=s.patientId||(s.patient?.name||"")+"__"+(s.patient?.geburtsdatum||"");
+                  if(!byKey[key]){
+                    byKey[key]={key,name:s.patient?.name||"(unbekannt)",geb:s.patient?.geburtsdatum||"",
+                      gender:s.gender||"",lastDate:s.fillDate||"",lastRisiko:s.riskSnapshot?.cat||"",
+                      lastR10:s.riskSnapshot?.r10,sessions:[s]};
+                  } else {
+                    byKey[key].sessions.push(s);
+                    if((s.fillDate||"")>(byKey[key].lastDate||"")){
+                      byKey[key].lastDate=s.fillDate||"";
+                      byKey[key].lastRisiko=s.riskSnapshot?.cat||"";
+                      byKey[key].lastR10=s.riskSnapshot?.r10;
+                    }
+                  }
+                }
+                let rows=Object.values(byKey);
+                const q=(patSearch||"").toLowerCase().trim();
+                if(q) rows=rows.filter(r=>r.name.toLowerCase().includes(q)||r.geb.includes(q)||r.lastDate.includes(q));
+                const dir=patSortDir==="asc"?1:-1;
+                rows=[...rows].sort((a,b)=>{
+                  let av="",bv="";
+                  if(patSortCol==="name"){av=a.name.toLowerCase();bv=b.name.toLowerCase();}
+                  else if(patSortCol==="geb"){av=a.geb;bv=b.geb;}
+                  else if(patSortCol==="lastDate"){av=a.lastDate;bv=b.lastDate;}
+                  else if(patSortCol==="gender"){av=a.gender;bv=b.gender;}
+                  else if(patSortCol==="risiko"){av=a.lastRisiko||"";bv=b.lastRisiko||"";}
+                  return av<bv?-1*dir:av>bv?1*dir:0;
+                });
+                const SortBtn=({col,label})=>{
+                  const active=patSortCol===col;
+                  return(<span onClick={()=>{if(active)setPatSortDir(d=>d==="asc"?"desc":"asc");else{setPatSortCol(col);setPatSortDir("asc");}}}
+                    style={{cursor:"pointer",userSelect:"none",whiteSpace:"nowrap",display:"inline-flex",alignItems:"center",gap:4,
+                      color:active?"#c8a070":"#e8d8b0",fontWeight:active?700:500}}>
+                    {label}<span style={{fontSize:10,opacity:active?1:.4}}>{active?(patSortDir==="asc"?"▲":"▼"):"⇅"}</span>
+                  </span>);
+                };
+                const risikoColor=(cat)=>{
+                  if(!cat)return{bg:"#f5f0e8",col:"#9a8a78"};
+                  const c=cat.toLowerCase();
+                  if(c.includes("sehr hoch"))return{bg:"#fee2e2",col:"#b91c1c"};
+                  if(c.includes("hoch"))return{bg:"#fef3c7",col:"#d97706"};
+                  if(c.includes("erhöht")||c.includes("mäßig"))return{bg:"#fff0e0",col:"#9a4a10"};
+                  return{bg:"#f0f9ff",col:"#1a5a8a"};
+                };
+                return(
+                  <div style={{padding:"14px 0 6px"}}>
+                    <div style={{padding:"0 16px 12px",display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+                      <div style={{flex:1,minWidth:220,position:"relative"}}>
+                        <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",
+                          fontSize:15,pointerEvents:"none",color:"#9a8a78"}}>🔍</span>
+                        <input value={patSearch} onChange={e=>setPatSearch(e.target.value)}
+                          placeholder="Name, Vorname, Geburtsdatum oder Untersuchungsdatum …"
+                          style={{width:"100%",padding:"9px 10px 9px 32px",border:"1.5px solid #d8c8b0",
+                            borderRadius:7,fontSize:13,fontFamily:"inherit",background:"white",
+                            boxSizing:"border-box",outline:"none"}}/>
+                      </div>
+                      <div style={{fontSize:12,color:"#9a8a78",whiteSpace:"nowrap"}}>
+                        {rows.length}&nbsp;Patient{rows.length!==1?"en":""}
+                      </div>
+                    </div>
+                    {rows.length===0?(
+                      <div style={{padding:"28px",textAlign:"center",color:"#9b8a7a",fontSize:13}}>
+                        {sessList.length===0?"Noch keine gespeicherten Sitzungen vorhanden.":"Keine Patienten gefunden."}
+                      </div>
+                    ):(
+                      <div style={{overflowX:"auto"}}>
+                        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12.5,fontFamily:"inherit"}}>
+                          <thead>
+                            <tr style={{background:"#2c1f0e",color:"#e8d8b0"}}>
+                              <th style={{padding:"9px 14px",textAlign:"left",fontWeight:700,borderRight:"1px solid #3a2a18"}}><SortBtn col="name" label="Name"/></th>
+                              <th style={{padding:"9px 12px",textAlign:"left",fontWeight:700,borderRight:"1px solid #3a2a18"}}><SortBtn col="geb" label="Geburtsdatum"/></th>
+                              <th style={{padding:"9px 12px",textAlign:"left",fontWeight:700,borderRight:"1px solid #3a2a18"}}><SortBtn col="lastDate" label="Letztes Untersuchungsdatum"/></th>
+                              <th style={{padding:"9px 12px",textAlign:"left",fontWeight:700,borderRight:"1px solid #3a2a18"}}><SortBtn col="gender" label="Geschlecht"/></th>
+                              <th style={{padding:"9px 12px",textAlign:"left",fontWeight:700}}><SortBtn col="risiko" label="Risikokategorie"/></th>
+                              <th style={{padding:"9px 10px",width:70}}></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.map((r,i)=>{
+                              const rc=risikoColor(r.lastRisiko);
+                              const bestSess=[...r.sessions].sort((a,b)=>(b.fillDate||"").localeCompare(a.fillDate||""))[0];
+                              return(
+                                <tr key={r.key}
+                                  style={{background:i%2===0?"white":"#faf6f0",borderBottom:"1px solid #ece5d8",cursor:"pointer",transition:"background .15s"}}
+                                  onMouseEnter={e=>e.currentTarget.style.background="#f0e8d8"}
+                                  onMouseLeave={e=>e.currentTarget.style.background=i%2===0?"white":"#faf6f0"}
+                                  onClick={()=>{if(bestSess){onLoadSession(bestSess);onClose();}}}>
+                                  <td style={{padding:"10px 14px",fontWeight:700,color:"#2c1f0e",borderRight:"1px solid #ece5d8"}}>
+                                    {r.name}
+                                    {r.sessions.length>1&&<span style={{marginLeft:6,fontSize:10.5,fontWeight:600,
+                                      background:"#e8d8b0",color:"#5a3a10",padding:"1px 5px",borderRadius:4}}>
+                                      {r.sessions.length} Befunde</span>}
+                                  </td>
+                                  <td style={{padding:"10px 12px",color:"#5a4a3a",borderRight:"1px solid #ece5d8"}}>{r.geb||"—"}</td>
+                                  <td style={{padding:"10px 12px",color:"#5a4a3a",borderRight:"1px solid #ece5d8"}}>{r.lastDate||"—"}</td>
+                                  <td style={{padding:"10px 12px",borderRight:"1px solid #ece5d8"}}>{r.gender==="f"?"♀ Frau":r.gender==="m"?"♂ Mann":"—"}</td>
+                                  <td style={{padding:"10px 12px"}}>
+                                    {r.lastRisiko?<span style={{padding:"3px 9px",borderRadius:5,
+                                      background:rc.bg,color:rc.col,fontWeight:600,fontSize:12}}>
+                                      {r.lastRisiko}</span>:"—"}
+                                  </td>
+                                  <td style={{padding:"8px 10px",textAlign:"center"}} onClick={e=>e.stopPropagation()}>
+                                    <button onClick={()=>{if(bestSess){onLoadSession(bestSess);onClose();}}}
+                                      style={{padding:"5px 11px",borderRadius:5,border:"1px solid #9b7a5a",
+                                        background:"#faf4ed",color:"#5a3010",cursor:"pointer",
+                                        fontSize:12,fontFamily:"inherit",fontWeight:600}}>↩</button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
-                  {(!sessions||sessions.length===0)&&(
-                    <div style={{padding:"20px",textAlign:"center",color:"#9b8a7a",fontSize:13}}>
-                      Noch keine gespeicherten Sitzungen vorhanden.
-                    </div>
-                  )}
-                  {(sessions||[]).map(s=>(
-                    <div key={s.id} style={{marginBottom:8,padding:"10px 13px",background:"white",border:"1px solid #e0d4c0",borderRadius:8,display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-                      <div style={{flex:1,minWidth:180}}>
-                        <div style={{fontWeight:700,fontSize:13,color:"#3a2010"}}>{s.patient?.name||"(kein Name)"}</div>
-                        <div style={{fontSize:12,color:"#7a6a5a"}}>
-                          {s.fillDate||"–"} · {s.gender==="f"?"Frau":"Mann"} · {s.patient?.geburtsdatum||"Geb. unbekannt"}
-                        </div>
-                        {s.riskSnapshot&&<div style={{fontSize:11.5,color:"#9b7a5a",marginTop:2}}>
-                          Risiko: {s.riskSnapshot.cat||"–"} · 10-J.-Frakturrisiko: {s.riskSnapshot.r10!=null?((s.riskSnapshot.r10||0)*100).toFixed(1)+"%":"–"}
-                        </div>}
-                      </div>
-                      <div style={{display:"flex",gap:6}}>
-                        <button onClick={()=>{onLoadSession(s);onClose();}}
-                          style={{padding:"5px 13px",borderRadius:5,border:"1px solid #9b7a5a",background:"#faf4ed",color:"#5a3010",cursor:"pointer",fontSize:12,fontFamily:"inherit",fontWeight:600}}>
-                          ↩ Laden
-                        </button>
-                        <button onClick={()=>onDeleteSession(s.id)}
-                          style={{padding:"5px 10px",borderRadius:5,border:"1px solid #fca5a5",background:"#fee2e2",color:"#dc2626",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
+                );
+              })()}
               {/* ═══ PATIENTEN TAB ════════════════════════════════════ */}
               {activeTab==="patienten"&&(
                 <PatientenListe
