@@ -5476,6 +5476,50 @@ function PatientenListe({patients,sessions,onSelectPatient,onDeletePatient,onRes
   );
 }
 
+/* ── BesonderheitPanel: Besonderheiten mit Edit-Toggle (Hook-konform) ── */
+function BesonderheitPanel({med,onUpdate}){
+  const[edit,setEdit]=React.useState(false);
+  return(
+    <div style={{marginBottom:12}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+        <span style={{fontSize:11.5,fontWeight:700,color:"#6b5a4a"}}>
+          📚 Besonderheiten / Vergleiche
+        </span>
+        <button onClick={()=>setEdit(v=>!v)}
+          style={{fontSize:10,padding:"2px 8px",borderRadius:5,cursor:"pointer",
+            border:"1px solid #c8b090",background:edit?"#fce7c0":"#fffaf4",
+            color:"#7a5a3a",fontFamily:"inherit"}}>
+          {edit?"✓ Fertig":"✏ Bearbeiten"}
+        </button>
+      </div>
+      {edit
+        ?<textarea placeholder="Wirkungsvergleiche, Studiendaten, Literatur mit Links"
+            ref={el=>{if(el){el.style.height="auto";el.style.height=(el.scrollHeight+2)+"px";}}}
+            style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",
+              border:"1.5px solid #c8a84a",borderRadius:5,fontSize:12,
+              fontFamily:"inherit",resize:"vertical",outline:"none",
+              overflow:"hidden",minHeight:80,lineHeight:1.6}}
+            value={med.besonderheit||""}
+            onChange={e=>{const v=e.target.value;
+              const el=e.target;el.style.height="auto";el.style.height=(el.scrollHeight+2)+"px";
+              onUpdate(v);}}/>
+        :<div style={{background:"#f8f4ee",border:"1px solid #d8c8b0",borderRadius:5,
+            padding:"8px 10px",fontSize:12,lineHeight:1.9,color:"#2a1a0a",
+            whiteSpace:"pre-wrap",minHeight:30}}>
+          {med.besonderheit
+            ?med.besonderheit.split(new RegExp("(https?://[^\s\n]+)","g")).map((part,pi)=>
+                new RegExp("^https?://").test(part)
+                  ?<LitLinks key={pi} url={part}/>
+                  :<span key={pi}>{part}</span>
+              )
+            :<span style={{color:"#aaa",fontStyle:"italic"}}>Noch keine Besonderheiten – auf ✏ Bearbeiten klicken.</span>
+          }
+        </div>
+      }
+    </div>
+  );
+}
+
 /* ── LitLinks: 3-button literature link row ── */
 function LitLinks({url,label}){
   if(!url)return null;
@@ -6558,49 +6602,11 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                               }
                             </div>
                           ))}
-                          {/* Besonderheiten – formatiert mit klickbaren Links + edit-Toggle */}
-                          {(med.besonderheit||true)&&(()=>{
-                            const[bEdit,setBEdit]=React.useState(false);
-                            return(
-                              <div style={{marginBottom:12}}>
-                                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-                                  <span style={{fontSize:11.5,fontWeight:700,color:"#6b5a4a"}}>
-                                    📚 Besonderheiten / Vergleiche
-                                  </span>
-                                  <button onClick={()=>setBEdit(v=>!v)}
-                                    style={{fontSize:10,padding:"2px 8px",borderRadius:5,cursor:"pointer",
-                                      border:"1px solid #c8b090",background:bEdit?"#fce7c0":"#fffaf4",
-                                      color:"#7a5a3a",fontFamily:"inherit"}}>
-                                    {bEdit?"✓ Fertig":"✏ Bearbeiten"}
-                                  </button>
-                                </div>
-                                {bEdit
-                                  ?<textarea placeholder="Wirkungsvergleiche, Studiendaten, Literatur mit Links"
-                                      ref={el=>{if(el){el.style.height="auto";el.style.height=(el.scrollHeight+2)+"px";}}}
-                                      style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",
-                                        border:"1.5px solid #c8a84a",borderRadius:5,fontSize:12,
-                                        fontFamily:"inherit",resize:"vertical",outline:"none",
-                                        overflow:"hidden",minHeight:80,lineHeight:1.6}}
-                                      value={med.besonderheit||""}
-                                      onChange={e=>{const v=e.target.value;
-                                        const el=e.target;el.style.height="auto";el.style.height=(el.scrollHeight+2)+"px";
-                                        setTherapieDraft(d=>d.map((m,i)=>i===mi?{...m,besonderheit:v}:m));}}/>
-                                  :<div style={{background:"#f8f4ee",border:"1px solid #d8c8b0",borderRadius:5,
-                                      padding:"8px 10px",fontSize:12,lineHeight:1.9,color:"#2a1a0a",
-                                      whiteSpace:"pre-wrap",minHeight:30}}>
-                                    {med.besonderheit
-                                      ?med.besonderheit.split(new RegExp("(https?://[^\\s\\n]+)","g")).map((part,pi)=>
-                                          new RegExp("^https?://").test(part)
-                                            ?<LitLinks key={pi} url={part}/>
-                                            :<span key={pi}>{part}</span>
-                                        )
-                                      :<span style={{color:"#aaa",fontStyle:"italic"}}>Noch keine Besonderheiten eingetragen – auf ✏ Bearbeiten klicken.</span>
-                                    }
-                                  </div>
-                                }
-                              </div>
-                            );
-                          })()}
+                          {/* Besonderheiten – eigene Komponente wegen Hook-Regel */}
+                          <BesonderheitPanel
+                            med={med}
+                            onUpdate={v=>setTherapieDraft(d=>d.map((m,i)=>i===mi?{...m,besonderheit:v}:m))}
+                          />
                           {/* Indikation */}
                           <div style={{marginBottom:10}}>
                             <label style={{fontSize:11.5,fontWeight:700,color:"#6b5a4a",display:"block",marginBottom:5}}>Indikation</label>
