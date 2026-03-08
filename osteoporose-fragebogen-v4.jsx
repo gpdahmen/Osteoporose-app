@@ -3802,133 +3802,121 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
 
       {open&&(
         <div>
-          {/* Toolbar */}
-          <div className="pain-toolbar pain-no-print">
-            <span style={{fontSize:12,fontWeight:700,color:"#6b5a4a"}}>Farbe:</span>
-            {COLORS.map(({c,l})=>(
-              <button key={c} title={l} onClick={()=>{setBrushColor(c);setErasing(false);}}
-                style={{width:30,height:30,borderRadius:"50%",background:c,cursor:"pointer",
-                  border:brushColor===c&&!erasing?"3px solid #333":"2px solid #ccc",flexShrink:0}}/>
-            ))}
-            <span style={{fontSize:12,fontWeight:700,color:"#6b5a4a",marginLeft:8}}>Größe:</span>
-            {[[6,"S"],[12,"M"],[22,"L"],[36,"XL"]].map(([sz,lbl])=>(
-              <button key={sz} onClick={()=>setBrushSize(sz)}
-                style={{padding:"3px 9px",borderRadius:5,fontFamily:"inherit",fontSize:12,cursor:"pointer",
-                  border:brushSize===sz?"2px solid #9b7a5a":"1px solid #c8b8a0",
-                  background:brushSize===sz?"#f7efe0":"white",fontWeight:brushSize===sz?700:400}}>
-                {lbl}
-              </button>
-            ))}
-            <button onClick={()=>setErasing(e=>!e)}
-              style={{padding:"3px 10px",borderRadius:5,fontFamily:"inherit",fontSize:12,cursor:"pointer",
-                border:erasing?"2px solid #dc2626":"1px solid #c8b8a0",
-                background:erasing?"#fee2e2":"white",fontWeight:erasing?700:400,marginLeft:4}}>
-              ✦ Radierer {erasing?"(aktiv)":""}
-            </button>
-            <button onClick={()=>clearView(activeView)}
-              style={{padding:"3px 10px",borderRadius:5,fontFamily:"inherit",fontSize:12,cursor:"pointer",
-                border:"1px solid #fca5a5",background:"#fff1f2",color:"#b91c1c",marginLeft:4}}>
-              🗑 Diese Ansicht löschen
-            </button>
-          </div>
+          {/* ── All views sequential, controls on the right ── */}
+          <div className="pain-no-print" style={{padding:"10px 14px 14px",borderTop:"1px solid #e8d8c0",background:"white"}}>
+            {PAIN_VIEWS.map((v,vi)=>(
+              <div key={v.id} style={{
+                display:"flex",gap:0,alignItems:"flex-start",
+                marginBottom: vi<PAIN_VIEWS.length-1 ? 18 : 0,
+                borderBottom: vi<PAIN_VIEWS.length-1 ? "1px solid #e8d8c0" : "none",
+                paddingBottom: vi<PAIN_VIEWS.length-1 ? 18 : 0,
+              }}>
 
-          {/* Tabs */}
-          {/* Tab-Gruppen: Kopf / Körper / Hände / Füße */}
-          <div className="pain-tabs pain-no-print" style={{paddingBottom:0}}>
-            {(()=>{
-              const groups=["Kopf","Körper","Hände","Füße"];
-              const groupIcons={"Kopf":"🧠","Körper":"🫀","Hände":"🖐","Füße":"🦶"};
-              return groups.map(grp=>{
-                const views=PAIN_VIEWS.filter(v=>v.group===grp);
-                return(
-                  <div key={grp} style={{display:"flex",alignItems:"center",gap:3,marginRight:10,flexWrap:"wrap"}}>
-                    <span style={{fontSize:10,color:"#9b7a5a",fontWeight:700,marginRight:1,whiteSpace:"nowrap"}}>{groupIcons[grp]} {grp}:</span>
-                    {views.map(v=>(
-                      <button key={v.id}
-                        className="pain-tab"
-                        onClick={()=>setActiveView(v.id)}
+                {/* ── Canvas ── */}
+                <div style={{
+                  flexShrink:0,
+                  width: v.w > v.h
+                    ? "min(72vw, "+v.w+"px)"
+                    : "min(42vw, "+v.w+"px, 340px)",
+                  aspectRatio: v.w+"/"+v.h,
+                  border:"1px solid #d0c0a8",
+                  borderRadius:10,
+                  overflow:"hidden",
+                  boxShadow:"0 3px 14px rgba(0,0,0,.12)",
+                  background:"#fffdf8",
+                  position:"relative",
+                }}>
+                  <canvas
+                    ref={el=>{if(el) canvasRefs.current[v.id]=el;}}
+                    width={v.w} height={v.h}
+                    style={{width:"100%",height:"100%",display:"block",touchAction:"none",
+                      cursor:erasing?"cell":"crosshair"}}
+                    onMouseDown={e=>startDraw(e,v.id)}
+                    onMouseMove={e=>doDraw(e,v.id)}
+                    onMouseUp={()=>endDraw(v.id)}
+                    onMouseLeave={()=>endDraw(v.id)}
+                    onTouchStart={e=>startDraw(e,v.id)}
+                    onTouchMove={e=>doDraw(e,v.id)}
+                    onTouchEnd={()=>endDraw(v.id)}
+                  />
+                </div>
+
+                {/* ── Right sidebar: title + legend + controls ── */}
+                <div style={{
+                  paddingLeft:16,
+                  minWidth:150,
+                  flex:1,
+                  display:"flex",
+                  flexDirection:"column",
+                  gap:10,
+                }}>
+                  {/* Title */}
+                  <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:14,color:"#3a2010"}}>
+                    {v.label}
+                    {painMaps[v.id]&&<span style={{marginLeft:8,fontSize:11,color:"#e63946",fontWeight:600}}>● eingezeichnet</span>}
+                  </div>
+
+                  {/* Hint */}
+                  <div style={{fontSize:11.5,color:"#9b8a7a",lineHeight:1.5}}>
+                    Mit Finger, Stift oder Maus Schmerzbereiche einmalen.
+                  </div>
+
+                  {/* Color legend + picker */}
+                  <div>
+                    <div style={{fontSize:10.5,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",color:"#7a6a58",marginBottom:6}}>Farbe</div>
+                    {COLORS.map(({c,l})=>(
+                      <button key={c} title={l}
+                        onClick={()=>{setBrushColor(c);setErasing(false);}}
                         style={{
-                          background:activeView===v.id?"white":"#f7f0e6",
-                          fontWeight:activeView===v.id?700:400,
-                          borderBottom:activeView===v.id?"2px solid white":"none",
-                          zIndex:activeView===v.id?2:1,position:"relative",marginBottom:-1,
+                          display:"flex",alignItems:"center",gap:8,width:"100%",
+                          padding:"5px 8px",marginBottom:4,
+                          border:brushColor===c&&!erasing?"2px solid #5a3a10":"1px solid #e0d0b8",
+                          borderRadius:7,background:brushColor===c&&!erasing?"#fdf0e0":"white",
+                          cursor:"pointer",fontFamily:"inherit",textAlign:"left",
                         }}>
-                        {painMaps[v.id]&&<span style={{color:"#e63946",marginRight:3,fontSize:10}}>●</span>}
-                        {v.short}
+                        <span style={{width:14,height:14,borderRadius:"50%",background:c,
+                          flexShrink:0,border:"1px solid rgba(0,0,0,.15)",display:"inline-block"}}/>
+                        <span style={{fontSize:12,fontWeight:brushColor===c&&!erasing?700:400,color:"#4a3020"}}>{l}</span>
                       </button>
                     ))}
                   </div>
-                );
-              });
-            })()}
-          </div>
 
-          {/* Canvas area – responsive height */}
-          <div className="pain-canvas-area pain-no-print" style={{
-            display:"flex",
-            justifyContent:"center",
-            alignItems:"flex-start",
-            gap:20,
-            padding:"14px 16px 16px",
-            borderTop:"1px solid #d8c8b0",
-            background:"white",
-            flexWrap:"wrap",
-          }}>
-            {PAIN_VIEWS.map(v=>{
-              const active=activeView===v.id;
-              const bodyView=v.w===200;
-              return(
-                <div key={v.id} style={{display:active?"flex":"none",gap:16,alignItems:"flex-start",width:"100%",justifyContent:"center"}}>
-                  {/* Canvas wrapper – original proportions preserved */}
-                  <div style={{
-                    // Let BOTH max-width and max-height constrain; aspect-ratio fills the rest
-                    maxWidth: v.w > v.h
-                      ? "min(95vw, "+v.w+"px)"          // landscape: width-limited
-                      : "min(55vw, "+v.w+"px, 420px)",  // portrait:  width cap
-                    maxHeight: "clamp(320px, 80vh, 900px)",
-                    aspectRatio: v.w+"/"+v.h,
-                    width: "100%",
-                    height: "auto",
-                    border:"1px solid #d0c0a8",
-                    borderRadius:10,
-                    overflow:"hidden",
-                    boxShadow:"0 3px 14px rgba(0,0,0,.12)",
-                    flexShrink:0,
-                    background:"#fffdf8",
-                    position:"relative",
-                    alignSelf: v.h > v.w ? "flex-start" : "center",
-                  }}>
-                    <canvas
-                      ref={el=>{if(el) canvasRefs.current[v.id]=el;}}
-                      width={v.w} height={v.h}
-                      style={{width:"100%",height:"100%",display:"block",touchAction:"none",
-                        cursor:erasing?"cell":"crosshair"}}
-                      onMouseDown={e=>startDraw(e,v.id)}
-                      onMouseMove={e=>doDraw(e,v.id)}
-                      onMouseUp={()=>endDraw(v.id)}
-                      onMouseLeave={()=>endDraw(v.id)}
-                      onTouchStart={e=>startDraw(e,v.id)}
-                      onTouchMove={e=>doDraw(e,v.id)}
-                      onTouchEnd={()=>endDraw(v.id)}
-                    />
+                  {/* Brush size */}
+                  <div>
+                    <div style={{fontSize:10.5,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase",color:"#7a6a58",marginBottom:6}}>Pinselgröße</div>
+                    <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                      {[[6,"S"],[12,"M"],[22,"L"],[36,"XL"]].map(([sz,lbl])=>(
+                        <button key={sz} onClick={()=>setBrushSize(sz)}
+                          style={{padding:"4px 10px",borderRadius:5,fontFamily:"inherit",fontSize:12,cursor:"pointer",
+                            border:brushSize===sz?"2px solid #9b7a5a":"1px solid #c8b8a0",
+                            background:brushSize===sz?"#f7efe0":"white",fontWeight:brushSize===sz?700:400}}>
+                          {lbl}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  {/* Legend */}
-                  <div style={{fontSize:13,color:"#9b8a7a",lineHeight:2,paddingTop:4,minWidth:150}}>
-                    <div style={{fontWeight:700,color:"#5a3e2a",marginBottom:8,fontSize:14}}>{v.label}</div>
-                    <div style={{marginBottom:10,fontSize:12,lineHeight:1.6}}>Mit Finger, Stift oder Maus Schmerzbereiche einmalen.</div>
-                    {COLORS.map(({c,l})=>(
-                      <div key={c} style={{display:"flex",gap:7,alignItems:"center",marginBottom:4}}>
-                        <span style={{width:16,height:16,borderRadius:"50%",background:c,flexShrink:0,opacity:.85,display:"inline-block",border:"1px solid rgba(0,0,0,.1)"}}/>
-                        <span style={{fontSize:12}}>{l}</span>
-                      </div>
-                    ))}
+
+                  {/* Eraser + delete */}
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    <button onClick={()=>setErasing(e=>!e)}
+                      style={{padding:"6px 10px",borderRadius:6,fontFamily:"inherit",fontSize:12,cursor:"pointer",
+                        border:erasing?"2px solid #dc2626":"1px solid #c8b8a0",
+                        background:erasing?"#fee2e2":"white",fontWeight:erasing?700:400,textAlign:"left"}}>
+                      ✦ Radierer {erasing?"(aktiv)":""}
+                    </button>
+                    <button onClick={()=>clearView(v.id)}
+                      style={{padding:"6px 10px",borderRadius:6,fontFamily:"inherit",fontSize:12,cursor:"pointer",
+                        border:"1px solid #fca5a5",background:"#fff1f2",color:"#b91c1c",textAlign:"left"}}>
+                      🗑 Diese Ansicht löschen
+                    </button>
                   </div>
                 </div>
-              );
-            })}
+
+              </div>
+            ))}
           </div>
 
-          {/* Print grid – separate offscreen canvases drawn from painMaps data URLs */}
+          {/* Print grid */}
           <div className="pain-print-grid">
             {PAIN_VIEWS.map(v=>(
               <div key={v.id} style={{textAlign:"center"}}>
@@ -3958,6 +3946,7 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
             ))}
           </div>
         </div>
+      )}
       )}
     </div>
   );
