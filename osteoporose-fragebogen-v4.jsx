@@ -6052,7 +6052,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
 
               {/* ═══ RISIKOÜBERSICHT TAB ══════════════════════════════ */}
               {activeTab==="risiko"&&(()=>{
-                const risk=gender?computeRisk(answers,gender):null;
+                // Pure reference table – no patient context
                 const allQs=SECTIONS.flatMap(sec=>
                   (sec.qs||[]).map(q=>({...q,
                     sectionTitle:sec.title,
@@ -6060,9 +6060,6 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                     onlyFor:sec.onlyFor||null
                   }))
                 );
-                // Build factor lookup from risk computation
-                const activeFactorIds=new Set((risk?.factors||[]).map(f=>f.id));
-                const top2Ids=new Set((risk?.top2||[]).map(f=>f.id));
 
                 // Group by section
                 const bySection={};
@@ -6091,94 +6088,20 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
 
                 return(
                   <div style={{padding:"6px 14px 14px"}}>
-                    {/* ── Patient-aktive Faktoren ── */}
-                    <div style={{marginBottom:18,padding:"14px 16px",
-                      background:"#1a1208",borderRadius:10,color:"white"}}>
+                    <div style={{marginBottom:16,padding:"12px 16px",
+                      background:"#1a1208",borderRadius:10,color:"#e8d8b0",lineHeight:1.6}}>
                       <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,
-                        fontWeight:700,marginBottom:10,color:"#c8a070"}}>
-                        📊 Aktive Risikofaktoren dieses Patienten
+                        fontWeight:700,color:"#c8a070",marginBottom:6}}>
+                        📋 DVO-Leitlinie 2023 – Vollständige Referenztabelle
                       </div>
-                      {!gender?(
-                        <div style={{color:"#9a8a6a",fontSize:13}}>
-                          Kein Geschlecht ausgewählt – bitte zuerst im Fragebogen angeben.
-                        </div>
-                      ):!risk||risk.factors.length===0?(
-                        <div style={{color:"#9a8a6a",fontSize:13}}>
-                          Keine Risikofaktoren angekreuzt.
-                        </div>
-                      ):(
-                        <>
-                          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
-                            {risk.factors.map((f,i)=>{
-                              const isTop2=top2Ids.has(f.id);
-                              return(
-                                <div key={i} style={{
-                                  padding:"6px 12px",borderRadius:7,fontSize:12.5,
-                                  background:isTop2?"#c8a070":"#2c2010",
-                                  color:isTop2?"#1a1208":"#e8d8b0",
-                                  border:isTop2?"2px solid #e8c060":"1px solid #4a3a20",
-                                  fontWeight:isTop2?700:400,
-                                  display:"flex",alignItems:"center",gap:7}}>
-                                  {isTop2&&<span style={{fontSize:10,fontWeight:700,
-                                    background:"#1a1208",padding:"1px 5px",borderRadius:3,
-                                    color:"#c8a070"}}>TOP 2</span>}
-                                  <span>×{f.faktor}</span>
-                                  <span style={{opacity:.7,fontSize:11}}>—</span>
-                                  <span style={{maxWidth:220,whiteSpace:"nowrap",
-                                    overflow:"hidden",textOverflow:"ellipsis"}}>
-                                    {f.label||f.grp||f.id}
-                                  </span>
-                                  {f.icd&&<span style={{fontSize:10,opacity:.6,marginLeft:4}}>[{f.icd.split(",")[0]}]</span>}
-                                </div>
-                              );
-                            })}
-                          </div>
-                          <div style={{display:"flex",gap:20,flexWrap:"wrap",
-                            borderTop:"1px solid #3a2a10",paddingTop:10,fontSize:13}}>
-                            <span style={{color:"#c8a070"}}>
-                              Kombinierter Faktor (Top 2): <strong style={{fontSize:16}}>×{risk.cF.toFixed(2)}</strong>
-                            </span>
-                            {risk.cat&&(
-                              <span style={{color:risk.cat==="top"?"#f87171":risk.cat==="high"?"#fb923c":risk.cat==="mod"?"#fbbf24":"#86efac",fontWeight:700}}>
-                                {catLabel(risk.cat)}
-                              </span>
-                            )}
-                          </div>
-                        </>
-                      )}
+                      <div style={{fontSize:12}}>
+                        <strong style={{color:"#c8a070"}}>Risikofaktoren</strong> gehen mit einem Relativen Risiko (RR) in den DVO-Risikorechner ein.
+                        {" "}<strong style={{color:"#f59e0b"}}>🔔 Risikoindikatoren</strong> begründen die Indikation zur Basisdiagnostik (DXA + Labor), fließen aber <em>nicht</em> in die Risikokalkulation ein.
+                      </div>
                     </div>
 
-                    {/* ── Aktive Risikoindikatoren ── */}
-                    {(()=>{
-                      const activeInds=(risk?.indicators||[]);
-                      if(!activeInds.length)return null;
-                      return(
-                        <div style={{marginBottom:14,background:"#fffbeb",border:"1.5px solid #f59e0b",
-                          borderRadius:10,padding:"14px 16px"}}>
-                          <div style={{fontFamily:"'Playfair Display',serif",fontSize:13,fontWeight:700,
-                            color:"#92400e",marginBottom:8}}>
-                            🔔 Aktive Risikoindikatoren (DVO 2023) – Basisdiagnostik empfohlen
-                          </div>
-                          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
-                            {activeInds.map((ind,i)=>(
-                              <div key={i} style={{padding:"5px 11px",borderRadius:6,fontSize:12,
-                                background:"#fef3c7",color:"#78350f",border:"1px solid #f59e0b",
-                                display:"flex",alignItems:"center",gap:5}}>
-                                ⚠ {ind.label}
-                                {ind.asterisk&&<sup style={{fontSize:9,color:"#b45309"}}>*</sup>}
-                                {ind.icd&&<span style={{fontSize:10,fontFamily:"monospace",
-                                  color:"#6a4a9a",background:"#f3e8ff",padding:"1px 5px",
-                                  borderRadius:3}}>{ind.icd}</span>}
-                              </div>
-                            ))}
-                          </div>
-                          <div style={{fontSize:11,color:"#78350f",lineHeight:1.5}}>
-                            Diese Befunde fließen nicht in den DVO-Risikorechner ein, begründen aber eine Indikation zur Basisdiagnostik (DXA + Labor).
-                            {activeInds.some(i=>i.asterisk)&&<span style={{fontStyle:"italic"}}> * Auch vor dem 50. Lebensjahr erwägen.</span>}
-                          </div>
-                        </div>
-                      );
-                    })()}
+
+
                     {/* ── Legende ── */}
                     <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14,fontSize:12}}>
                       {[["≥3.0","Sehr hoch","#fee2e2","#b91c1c"],["≥2.0","Hoch","#fef3c7","#d97706"],["≥1.5","Mäßig","#fff0e0","#9a4a10"],["<1.5","Gering","#f0f9ff","#1a5a8a"]].map(([f,l,bg,tc])=>(
@@ -6191,8 +6114,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                         color:"#92400e",fontWeight:700,border:"1px solid #f59e0b30"}}>
                         🔔 Risikoindikator
                       </div>
-                      <div style={{padding:"3px 10px",background:"#f0f0f0",borderRadius:5,
-                        color:"#5a5a5a",fontWeight:600}}>⬤ Aktiv beim Patienten</div>
+
                     </div>
                     <div style={{fontSize:10.5,color:"#9a8a7a",marginBottom:10,lineHeight:1.5}}>
                       <sup style={{color:"#b45309"}}>*</sup> Basisdiagnostik (DXA + Labor) auch vor dem 50. Lebensjahr erwägen
@@ -6223,18 +6145,13 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                               <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"10%"}}>Faktor / Typ</th>
                               <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"14%"}}>ICD-10</th>
                               <th style={{padding:"6px 8px",textAlign:"left",borderBottom:"1px solid #e0d0b8",width:"30%"}}>Diagnose (editierbar)</th>
-                              <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"11%"}}>Status</th>
+                              <th style={{padding:"6px 8px",textAlign:"center",borderBottom:"1px solid #e0d0b8",width:"11%"}}>Kategorie</th>
                             </tr>
                           </thead>
                           <tbody>
                             {sec.qs.map((q,qi)=>{
                               const isIndicator=RISIKOINDIKATOR_IDS.has(q.id);
-                              const isActive=isIndicator
-                                ?(risk?.indicators||[]).some(i=>i.id===q.id)
-                                :activeFactorIds.has(q.id);
-                              const isTop2=!isIndicator&&top2Ids.has(q.id);
-                              const activeFactor=risk?.factors.find(f=>f.id===q.id);
-                              const displayFactor=activeFactor?.faktor||q.faktor||
+                              const displayFactor=q.faktor||
                                 (q.fmap?Math.max(...Object.values(q.fmap)):null);
                               const dbEntry=diagDb&&diagDb[q.id];
                               const diagnoseText=dbEntry?.entries?.[0]?.diagnose||
@@ -6242,16 +6159,13 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                               const icdText=dbEntry?.entries?.[0]?.icd5||
                                 (DIAG_DB_DEFAULTS[q.id]?.entries?.[0]?.icd5)||"";
                               const shortLabel=q.label.split("\n")[0].slice(0,70)+(q.label.length>70?"…":"");
-                              const rowBg=isActive
-                                ?(isTop2?"#fffbf0":"#fafffe")
-                                :"white";
                               return(
                                 <tr key={q.id} style={{
-                                  background:isIndicator&&isActive?"#fffbeb":rowBg,
+                                  background:"white",
                                   borderBottom:"1px solid #f0e8d8",
-                                  borderLeft:isTop2?"3px solid #c8a070":isIndicator&&isActive?"3px solid #f59e0b":isActive?"3px solid #86efac":"3px solid transparent"}}>
+                                  borderLeft:isIndicator?"3px solid #f59e0b30":"3px solid transparent"}}>
                                   <td style={{padding:"7px 10px",color:"#3a2a18",lineHeight:1.4}}>
-                                    <div style={{fontWeight:isActive?600:400}}>
+                                    <div style={{fontWeight:400}}>
                                       {shortLabel}
                                       {isIndicator&&INDICATOR_ASTERISK.has(q.id)&&
                                         <sup style={{color:"#b45309",marginLeft:3,fontSize:9}}>*</sup>}
@@ -6290,20 +6204,14 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                     {icdText&&<div style={{fontSize:10,color:"#1a3a8a",fontFamily:"monospace"}}>{icdText}</div>}
                                   </td>
                                   <td style={{padding:"7px 8px",textAlign:"center"}}>
-                                    {!gender?<span style={{color:"#c0b0a0",fontSize:11}}>—</span>
-                                    :isTop2?<span style={{fontSize:11,fontWeight:700,
-                                        padding:"2px 7px",background:"#c8a070",color:"#1a1208",borderRadius:4}}>
-                                        TOP 2
-                                      </span>
-                                    :isIndicator&&isActive?<span style={{fontSize:11,fontWeight:700,
-                                        padding:"2px 7px",background:"#fef3c7",color:"#92400e",borderRadius:4}}>
-                                        ⚠ Aktiv
-                                      </span>
-                                    :isActive?<span style={{fontSize:11,fontWeight:700,
-                                        padding:"2px 7px",background:"#d1fae5",color:"#065f46",borderRadius:4}}>
-                                        ✓ Aktiv
-                                      </span>
-                                    :<span style={{color:"#c0b0a0",fontSize:11}}>–</span>}
+                                    {isIndicator?(
+                                      <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",
+                                        background:"#fef3c7",color:"#92400e",borderRadius:4,
+                                        border:"1px solid #f59e0b"}}>Indikator</span>
+                                    ):(
+                                      <span style={{fontSize:10,fontWeight:700,padding:"2px 7px",
+                                        background:"#e0f2fe",color:"#075985",borderRadius:4}}>Risikofaktor</span>
+                                    )}
                                   </td>
                                 </tr>
                               );
@@ -6320,7 +6228,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                 );
               })()}
 
-                            {activeTab==="risiko" ? filteredIds.map(id=>{
+                            {false ? filteredIds.map(id=>{
                 const row = draft[id]||{};
                 const entries = normEntries(row);
                 const def = DIAG_DB_DEFAULTS[id]||{};
