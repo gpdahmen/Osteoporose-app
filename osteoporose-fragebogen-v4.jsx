@@ -3319,6 +3319,29 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
 }
 
 /* ═══════════════════════════════════════════════ COMPONENTS ═══ */
+
+/* ── AutoTextarea: wächst mit Inhalt, kein Leerraum ── */
+function AutoTextarea({value,onChange,placeholder,style,minRows=2,maxRows=10,...rest}){
+  const ref=useRef(null);
+  const resize=()=>{
+    const el=ref.current;
+    if(!el)return;
+    el.style.height="auto";
+    const lh=parseFloat(getComputedStyle(el).lineHeight)||19;
+    const pad=parseFloat(getComputedStyle(el).paddingTop)+parseFloat(getComputedStyle(el).paddingBottom)||14;
+    const minH=minRows*lh+pad;
+    const maxH=maxRows*lh+pad;
+    el.style.height=Math.min(Math.max(el.scrollHeight,minH),maxH)+"px";
+    el.style.overflowY=el.scrollHeight>maxH?"auto":"hidden";
+  };
+  useEffect(()=>{resize();},[value,minRows,maxRows]);
+  return(
+    <textarea ref={ref} value={value} onChange={onChange} placeholder={placeholder}
+      style={{...style,resize:"vertical",overflowY:"hidden",boxSizing:"border-box"}}
+      onInput={resize} {...rest}/>
+  );
+}
+
 /* ── Medikamenten-Sammelbereich (oben in jeder Meds-Section) ── */
 function MedsSammlung({rxValue,onRx,onCameraOpen}){
   const[text,setText]=useState("");
@@ -5601,16 +5624,13 @@ function BesonderheitPanel({med,onUpdate}){
         </button>
       </div>
       {edit
-        ?<textarea placeholder="Wirkungsvergleiche, Studiendaten, Literatur mit Links"
-            ref={el=>{if(el){el.style.height="auto";el.style.height=(el.scrollHeight+2)+"px";}}}
-            style={{width:"100%",boxSizing:"border-box",padding:"6px 8px",
+        ?<AutoTextarea placeholder="Wirkungsvergleiche, Studiendaten, Literatur mit Links"
+            minRows={3} maxRows={14}
+            style={{width:"100%",padding:"6px 8px",
               border:"1.5px solid #c8a84a",borderRadius:5,fontSize:12,
-              fontFamily:"inherit",resize:"vertical",outline:"none",
-              overflow:"hidden",minHeight:80,lineHeight:1.6}}
+              fontFamily:"inherit",outline:"none",lineHeight:1.6}}
             value={med.besonderheit||""}
-            onChange={e=>{const v=e.target.value;
-              const el=e.target;el.style.height="auto";el.style.height=(el.scrollHeight+2)+"px";
-              onUpdate(v);}}/>
+            onChange={e=>onUpdate(e.target.value)}/>
         :<div style={{background:"#f8f4ee",border:"1px solid #d8c8b0",borderRadius:5,
             padding:"8px 10px",fontSize:12,lineHeight:1.9,color:"#2a1a0a",
             whiteSpace:"pre-wrap",minHeight:30}}>
@@ -6212,15 +6232,14 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                     </td>
                                     {/* Diagnose – editierbar, auto-resize textarea */}
                                     <td style={{padding:"6px 7px",verticalAlign:"top"}}>
-                                      <textarea
+                                      <AutoTextarea
                                         value={entry.diagnose||""}
                                         placeholder="Klarschrift-Diagnose…"
-                                        rows={Math.max(2, Math.ceil((entry.diagnose||"").length/38))}
+                                        minRows={1} maxRows={6}
                                         onChange={e=>updateEntry(q.id,idx,"diagnose",e.target.value)}
                                         style={{width:"100%",fontSize:12,padding:"5px 8px",lineHeight:1.5,
-                                          border:"1px solid #e0d0b8",borderRadius:4,resize:"vertical",
-                                          background:"#fafaf8",outline:"none",boxSizing:"border-box",
-                                          fontFamily:"inherit",minHeight:38}}/>
+                                          border:"1px solid #e0d0b8",borderRadius:4,
+                                          background:"#fafaf8",outline:"none",fontFamily:"inherit"}}/>
                                     </td>
                                     {/* ICD-10 – editierbar */}
                                     <td style={{padding:"6px 7px",verticalAlign:"top"}}>
@@ -6374,7 +6393,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                             {/* ── Klinischer Hinweis ── */}
                             <div>
                               <label style={labelSt}>📋 Klinischer Hinweis (Auswertungstext)</label>
-                              <textarea style={{...inputSt,resize:"vertical",minHeight:96,lineHeight:1.6}}
+                              <AutoTextarea style={{...inputSt,lineHeight:1.6}}
+                                minRows={3} maxRows={12}
                                 value={profRow.hinweis||""}
                                 placeholder="Klinischer Hinweis für die Auswertungsansicht…"
                                 onChange={e=>setSekProfileDraft(d=>({...d,[sym]:{...d[sym]||{},hinweis:e.target.value}}))}/>
@@ -6384,7 +6404,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                             <div>
                               <label style={labelSt}>🏥 Diagnose & ICD-10 bei Bestätigung (Textexport)</label>
                               <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
-                                <textarea style={{...inputSt,flex:1,resize:"vertical",minHeight:52,lineHeight:1.55}}
+                                <AutoTextarea style={{...inputSt,flex:1,lineHeight:1.55}}
+                                  minRows={1} maxRows={6}
                                   value={diagRow.diagnose||""}
                                   placeholder="Diagnosebezeichnung für den Textexport…"
                                   onChange={e=>setSekDraft(d=>({...d,[sym]:{...d[sym],diagnose:e.target.value}}))}/>
@@ -6431,15 +6452,16 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                       </span>
                                     </div>
                                     <label style={{...labelSt,marginTop:6,marginBottom:3}}>Fragetext</label>
-                                    <textarea style={{...inputSt,resize:"vertical",minHeight:80,
-                                      fontSize:12,lineHeight:1.6,whiteSpace:"pre-wrap"}}
+                                    <AutoTextarea style={{...inputSt,fontSize:12,lineHeight:1.6,whiteSpace:"pre-wrap"}}
+                                      minRows={2} maxRows={8}
                                       value={qRow.label||""}
                                       placeholder="Fragetext…"
                                       onChange={e=>setSekQsDraft(d=>({...d,[q.id]:{...d[q.id]||{},label:e.target.value}}))}/>
                                     <label style={{...labelSt,marginTop:6,marginBottom:3}}>
                                       Erklärungstext (wird dem Arzt als Hinweis angezeigt)
                                     </label>
-                                    <textarea style={{...inputSt,fontSize:12,resize:"vertical",minHeight:60,lineHeight:1.55}}
+                                    <AutoTextarea style={{...inputSt,fontSize:12,lineHeight:1.55}}
+                                      minRows={1} maxRows={6}
                                       value={qRow.hint||""}
                                       placeholder="Klinischer Erklärungstext (optional)…"
                                       onChange={e=>setSekQsDraft(d=>({...d,[q.id]:{...d[q.id]||{},hint:e.target.value}}))}/>
@@ -6469,7 +6491,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                 const icdU=validateIcd(u.icd||(u.icd||"").replace(/G$/,"")+"G");
                                 return(
                                   <div key={ui} style={{display:"flex",gap:6,marginBottom:5,alignItems:"center"}}>
-                                    <textarea style={{...inputSt,flex:1,fontSize:12,resize:"vertical",minHeight:52,lineHeight:1.55}}
+                                    <AutoTextarea style={{...inputSt,flex:1,fontSize:12,lineHeight:1.55}}
+                                      minRows={1} maxRows={5}
                                       value={u.name||""}
                                       placeholder="Untersuchungsname / Labortest…"
                                       onChange={e=>setSekUntersDraft(d=>{
@@ -6546,7 +6569,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                               rows[si]={...rows[si],name:e.target.value};
                                               return{...d,[sym]:{...(d[sym]||{}),stufen:rows}};
                                             })}/>
-                                          <textarea style={{...inputSt,flex:1,resize:"vertical",minHeight:60,fontSize:12,lineHeight:1.6}}
+                                          <AutoTextarea style={{...inputSt,flex:1,fontSize:12,lineHeight:1.6}}
+                                            minRows={1} maxRows={6}
                                             value={st.beschreibung||""}
                                             placeholder="Kriterien, Grenzwerte, klinische Bedeutung…"
                                             onChange={e=>setSekScoringDraft(d=>{
@@ -6627,15 +6651,13 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                             <div key={field} style={{marginBottom:8}}>
                               <label style={{fontSize:11.5,fontWeight:700,color:"#6b5a4a",display:"block",marginBottom:3}}>{lbl}</label>
                               {type==="textarea"
-                                ? <textarea placeholder={ph}
-                                    ref={el=>{if(el){el.style.height="auto";el.style.height=(el.scrollHeight+2)+"px";}}}
-                                    style={{width:"100%",boxSizing:"border-box",padding:"5px 8px",
+                                ? <AutoTextarea placeholder={ph}
+                                    minRows={1} maxRows={8}
+                                    style={{width:"100%",padding:"5px 8px",
                                       border:"1px solid #d8c8b0",borderRadius:5,fontSize:12,fontFamily:"inherit",
-                                      resize:"vertical",outline:"none",overflow:"hidden",minHeight:36}}
+                                      outline:"none"}}
                                     value={med[field]||""}
-                                    onChange={e=>{const v=e.target.value;
-                                      const el=e.target;el.style.height="auto";el.style.height=(el.scrollHeight+2)+"px";
-                                      setTherapieDraft(d=>d.map((m,i)=>i===mi?{...m,[field]:v}:m));}}/>
+                                    onChange={e=>setTherapieDraft(d=>d.map((m,i)=>i===mi?{...m,[field]:e.target.value}:m))}/>
                                 : <input placeholder={ph}
                                     style={{width:"100%",boxSizing:"border-box",padding:"5px 8px",
                                       border:"1px solid #d8c8b0",borderRadius:5,fontSize:12,fontFamily:"inherit",outline:"none"}}
