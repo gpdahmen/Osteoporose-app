@@ -5979,6 +5979,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                 );
               })()}
 
+                            {(activeTab==="risiko"||activeTab==="sek")&&(
                             {activeTab==="risiko" ? filteredIds.map(id=>{
                 const row = draft[id]||{};
                 const entries = normEntries(row);
@@ -6340,6 +6341,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                 </div>
                               );
                             })()}
+                            )}
 
                           </div>
                         )}
