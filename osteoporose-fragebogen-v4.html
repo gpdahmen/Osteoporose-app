@@ -3335,18 +3335,21 @@ function AutoTextarea({value,onChange,placeholder,style,minRows=2,maxRows=10,...
   const resize=()=>{
     const el=ref.current;
     if(!el)return;
+    // CSS min-height auf 0 setzen, damit scrollHeight unverfälscht gemessen wird
+    el.style.minHeight="0";
     el.style.height="auto";
     const lh=parseFloat(getComputedStyle(el).lineHeight)||19;
     const pad=parseFloat(getComputedStyle(el).paddingTop)+parseFloat(getComputedStyle(el).paddingBottom)||14;
     const minH=minRows*lh+pad;
     const maxH=maxRows*lh+pad;
-    el.style.height=Math.min(Math.max(el.scrollHeight,minH),maxH)+"px";
+    const target=Math.min(Math.max(el.scrollHeight,minH),maxH);
+    el.style.height=target+"px";
     el.style.overflowY=el.scrollHeight>maxH?"auto":"hidden";
   };
   useEffect(()=>{resize();},[value,minRows,maxRows]);
   return(
     <textarea ref={ref} value={value} onChange={onChange} placeholder={placeholder}
-      style={{...style,resize:"vertical",overflowY:"hidden",boxSizing:"border-box"}}
+      style={{...style,resize:"none",overflowY:"hidden",boxSizing:"border-box",minHeight:undefined}}
       onInput={resize} {...rest}/>
   );
 }
