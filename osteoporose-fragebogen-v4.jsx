@@ -6460,7 +6460,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                 <span key={ind} style={{fontSize:10,fontWeight:700,padding:"1px 6px",
                                   borderRadius:9,background:cfg.bg,color:cfg.color,
                                   border:`1px solid ${cfg.border}`,whiteSpace:"nowrap"}}>
-                                  {ind}
+                                  {{"Osteoporose":"🦴 Osteoporose","manifeste Osteoporose":"🦴💔 manifeste Osteoporose","Tumortherapie":"💉 Tumortherapie"}[ind]||ind}
                                 </span>
                               );
                             })}
@@ -6524,7 +6524,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                       }}
                                       style={{accentColor:cfg.color}}/>
                                     <span style={{fontSize:12,fontWeight:checked?700:400,
-                                      color:checked?cfg.color:"#7a6a5a"}}>{opt}</span>
+                                      color:checked?cfg.color:"#7a6a5a"}}>{{"Osteoporose":"🦴 Osteoporose","manifeste Osteoporose":"🦴💔 manifeste Osteoporose","Tumortherapie":"💉 Tumortherapie"}[opt]||opt}</span>
                                   </label>
                                 );
                               })}

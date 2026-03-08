@@ -1,16 +1,11 @@
 <!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Osteoporose-Dokumentation – Orthopädie Langenhorn</title>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head>
-<body style="margin:0;padding:0;background:#f5f0e8">
-  <div id="root"></div>
-  <script type="text/babel">
+<html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Osteoporose-Dokumentation – Orthopädie Langenhorn</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head><body style="margin:0;padding:0;background:#f5f0e8"><div id="root"></div>
+<script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
 
 
@@ -6474,7 +6469,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                 <span key={ind} style={{fontSize:10,fontWeight:700,padding:"1px 6px",
                                   borderRadius:9,background:cfg.bg,color:cfg.color,
                                   border:`1px solid ${cfg.border}`,whiteSpace:"nowrap"}}>
-                                  {ind}
+                                  {{"Osteoporose":"🦴 Osteoporose","manifeste Osteoporose":"🦴💔 manifeste Osteoporose","Tumortherapie":"💉 Tumortherapie"}[ind]||ind}
                                 </span>
                               );
                             })}
@@ -6538,7 +6533,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                       }}
                                       style={{accentColor:cfg.color}}/>
                                     <span style={{fontSize:12,fontWeight:checked?700:400,
-                                      color:checked?cfg.color:"#7a6a5a"}}>{opt}</span>
+                                      color:checked?cfg.color:"#7a6a5a"}}>{{"Osteoporose":"🦴 Osteoporose","manifeste Osteoporose":"🦴💔 manifeste Osteoporose","Tumortherapie":"💉 Tumortherapie"}[opt]||opt}</span>
                                   </label>
                                 );
                               })}
@@ -8160,6 +8155,4 @@ function App(){
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(React.createElement(App));
 
-  </script>
-</body>
-</html>
+</script></body></html>
