@@ -6473,7 +6473,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                             <div>
                               <label style={labelSt}>📋 Klinischer Hinweis (Auswertungstext)</label>
                               <AutoTextarea style={{...inputSt,lineHeight:1.6}}
-                                minRows={2} maxRows={12}
+                                minRows={1} maxRows={12}
                                 value={profRow.hinweis||""}
                                 placeholder="Klinischer Hinweis für die Auswertungsansicht…"
                                 onChange={e=>setSekProfileDraft(d=>({...d,[sym]:{...d[sym]||{},hinweis:e.target.value}}))}/>
@@ -6532,7 +6532,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                     </div>
                                     <label style={{...labelSt,marginTop:6,marginBottom:3}}>Fragetext</label>
                                     <AutoTextarea style={{...inputSt,fontSize:12,lineHeight:1.6,whiteSpace:"pre-wrap"}}
-                                      minRows={2} maxRows={6}
+                                      minRows={1} maxRows={6}
                                       value={qRow.label||""}
                                       placeholder="Fragetext…"
                                       onChange={e=>setSekQsDraft(d=>({...d,[q.id]:{...d[q.id]||{},label:e.target.value}}))}/>
@@ -6622,10 +6622,22 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                     </div>
                                     <div>
                                       <label style={{...labelSt,marginBottom:2}}>URL (optional)</label>
-                                      <input style={{...inputSt,fontSize:12,width:"100%"}}
-                                        value={sc.url||""}
-                                        placeholder="https://..."
-                                        onChange={e=>setSekScoringDraft(d=>({...d,[sym]:{...(d[sym]||{}),url:e.target.value}}))}/>
+                                      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                                        <input style={{...inputSt,fontSize:12,flex:1}}
+                                          value={sc.url||""}
+                                          placeholder="https://..."
+                                          onChange={e=>setSekScoringDraft(d=>({...d,[sym]:{...(d[sym]||{}),url:e.target.value}}))}/>
+                                        {sc.url&&(
+                                          <a href={sc.url} target="_blank" rel="noopener noreferrer"
+                                            title={sc.url}
+                                            style={{display:"inline-flex",alignItems:"center",justifyContent:"center",
+                                              width:34,height:34,flexShrink:0,borderRadius:5,
+                                              background:"#dbeafe",border:"1px solid #93c5fd",
+                                              color:"#1e40af",fontSize:16,textDecoration:"none",lineHeight:1}}>
+                                            🔗
+                                          </a>
+                                        )}
+                                      </div>
                                     </div>
                                     <div>
                                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
