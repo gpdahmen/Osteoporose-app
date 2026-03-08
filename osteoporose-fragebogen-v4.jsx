@@ -7582,7 +7582,7 @@ function App(){
 
         {/* ── Letterhead display (screen + print, editing in Arzt-Zugang) ── */}
         <div className="lh-wrap">
-          <div className="lh-display">
+          <div className="lh-display" style={{display:"flex",alignItems:"center",gap:12}}>
             <div className="lh-logo">⚕</div>
             <div className="lh-text">
               <div className="lh-name">{lh.name}</div>
@@ -7596,7 +7596,14 @@ function App(){
                 </div>
               )}
             </div>
-
+            <button className="no-print"
+              onClick={()=>{setArztStartTab("auswertung");setAdminOpen(true);}}
+              style={{marginLeft:"auto",padding:"8px 16px",background:"#2c1f0e",color:"#e8d8b0",
+                border:"none",borderRadius:6,fontSize:13,fontWeight:700,cursor:"pointer",
+                display:"flex",alignItems:"center",gap:7,whiteSpace:"nowrap",flexShrink:0,
+                boxShadow:"0 2px 8px rgba(44,31,14,.3)"}}>
+              🩺 Arzt-Zugang
+            </button>
           </div>
         </div>
 
@@ -7605,16 +7612,6 @@ function App(){
           <h1>Anamnese- und Osteoporose-Dokumentationshilfe und Risikocheck</h1>
           <p className="hdr-sub">Bitte füllen Sie diesen Fragebogen sorgfältig aus. Ihre Angaben helfen der Ärztin / dem Arzt, Ihre Knochengesundheit besser einzuschätzen. Nehmen Sie sich Zeit – es gibt keine richtigen oder falschen Antworten.</p>
           <div className="badge">DVO-Leitlinie 2023 · AWMF 183-001 · Patientenfragebogen</div>
-          <div className="no-print" style={{marginTop:14}}>
-            <button
-              onClick={()=>{setArztStartTab("auswertung");setAdminOpen(true);}}
-              style={{padding:"9px 20px",background:"#2c1f0e",color:"#e8d8b0",
-                border:"none",borderRadius:7,fontSize:13,fontWeight:700,cursor:"pointer",
-                display:"inline-flex",alignItems:"center",gap:8,
-                boxShadow:"0 2px 8px rgba(44,31,14,.3)"}}>
-              🩺 Arzt-Zugang
-            </button>
-          </div>
         </div>
 
         {/* ── Save indicator ── */}
