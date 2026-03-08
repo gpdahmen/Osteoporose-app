@@ -1011,6 +1011,7 @@ const SEK_SCORES_DEFAULTS = {
   hpth: [
     { name:"5th Intl. Workshop PHPT 2022 – Klinische Phänotypen",
       quelle:"Bilezikian JP et al. J Bone Miner Res 2022;37(11):2293",
+      url:"https://doi.org/10.1002/jbmr.4677",
       stufen:[
         {label:"Symptomatisch",     info:"Skelettkomplikationen (Osteitis fibrosa cystica, Frakturen) und/oder Nierenbeteiligung (Nephrolithiasis, Nephrokalzinose)"},
         {label:"Asymptomatisch",    info:"Biochemisch auffällig (Ca ↑, PTH ↑), keine klinischen Organkomplikationen; Zufallsbefund"},
@@ -1019,6 +1020,7 @@ const SEK_SCORES_DEFAULTS = {
     },
     { name:"OP-Indikationen bei asymptomatischem pHPT (5th Workshop 2022)",
       quelle:"Bilezikian JP et al. J Bone Miner Res 2022;37(11):2293",
+      url:"https://doi.org/10.1002/jbmr.4677",
       stufen:[
         {label:"Serum-Ca",          info:"> 1 mg/dl (0,25 mmol/l) über oberer Normwertgrenze"},
         {label:"Niere",             info:"eGFR < 60 ml/min, Nephrolithiasis/Nephrokalzinose in Bildgebung, Hyperkalziurie > 400 mg/24 h mit erhöhtem Steinrisiko"},
@@ -1031,6 +1033,7 @@ const SEK_SCORES_DEFAULTS = {
   cushing: [
     { name:"Nieman 2008 – Endocrine Society Diagnosekriterien",
       quelle:"Nieman LK et al. J Clin Endocrinol Metab 2008;93(5):1526",
+      url:"https://doi.org/10.1210/jc.2007-2343",
       stufen:[
         {label:"Initial-Screening",          info:"UFC > Norm, Spätnacht-Speichelkortisol > 145 ng/dl (4 nmol/l), Serum-Kortisol nach 1 mg Dex > 1,8 µg/dl (50 nmol/l)"},
         {label:"Konfirmation",               info:"≥2 pathologische Tests → Endokrinologie; bei Diskordanz: Mitternachts-Serumkortisol oder Dex-CRH-Test"},
@@ -1039,6 +1042,7 @@ const SEK_SCORES_DEFAULTS = {
     },
     { name:"Cushing Syndrome Severity Index (CSI) – Sonino et al.",
       quelle:"Sonino N et al. J Intern Med 2000;247(5):623",
+      url:"https://pubmed.ncbi.nlm.nih.gov/10840314",
       stufen:[
         {label:"Leicht (0–5)",          info:"Wenige diskrete Zeichen; minimale Alltagseinschränkung"},
         {label:"Mittelschwer (6–10)",   info:"Deutliche Körperveränderungen, metabolische Störungen (Hyperglykämie, Hypertonie)"},
@@ -1051,6 +1055,7 @@ const SEK_SCORES_DEFAULTS = {
   hypogonadismus: [
     { name:"EAU / Endocrine Society – Hypogonadismus-Definition (Mann)",
       quelle:"Bhasin S et al. J Clin Endocrinol Metab 2018;103(5):1715",
+      url:"https://doi.org/10.1210/jc.2018-00229",
       stufen:[
         {label:"Gesamt-Testosteron < 300 ng/dl (10,4 nmol/l)", info:"Grenzwert für hypogonadalen Bereich; gilt für 2 Morgenmessungen (nüchtern, 8–10 Uhr)"},
         {label:"Symptome erforderlich",                          info:"Niedrige Libido, erektile Dysfunktion, verminderter Bartwuchs, Müdigkeit, Abnahme Muskelmasse oder -kraft"},
@@ -1063,6 +1068,7 @@ const SEK_SCORES_DEFAULTS = {
   hypogonadismus_f: [
     { name:"ESE/ASRM – Amenorrhoe-Klassifikation (Frau, prämenopausal)",
       quelle:"Gordon CM et al. J Clin Endocrinol Metab 2017;102(5):1413",
+      url:"https://doi.org/10.1210/jc.2017-00131",
       stufen:[
         {label:"Hypoth. Amenorrhoe (FHA)",  info:"LH/FSH niedrig oder normal, Östradiol niedrig – Stress, Untergewicht, Leistungssport, PCOS-ähnlich"},
         {label:"Hyperprolaktinämisch",       info:"Prolaktin ↑, LH/FSH supprimiert → Prolaktinom ausschließen"},
@@ -1074,6 +1080,7 @@ const SEK_SCORES_DEFAULTS = {
   hyperthyreose: [
     { name:"ATA Guidelines 2016 – Schweregrad Hyperthyreose",
       quelle:"Ross DS et al. Thyroid 2016;26(10):1343",
+      url:"https://doi.org/10.1089/thy.2016.0397",
       stufen:[
         {label:"Subklinisch",   info:"TSH < 0,4 mU/l, fT3/fT4 im Referenzbereich; erhöhtes Osteoporoserisiko, insbes. bei TSH < 0,1 mU/l"},
         {label:"Manifest",      info:"TSH < 0,1 mU/l, fT3 und/oder fT4 ↑; Symptome: Herzrasen, Gewichtsverlust, Tremor, Wärmeintoleranz"},
@@ -1085,6 +1092,7 @@ const SEK_SCORES_DEFAULTS = {
   akromegalie: [
     { name:"Giustina Consensus 2020 – Diagnose- und Aktivitätskriterien",
       quelle:"Giustina A et al. J Clin Endocrinol Metab 2020;105(4):dgz048",
+      url:"https://doi.org/10.1210/clinem/dgz048",
       stufen:[
         {label:"Aktiv",       info:"IGF-1 > alters-/geschlechtsspezifische Obergrenze UND/ODER GH-Nadir im oGTT ≥ 0,4 µg/l (nach modernen Assays)"},
         {label:"Biochemisch kontrolliert (Medikament)", info:"IGF-1 normal UND GH < 1,0 µg/l unter Medikation"},
@@ -1096,6 +1104,7 @@ const SEK_SCORES_DEFAULTS = {
   prolaktinom: [
     { name:"Melmed 2011 – Hyperprolaktinämie-Schweregrad (Endocrine Society)",
       quelle:"Melmed S et al. J Clin Endocrinol Metab 2011;96(2):273",
+      url:"https://doi.org/10.1210/jc.2010-1990",
       stufen:[
         {label:"Milde Hyperprolaktinämie (< 100 ng/ml)",    info:"Häufig medikamentös oder Stress; selten Mikroprolaktinom"},
         {label:"Moderate (100–250 ng/ml)",                   info:"Prolaktinom-verdächtig; MRT Hypophyse indiziert"},
@@ -1107,6 +1116,7 @@ const SEK_SCORES_DEFAULTS = {
   zoeliakie: [
     { name:"Marsh-Oberhuber-Klassifikation 1999",
       quelle:"Oberhuber G et al. Eur J Gastroenterol Hepatol 1999;11(10):1185",
+      url:"https://pubmed.ncbi.nlm.nih.gov/10524652",
       stufen:[
         {label:"Typ 0",  info:"Normal – Zöliakie unwahrscheinlich"},
         {label:"Typ 1",  info:"Intraepitheliale Lymphozytose (IEL ≥ 25/100 Enterozyten), Krypten normal, Zotten normal"},
@@ -1118,6 +1128,7 @@ const SEK_SCORES_DEFAULTS = {
     },
     { name:"Corazza-Villanacci-Klassifikation (vereinfacht)",
       quelle:"Corazza GR, Villanacci V. J Clin Pathol 2005;58(6):573",
+      url:"https://doi.org/10.1136/jcp.2004.025395",
       stufen:[
         {label:"Grad A",  info:"IEL ↑, keine Atrophie"},
         {label:"Grad B1", info:"Zottenatrophie, Zotten noch erkennbar (Vh:Kd-Ratio < 3)"},
@@ -1129,6 +1140,7 @@ const SEK_SCORES_DEFAULTS = {
   ced: [
     { name:"Harvey-Bradshaw-Index (HBI) – Morbus Crohn Aktivität",
       quelle:"Harvey RF, Bradshaw JM. Lancet 1980;1(8167):514",
+      url:"https://pubmed.ncbi.nlm.nih.gov/6102272",
       stufen:[
         {label:"Remission (0–4)",        info:"Keine oder minimale Symptome"},
         {label:"Leicht aktiv (5–7)",      info:"Geringe Beschwerden, keine systemische Beeinträchtigung"},
@@ -1138,6 +1150,7 @@ const SEK_SCORES_DEFAULTS = {
     },
     { name:"Mayo-Score – Colitis ulcerosa Aktivität",
       quelle:"Schroeder KW et al. N Engl J Med 1987;317(26):1625",
+      url:"https://doi.org/10.1056/NEJM198712243172603",
       stufen:[
         {label:"Remission (0–2)",        info:"Keine wesentliche Krankheitsaktivität"},
         {label:"Leicht aktiv (3–5)",     info:"Geringe rektale Blutung, leichte Endoskopieveränderungen"},
@@ -1150,6 +1163,7 @@ const SEK_SCORES_DEFAULTS = {
   vit_d: [
     { name:"Holick 2011 – Vitamin-D-Status nach 25-OH-D3",
       quelle:"Holick MF et al. J Clin Endocrinol Metab 2011;96(7):1911",
+      url:"https://doi.org/10.1210/jc.2011-0385",
       stufen:[
         {label:"Ausreichend",    info:"25-OH-D3 ≥ 30 ng/ml (75 nmol/l)"},
         {label:"Insuffizient",   info:"25-OH-D3 20–29 ng/ml (50–74 nmol/l) – erhöhtes Frakturrisiko"},
@@ -1182,6 +1196,7 @@ const SEK_SCORES_DEFAULTS = {
     },
     { name:"MELD-Score – Mortalitätsprädiktion",
       quelle:"Kamath PS et al. Hepatology 2001;33(2):464",
+      url:"https://doi.org/10.1053/jhep.2001.22172",
       stufen:[
         {label:"MELD < 10",    info:"Geringe 90-Tages-Mortalität (ca. 2%)"},
         {label:"MELD 10–19",   info:"Mäßig erhöhtes Risiko (ca. 6–20%)"},
@@ -1195,6 +1210,7 @@ const SEK_SCORES_DEFAULTS = {
   nieren: [
     { name:"KDIGO 2012/2017 – CKD-Stadien nach eGFR (CKD-EPI)",
       quelle:"KDIGO CKD-MBD Update Work Group. Kidney Int Suppl 2017;7:1",
+      url:"https://doi.org/10.1016/j.kint.2017.04.001",
       stufen:[
         {label:"G1  (≥ 90 ml/min)",    info:"Normales Filtrat, CKD nur bei Strukturschaden/Proteinurie"},
         {label:"G2  (60–89 ml/min)",   info:"Leicht eingeschränkt"},
@@ -1209,6 +1225,7 @@ const SEK_SCORES_DEFAULTS = {
   rta_bartter: [
     { name:"RTA-Typen-Klassifikation nach Pathomechanismus",
       quelle:"Rodriguez Soriano J. Pediatr Nephrol 2002;17(3):187",
+      url:"https://doi.org/10.1007/s004670100650",
       stufen:[
         {label:"RTA Typ 1 (distale RTA)", info:"Unfähigkeit zur Urinansäuerung; Urin-pH > 5,5; Hyperkalziurie, Nephrolithiasis, Osteopenie"},
         {label:"RTA Typ 2 (proximale RTA)", info:"Bikarbonat-Verlust; hypokaliämisch; Fanconi-Syndrom möglich"},
@@ -1222,6 +1239,7 @@ const SEK_SCORES_DEFAULTS = {
   hypercalciurie: [
     { name:"Definition Hyperkalziurie – internationale Schwellenwerte",
       quelle:"Worcester EM, Coe FL. N Engl J Med 2010;363(10):954",
+      url:"https://doi.org/10.1056/NEJMcp1001511",
       stufen:[
         {label:"Normal (♂)",          info:"< 300 mg/d (7,5 mmol/d) im 24h-Urin"},
         {label:"Normal (♀)",          info:"< 250 mg/d (6,2 mmol/d) im 24h-Urin"},
@@ -1234,6 +1252,7 @@ const SEK_SCORES_DEFAULTS = {
   myelom: [
     { name:"R-ISS – Revised International Staging System (IMWG 2015)",
       quelle:"Palumbo A et al. J Clin Oncol 2015;33(26):2863",
+      url:"https://doi.org/10.1200/JCO.2015.61.2267",
       stufen:[
         {label:"R-ISS I",   info:"ISS I + Standard-Risiko-Zytogenetik (iFISH, kein Hochrisiko) + LDH ≤ ULN; 5-JÜL ~82%"},
         {label:"R-ISS II",  info:"Weder I noch III; heterogene Gruppe; 5-JÜL ~62%"},
@@ -1242,6 +1261,7 @@ const SEK_SCORES_DEFAULTS = {
     },
     { name:"ISS – International Staging System (IMWG 2005)",
       quelle:"Greipp PR et al. J Clin Oncol 2005;23(15):3412",
+      url:"https://doi.org/10.1200/JCO.2005.04.242",
       stufen:[
         {label:"ISS I",   info:"β2-Mikroglobulin < 3,5 mg/l UND Albumin ≥ 3,5 g/dl; medianes Überleben 62 Monate"},
         {label:"ISS II",  info:"Weder I noch III; medianes Überleben 44 Monate"},
@@ -1250,6 +1270,7 @@ const SEK_SCORES_DEFAULTS = {
     },
     { name:"IMWG CRAB-Kriterien – Symptomatisches Myelom",
       quelle:"Rajkumar SV et al. Lancet Oncol 2014;15(12):e538",
+      url:"https://doi.org/10.1016/S1470-2045(14)70442-5",
       stufen:[
         {label:"C – Hyperkalzämie", info:"Serumkalzium > 0,25 mmol/l über ULN ODER > 2,75 mmol/l"},
         {label:"R – Niereninsuffizienz", info:"Kreatinin-Clearance < 40 ml/min ODER Kreatinin > 177 µmol/l"},
@@ -1276,6 +1297,7 @@ const SEK_SCORES_DEFAULTS = {
   haemochromatose: [
     { name:"EASL 2022 – Hereditäre Hämochromatose Stadieneinteilung",
       quelle:"EASL Clinical Practice Guidelines – Haemochromatosis 2022. J Hepatol 2022;77(2):479",
+      url:"https://doi.org/10.1016/j.jhep.2022.03.033",
       stufen:[
         {label:"Stadium 0", info:"Genetisch positiv (HFE C282Y homozygot), Transferrinsättigung und Ferritin normal"},
         {label:"Stadium 1", info:"Transferrinsättigung > 45% (♂) / > 40% (♀), Ferritin normal – Eisenüberladung ohne Schaden"},
@@ -1302,6 +1324,7 @@ const SEK_SCORES_DEFAULTS = {
   psa: [
     { name:"CASPAR-Kriterien – Psoriasis-Arthritis-Diagnose 2006",
       quelle:"Taylor W et al. Arthritis Rheum 2006;54(8):2665",
+      url:"https://doi.org/10.1002/art.22174",
       stufen:[
         {label:"Diagnose bestätigt (≥ 3 Punkte)", info:"Entzündliche Gelenkerkrankung + ≥3 Punkte aus: Psoriasis (aktuell=2/anamnestisch=1/familiär=1), Nagelveränderungen (1), neg. RF (1), Daktylitis (1), juxta-artikuläre Knochenneubildung (1)"},
         {label:"DAS28 Remission",    info:"DAS28 < 2,6 (kein aktives Gelenk)"},
@@ -1315,6 +1338,7 @@ const SEK_SCORES_DEFAULTS = {
   vaskulitis: [
     { name:"Birmingham Vasculitis Activity Score (BVAS) v3 – Aktivität",
       quelle:"Mukhtyar C et al. Ann Rheum Dis 2009;68(12):1827",
+      url:"https://doi.org/10.1136/ard.2011.150235",
       stufen:[
         {label:"Remission",          info:"BVAS = 0; keine aktiven Vaskulitis-Manifestationen"},
         {label:"Geringe Aktivität",  info:"BVAS 1–5; wenige Organbeteiligungen"},
@@ -1340,6 +1364,7 @@ const SEK_SCORES_DEFAULTS = {
   immo_neuro: [
     { name:"Immobilisationsgrad – klinische Einstufung",
       quelle:"Kortebein P et al. JAMA 2007;297(16):1772 / Frostick SP. Bone Jt J 2010",
+      url:"https://doi.org/10.1001/jama.297.16.1772",
       stufen:[
         {label:"Bettruhe 1–3 Tage",      info:"Gering; schnell reversibel; BMD-Verlust < 1%"},
         {label:"Bettruhe 1–4 Wochen",    info:"Mäßig; ca. 1–2% BMD-Verlust/Woche im trabekulären Knochen"},
@@ -1364,6 +1389,7 @@ const SEK_SCORES_DEFAULTS = {
   alkohol_ost: [
     { name:"AUDIT-C – Alkohol-Screening (WHO)",
       quelle:"Bush K et al. Arch Intern Med 1998;158(16):1789",
+      url:"https://doi.org/10.1001/archinte.158.16.1789",
       stufen:[
         {label:"Kein Risiko (0–3 ♂ / 0–2 ♀)",  info:"Kein problematischer Konsum"},
         {label:"Riskanter Konsum (4–7)",          info:"Erhöhtes Risiko für alkoholbedingte Probleme; Beratung empfohlen"},
@@ -1376,6 +1402,7 @@ const SEK_SCORES_DEFAULTS = {
   oi: [
     { name:"Sillence-Klassifikation 1979 (klassisch, klinisch-genetisch)",
       quelle:"Sillence DO et al. J Med Genet 1979;16(2):101",
+      url:"https://pubmed.ncbi.nlm.nih.gov/449268",
       stufen:[
         {label:"Typ I (mild)",        info:"Mildeste Form; blaue Skleren; autosomal dominant; Frakturen durch Bagatelltrauma; keine Deformitäten; Schwerhörigkeit möglich"},
         {label:"Typ II (letal)",      info:"Perinatal letal; schwerste Knochenverformungen; meist de-novo-Mutation in COL1A1/COL1A2"},
@@ -1389,6 +1416,7 @@ const SEK_SCORES_DEFAULTS = {
   xlh: [
     { name:"XLH-Klinischer Schweregrad – Erwachsene",
       quelle:"Linglart A et al. Endocrine 2014;47(2):333 / Ruppe MD. GeneReviews 2023",
+      url:"https://doi.org/10.1007/s12020-014-0382-0",
       stufen:[
         {label:"Laborchemisch (nur Phosphat ↓)",  info:"Hypophosphatämie ohne klinische Manifestation"},
         {label:"Mäßig",                            info:"Enthesiopathien, Zahnabszesse, diffuse Knochen-/Gelenkschmerzen; GdB 30–50% möglich"},
@@ -1400,6 +1428,7 @@ const SEK_SCORES_DEFAULTS = {
   hpp: [
     { name:"HPP – Klinische Formen nach Manifestationsalter (Whyte 2016)",
       quelle:"Whyte MP. Calcif Tissue Int 2016;98(4):329",
+      url:"https://doi.org/10.1007/s00223-015-9909-7",
       stufen:[
         {label:"Perinatal-letal",     info:"Schwerste Form; Hydrops, Atemsuffizienz, kaum ossifiziertes Skelett bei Geburt"},
         {label:"Prenatal benigne",    info:"In utero Rachitis-Zeichen, postnatal Spontanremission möglich"},
@@ -1414,6 +1443,7 @@ const SEK_SCORES_DEFAULTS = {
   tio: [
     { name:"TIO – Biochemische Diagnosekriterien",
       quelle:"Jan de Beur SM et al. JBMR Plus 2021;5(8):e10475",
+      url:"https://doi.org/10.1002/jbm4.10475",
       stufen:[
         {label:"FGF-23 erhöht",       info:"Intaktes FGF-23 > 100 pg/ml (altersabhängig); bei TIO oft massiv erhöht (500–10.000 pg/ml)"},
         {label:"Phosphat erniedrigt", info:"Serum-Phosphat < 0,6–0,8 mmol/l nüchtern; TmP/GFR erniedrigt"},
@@ -1426,6 +1456,7 @@ const SEK_SCORES_DEFAULTS = {
   paget: [
     { name:"Paget-Aktivitätsmarker – Biochemische Einteilung",
       quelle:"Singer FR et al. J Bone Miner Res 2014;29(12):2536 (Endocrine Society Guideline)",
+      url:"https://doi.org/10.1002/jbmr.2500",
       stufen:[
         {label:"Inaktiv",              info:"Knochenspezifische AP (BSAP) + P1NP im Normbereich; asymptomatisch"},
         {label:"Leicht aktiv",         info:"BSAP oder Gesamt-AP leicht erhöht (< 2× ULN); wenig befallene Knochen"},
@@ -1438,6 +1469,7 @@ const SEK_SCORES_DEFAULTS = {
   marfan: [
     { name:"Ghent-Nosologie 2010 – Revised Ghent Criteria",
       quelle:"Loeys BL et al. J Med Genet 2010;47(7):476",
+      url:"https://doi.org/10.1136/jmg.2009.072785",
       stufen:[
         {label:"Diagnose (ohne Familienanamnese)",    info:"Aortenwurzelerweiterung Z-Score ≥ 2 + Ektopia lentis ODER Aortenwurzelerweiterung Z-Score ≥ 2 + FBN1-Mutation ODER Aortenwurzelerweiterung Z-Score ≥ 2 + Systemscore ≥ 7"},
         {label:"Diagnose (mit pos. Familienanamnese)", info:"Familienanamnese MFS + Ektopia lentis ODER Familienanamnese + Systemscore ≥ 7 ODER Familienanamnese + Aortenwurzelerweiterung Z-Score ≥ 2 (< 20 J.) / Z-Score ≥ 3 (≥ 20 J.)"},
@@ -1449,6 +1481,7 @@ const SEK_SCORES_DEFAULTS = {
   eds: [
     { name:"Beighton-Score – Hypermobilitätsbeurteilung",
       quelle:"Beighton P et al. Ann Rheum Dis 1973;32(5):413",
+      url:"https://pubmed.ncbi.nlm.nih.gov/4613763",
       stufen:[
         {label:"Positiv (≥ 6/9 Kinder, ≥ 5/9 Frauen, ≥ 4/9 Männer)", info:"Klinisch signifikante Hypermobilität"},
         {label:"Grenzwertig",                                             info:"3–5 Punkte – leichte Hypermobilität, individuelle Abklärung"},
@@ -1458,6 +1491,7 @@ const SEK_SCORES_DEFAULTS = {
     },
     { name:"EDS-Typen-Klassifikation (ICOGS 2017)",
       quelle:"Malfait F et al. Am J Med Genet C 2017;175(1):8",
+      url:"https://doi.org/10.1002/ajmg.c.31552",
       stufen:[
         {label:"Hypermobiles EDS (hEDS)", info:"Häufigste Form; kein bekanntes Gendefekt; Diagnose klinisch-kriteriologisch; niedrigere BMD"},
         {label:"Klassisches EDS",         info:"COL5A1/COL5A2; Haut überdehnbar + schlechte Wundheilung; Papyrusnarbigkeit"},
@@ -1469,6 +1503,7 @@ const SEK_SCORES_DEFAULTS = {
   gaucher: [
     { name:"Zimran Severity Score Index (SSI) – Morbus Gaucher",
       quelle:"Zimran A et al. Blood 1992;79(9):2229",
+      url:"https://pubmed.ncbi.nlm.nih.gov/1571538",
       stufen:[
         {label:"Leicht (SSI < 9)",     info:"Keine oder minimale Organmanifestation"},
         {label:"Mäßig (SSI 9–18)",    info:"Hepatosplenomegalie, Anämie, geringe Knochenbeteiligung"},
@@ -1481,6 +1516,7 @@ const SEK_SCORES_DEFAULTS = {
   turner: [
     { name:"Turner-Syndrom – Karyotyp-Varianten und klinische Relevanz",
       quelle:"Gravholt CH et al. Nat Rev Dis Primers 2019;5(1):41",
+      url:"https://doi.org/10.1038/s41572-019-0088-8",
       stufen:[
         {label:"45,X (klassisch)",             info:"Häufigstes Muster (50%); schwerer primärer Hypogonadismus; ausgeprägteste Osteoporose"},
         {label:"Mosaik 45,X/46,XX",            info:"Variablerer Phänotyp; partielle Ovarfunktion möglich; Knochendichte besser als 45,X"},
@@ -1493,6 +1529,7 @@ const SEK_SCORES_DEFAULTS = {
   klinefelter: [
     { name:"Klinefelter-Syndrom – Karyotyp und endokrine Relevanz",
       quelle:"Gravholt CH et al. Nat Rev Endocrinol 2018;14(8):475",
+      url:"https://doi.org/10.1038/s41574-018-0010-y",
       stufen:[
         {label:"47,XXY (klassisch, 80%)",       info:"Primärer Hypogonadismus; Testosteron ↓, LH/FSH ↑; Osteoporoserisiko moderat bis hoch"},
         {label:"Polysomie (48,XXXY / 49,XXXXY)", info:"Schwererer Phänotyp; ausgeprägtere kognitive Defizite; Osteoporoserisiko höher"},
