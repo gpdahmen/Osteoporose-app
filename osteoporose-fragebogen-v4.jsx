@@ -6509,14 +6509,44 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                               <div style={{background:"#f8f4ee",border:"1px solid #d8c8b0",borderRadius:5,
                                 padding:"8px 10px",fontSize:12,lineHeight:1.7,color:"#2a1a0a",
                                 whiteSpace:"pre-wrap"}}>
-                                {med.besonderheit.split(new RegExp("(https?://[^\\s\\n]+)","g")).map((part,pi)=>
-                                  new RegExp("^https?://").test(part)
-                                    ?<a key={pi} href={part} target="_blank" rel="noopener noreferrer"
-                                        style={{color:"#1a5a9a",textDecoration:"underline",wordBreak:"break-all"}}>
-                                        🔗 {part}
+                                {med.besonderheit.split(new RegExp("(https?://[^\\s\\n]+)","g")).map((part,pi)=>{
+                                  if(!new RegExp("^https?://").test(part)) return <span key={pi}>{part}</span>;
+                                  const isDoi=part.includes("doi.org");
+                                  const isPubmed=part.includes("pubmed") || part.includes("ncbi.nlm.nih.gov");
+                                  const doiId=isDoi?part.replace(/.*doi\.org\//,""):"";
+                                  const pubmedSearchUrl="https://pubmed.ncbi.nlm.nih.gov/?term="+encodeURIComponent(doiId||part);
+                                  const unpaywall="https://unpaywall.org/"+encodeURIComponent(part);
+                                  return(
+                                    <span key={pi} style={{display:"inline-flex",flexWrap:"wrap",gap:5,
+                                      margin:"3px 0",alignItems:"center"}}>
+                                      <a href={part} target="_blank" rel="noopener noreferrer"
+                                        style={{display:"inline-flex",alignItems:"center",gap:4,
+                                          padding:"3px 9px",background:"#dbeafe",color:"#1e40af",
+                                          border:"1px solid #93c5fd",borderRadius:5,fontSize:11,
+                                          fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
+                                        🔗 DOI / Quelle öffnen
                                       </a>
-                                    :<span key={pi}>{part}</span>
-                                )}
+                                      {isDoi&&(
+                                        <a href={unpaywall} target="_blank" rel="noopener noreferrer"
+                                          style={{display:"inline-flex",alignItems:"center",gap:4,
+                                            padding:"3px 9px",background:"#dcfce7",color:"#166534",
+                                            border:"1px solid #86efac",borderRadius:5,fontSize:11,
+                                            fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
+                                          ⬇️ PDF (Unpaywall)
+                                        </a>
+                                      )}
+                                      {(isDoi||isPubmed)&&(
+                                        <a href={isDoi?pubmedSearchUrl:part} target="_blank" rel="noopener noreferrer"
+                                          style={{display:"inline-flex",alignItems:"center",gap:4,
+                                            padding:"3px 9px",background:"#fef3c7",color:"#92400e",
+                                            border:"1px solid #fcd34d",borderRadius:5,fontSize:11,
+                                            fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
+                                          🔍 PubMed
+                                        </a>
+                                      )}
+                                    </span>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
