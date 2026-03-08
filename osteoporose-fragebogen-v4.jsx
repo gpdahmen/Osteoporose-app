@@ -6147,7 +6147,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                               const row=draft[q.id]||{};
                               const entries=normEntries(row);
                               const def=DIAG_DB_DEFAULTS[q.id]||{};
-                              const shortLabel=q.label.split("\n")[0].slice(0,65)+(q.label.split("\n")[0].length>65?"…":"");
+                              // Vollständiger Fragentext – alle Zeilen, keine Kürzung
+                              const fullLabel=q.label.replace(/\n/g," · ");
                               return entries.map((entry,idx)=>{
                                 const icdOk=validateIcd(entry.icd5);
                                 const isFirst=idx===0;
@@ -6158,77 +6159,82 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                     background:rowBg,
                                     borderBottom:"1px solid #f0e8d8",
                                     borderLeft:borderL}}>
-                                    {/* Frage-Spalte */}
-                                    <td style={{padding:"7px 10px",color:"#3a2a18",lineHeight:1.4,verticalAlign:"top",
-                                      borderTop:isFirst?"none":"1px dashed #f0e0c8"}}>
+                                    {/* Frage-Spalte – vollständig lesbar */}
+                                    <td style={{padding:"10px 12px",color:"#3a2a18",lineHeight:1.5,verticalAlign:"top",
+                                      borderTop:isFirst?"none":"1px dashed #f0e0c8",minWidth:180}}>
                                       {isFirst&&(
                                         <>
-                                        <div style={{fontWeight:500,fontSize:11.5}}>{shortLabel}
+                                        <div style={{fontWeight:500,fontSize:12,whiteSpace:"normal",wordBreak:"break-word"}}>
+                                          {fullLabel}
                                           {isIndicator&&INDICATOR_ASTERISK.has(q.id)&&
                                             <sup style={{color:"#b45309",marginLeft:2,fontSize:9}}>*</sup>}
                                         </div>
                                         {isIndicator&&(
-                                          <div style={{fontSize:10,color:"#92400e",marginTop:2,lineHeight:1.3}}>
-                                            Indikator – kein RR
+                                          <div style={{fontSize:10.5,color:"#92400e",marginTop:3,lineHeight:1.4,
+                                            background:"#fef9ec",borderRadius:3,padding:"2px 5px",marginTop:4}}>
+                                            🔔 Risikoindikator – kein RR im DVO-Rechner
                                           </div>
                                         )}
                                         {!isIndicator&&q.fmap&&(
-                                          <div style={{fontSize:10,color:"#9a8a6a",marginTop:2}}>
+                                          <div style={{fontSize:10.5,color:"#6a7a8a",marginTop:4,lineHeight:1.4}}>
                                             Staffelung: {Object.entries(q.fmap).map(([k,v])=>"×"+v).join(" / ")}
                                           </div>
                                         )}
                                         {(def.icd5_f_meno||def.icd5_m)&&(
-                                          <div style={{fontSize:9.5,color:"#6a5a88",marginTop:3}}>
-                                            {def.icd5_f_meno&&<span>♀ {def.icd5_f_meno}</span>}
-                                            {def.icd5_m&&<span style={{marginLeft:6}}>♂ {def.icd5_m}</span>}
+                                          <div style={{fontSize:10,color:"#6a5a88",marginTop:4,lineHeight:1.5}}>
+                                            {def.icd5_f_meno&&<div>♀ postmenopausal: {def.icd5_f_meno}</div>}
+                                            {def.icd5_m&&<div>♂ Mann: {def.icd5_m}</div>}
                                           </div>
                                         )}
                                         </>
                                       )}
                                     </td>
                                     {/* RR-Badge */}
-                                    <td style={{padding:"6px 8px",textAlign:"center",verticalAlign:"top"}}>
+                                    <td style={{padding:"10px 8px",textAlign:"center",verticalAlign:"top"}}>
                                       {isFirst&&(isIndicator?(
-                                        <span style={{padding:"2px 6px",borderRadius:4,fontSize:10,
+                                        <span style={{display:"inline-block",padding:"3px 7px",borderRadius:4,fontSize:10,
                                           fontWeight:700,background:"#fef3c7",color:"#92400e",
-                                          border:"1px solid #f59e0b",whiteSpace:"nowrap"}}>🔔</span>
+                                          border:"1px solid #f59e0b",whiteSpace:"nowrap"}}>🔔 Ind.</span>
                                       ):displayFactor?(
-                                        <span style={{padding:"2px 7px",borderRadius:4,fontSize:11,fontWeight:700,
+                                        <span style={{display:"inline-block",padding:"3px 8px",borderRadius:4,
+                                          fontSize:12,fontWeight:700,
                                           background:fColor(displayFactor),color:fTextColor(displayFactor),
                                           whiteSpace:"nowrap"}}>×{displayFactor}</span>
                                       ):null)}
                                     </td>
-                                    {/* Diagnose – editierbar */}
-                                    <td style={{padding:"4px 6px",verticalAlign:"middle"}}>
-                                      <input
+                                    {/* Diagnose – editierbar, auto-resize textarea */}
+                                    <td style={{padding:"6px 7px",verticalAlign:"top"}}>
+                                      <textarea
                                         value={entry.diagnose||""}
                                         placeholder="Klarschrift-Diagnose…"
+                                        rows={Math.max(2, Math.ceil((entry.diagnose||"").length/38))}
                                         onChange={e=>updateEntry(q.id,idx,"diagnose",e.target.value)}
-                                        style={{width:"100%",fontSize:11.5,padding:"4px 7px",
-                                          border:"1px solid #e0d0b8",borderRadius:4,
-                                          background:"#fafaf8",outline:"none",boxSizing:"border-box"}}/>
+                                        style={{width:"100%",fontSize:12,padding:"5px 8px",lineHeight:1.5,
+                                          border:"1px solid #e0d0b8",borderRadius:4,resize:"vertical",
+                                          background:"#fafaf8",outline:"none",boxSizing:"border-box",
+                                          fontFamily:"inherit",minHeight:38}}/>
                                     </td>
                                     {/* ICD-10 – editierbar */}
-                                    <td style={{padding:"4px 6px",verticalAlign:"middle"}}>
+                                    <td style={{padding:"6px 7px",verticalAlign:"top"}}>
                                       <input
                                         value={entry.icd5||""}
                                         placeholder="z. B. M80.05G"
                                         onChange={e=>updateEntry(q.id,idx,"icd5",e.target.value.toUpperCase())}
-                                        style={{width:"100%",fontSize:11,padding:"4px 7px",fontFamily:"monospace",
+                                        style={{width:"100%",fontSize:12,padding:"5px 8px",fontFamily:"monospace",
                                           border:`1px solid ${icdOk?"#e0d0b8":"#f87171"}`,
                                           borderRadius:4,background:icdOk?"#fafaf8":"#fff5f5",
-                                          outline:"none",boxSizing:"border-box"}}/>
+                                          outline:"none",boxSizing:"border-box",height:38}}/>
                                     </td>
                                     {/* Aktionen */}
-                                    <td style={{padding:"4px 6px",textAlign:"center",verticalAlign:"middle",whiteSpace:"nowrap"}}>
-                                      <button onClick={()=>addEntry(q.id)} title="Zeile hinzufügen"
-                                        style={{fontSize:13,background:"none",border:"none",cursor:"pointer",
-                                          color:"#6a9a4a",padding:"2px 5px"}}>＋</button>
+                                    <td style={{padding:"6px 6px",textAlign:"center",verticalAlign:"top",whiteSpace:"nowrap"}}>
+                                      <button onClick={()=>addEntry(q.id)} title="Diagnose-Zeile hinzufügen"
+                                        style={{display:"block",width:"100%",fontSize:13,background:"none",border:"none",
+                                          cursor:"pointer",color:"#6a9a4a",padding:"3px 2px"}}>＋</button>
                                       <button onClick={()=>removeEntry(q.id,idx)}
                                         disabled={entries.length===1&&!entry.diagnose&&!entry.icd5}
                                         title="Zeile löschen"
-                                        style={{fontSize:12,background:"none",border:"none",cursor:"pointer",
-                                          color:"#c05050",padding:"2px 5px",
+                                        style={{display:"block",width:"100%",fontSize:12,background:"none",border:"none",
+                                          cursor:"pointer",color:"#c05050",padding:"3px 2px",
                                           opacity:entries.length===1&&!entry.diagnose&&!entry.icd5?0.3:1}}>✕</button>
                                     </td>
                                   </tr>
