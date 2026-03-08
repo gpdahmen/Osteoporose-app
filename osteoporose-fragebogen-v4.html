@@ -5649,46 +5649,76 @@ function BesonderheitPanel({med,onUpdate}){
   );
 }
 
-/* ── LitLinks: 3-button literature link row ── */
+/* ── Unpaywall-Cache (verhindert Doppel-Requests für gleiche DOI) ── */
+const _oaCache={};
+
+/* ── LitLinks: direkter Link + Live-Unpaywall-Check auf freies PDF ── */
 function LitLinks({url,label}){
   if(!url)return null;
+  const [oaUrl,setOaUrl]=useState(undefined); // undefined=loading, null=nicht frei, string=frei
   const isDoi=url.includes("doi.org");
   const isPubmed=url.includes("pubmed")||url.includes("ncbi.nlm.nih.gov");
   const doiId=isDoi?url.replace(/.*doi\.org\//,""):"";
-  const unpaywall="https://unpaywall.org/"+encodeURIComponent(url);
   const pubmedUrl=isDoi
     ?"https://pubmed.ncbi.nlm.nih.gov/?term="+encodeURIComponent(doiId)
     :url;
-  const shortUrl=isDoi?"doi:"+doiId:url.replace(new RegExp("^https?://"),"");
+  const shortLabel=label||(isDoi?"doi:"+doiId:url.replace(/^https?:\/\//,""));
+
+  useEffect(()=>{
+    if(!isDoi){setOaUrl(null);return;}
+    // Cache-Treffer
+    if(doiId in _oaCache){setOaUrl(_oaCache[doiId]);return;}
+    // Unpaywall-API-Abfrage (kostenlos, kein Key nötig)
+    const email="ost-check@orthopaedie-langenhorn.de";
+    fetch("https://api.unpaywall.org/v2/"+encodeURIComponent(doiId)+"?email="+email,
+      {signal:AbortSignal.timeout?AbortSignal.timeout(6000):undefined})
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{
+        const best=d?.best_oa_location;
+        const pdf=best?.url_for_pdf||best?.url||null;
+        _oaCache[doiId]=pdf;
+        setOaUrl(pdf);
+      })
+      .catch(()=>{_oaCache[doiId]=null;setOaUrl(null);});
+  },[url]);
+
   return(
-    <span style={{display:"inline-flex",flexWrap:"wrap",gap:5,margin:"3px 0",alignItems:"center"}}>
-      {/* Direct clickable URL text */}
+    <span style={{display:"inline-flex",flexWrap:"wrap",gap:4,margin:"2px 0",alignItems:"center"}}>
+      {/* Direkter Link */}
       <a href={url} target="_blank" rel="noopener noreferrer"
         style={{fontFamily:"'Courier New',monospace",fontSize:11,color:"#1a5a9a",
-          textDecoration:"underline",wordBreak:"break-all",cursor:"pointer"}}>
-        {label||shortUrl}
+          textDecoration:"underline",wordBreak:"break-all"}}>
+        {shortLabel}
       </a>
-      {/* Button row */}
-      <a href={url} target="_blank" rel="noopener noreferrer"
-        style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 8px",
-          background:"#dbeafe",color:"#1e40af",border:"1px solid #93c5fd",
-          borderRadius:5,fontSize:10.5,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
-        🔗 öffnen
-      </a>
-      {isDoi&&(
-        <a href={unpaywall} target="_blank" rel="noopener noreferrer"
-          style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 8px",
+      {/* Ladeindikator */}
+      {oaUrl===undefined&&isDoi&&(
+        <span style={{fontSize:9,color:"#aaa",fontStyle:"italic"}}>⏳</span>
+      )}
+      {/* Freies PDF gefunden */}
+      {oaUrl&&(
+        <a href={oaUrl} target="_blank" rel="noopener noreferrer"
+          style={{display:"inline-flex",alignItems:"center",gap:2,padding:"1px 7px",
             background:"#dcfce7",color:"#166534",border:"1px solid #86efac",
-            borderRadius:5,fontSize:10.5,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
-          ⬇️ PDF
+            borderRadius:4,fontSize:10,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
+          📄 PDF frei
         </a>
       )}
-      {(isDoi||isPubmed)&&(
+      {/* Kein freies PDF → PubMed-Fallback */}
+      {oaUrl===null&&isDoi&&(
         <a href={pubmedUrl} target="_blank" rel="noopener noreferrer"
-          style={{display:"inline-flex",alignItems:"center",gap:3,padding:"2px 8px",
+          style={{display:"inline-flex",alignItems:"center",gap:2,padding:"1px 7px",
             background:"#fef3c7",color:"#92400e",border:"1px solid #fcd34d",
-            borderRadius:5,fontSize:10.5,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
+            borderRadius:4,fontSize:10,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
           🔍 PubMed
+        </a>
+      )}
+      {/* PubMed-Direktlink (kein DOI) */}
+      {oaUrl===null&&isPubmed&&!isDoi&&(
+        <a href={url} target="_blank" rel="noopener noreferrer"
+          style={{display:"inline-flex",alignItems:"center",gap:2,padding:"1px 7px",
+            background:"#dbeafe",color:"#1e40af",border:"1px solid #93c5fd",
+            borderRadius:4,fontSize:10,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
+          🔗 öffnen
         </a>
       )}
     </span>
