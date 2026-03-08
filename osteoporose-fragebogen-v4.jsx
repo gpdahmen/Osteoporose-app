@@ -5979,8 +5979,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                 );
               })()}
 
-                            {(activeTab==="risiko"||activeTab==="sek")&&(
-                            activeTab==="risiko" ? filteredIds.map(id=>{
+                            {activeTab==="risiko" ? filteredIds.map(id=>{
                 const row = draft[id]||{};
                 const entries = normEntries(row);
                 const def = DIAG_DB_DEFAULTS[id]||{};
@@ -6038,6 +6037,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                   </div>
                 );
               }) : (()=>{
+              if(activeTab!=="sek") return null;
               // ── SEK TAB (full editor) ────────────────────────────────
               // Build sym→questions lookup from SECTIONS at render time
               const symQsMap={};
@@ -6340,8 +6340,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                   </div>
                                 </div>
                               );
-                            })()
-                            )}
+                            })()}
 
                           </div>
                         )}
