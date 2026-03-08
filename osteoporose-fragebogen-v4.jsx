@@ -7875,8 +7875,7 @@ function App(){
           <div className="bottom-bar no-print">
 
             {/* ── Patient: Abschluss-Button ── */}
-            <div style={{marginBottom:16}}>
-              <button
+            <button
                 onClick={handleSendToPatient}
                 style={{width:"100%",padding:"18px 20px",borderRadius:10,border:"2px solid #4a9a4a",
                   background:"linear-gradient(135deg,#f0f9f0,#e4f4e4)",cursor:"pointer",
@@ -7890,33 +7889,7 @@ function App(){
                   PDF der Patienteneingabe erstellen (ohne ärztliche Auswertung)
                 </div>
               </button>
-            </div>
 
-                        {/* Staff area – visually separated */}
-            <div style={{borderTop:"2px dashed #d8c8b0",paddingTop:14,marginTop:4}}>
-              <div style={{fontSize:11,fontWeight:700,letterSpacing:"1.5px",
-                textTransform:"uppercase",color:"#9a8878",marginBottom:10,
-                display:"flex",alignItems:"center",gap:8}}>
-                <span style={{flex:1,height:1,background:"#e0d0b8"}}/>
-                Nur für Praxispersonal
-                <span style={{flex:1,height:1,background:"#e0d0b8"}}/>
-              </div>
-              <div style={{display:"flex",gap:10,flexWrap:"wrap",justifyContent:"center"}}>
-                <button className="btn-calc"
-                  style={{background:"#2c1f0e",color:"#e8d8b0",border:"none",
-                    padding:"13px 26px",fontSize:14,fontWeight:700,letterSpacing:".3px",
-                    borderRadius:7,display:"flex",alignItems:"center",gap:9,boxShadow:"0 3px 12px rgba(44,31,14,.3)"}}
-                  onClick={()=>{setArztStartTab("auswertung");setAdminOpen(true);}}>
-                  <span style={{fontSize:18}}>🩺</span> Arzt-Zugang öffnen
-                </button>
-                <button className="btn-calc"
-                  style={{background:"white",color:"var(--M)",border:"1.5px solid var(--P)",padding:"11px 18px"}}
-                  onClick={openAllSections}>
-                  ↕ Alle Abschnitte öffnen
-                </button>
-                <button className="btn-reset" onClick={handleReset}>↺ Neu starten</button>
-              </div>
-            </div>
           </div>
         )}
 
