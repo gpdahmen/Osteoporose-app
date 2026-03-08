@@ -6237,7 +6237,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                 );
               })()}
 
-                            {false ? filteredIds.map(id=>{
+                            {activeTab==="risiko" ? filteredIds.map(id=>{
                 const row = draft[id]||{};
                 const entries = normEntries(row);
                 const def = DIAG_DB_DEFAULTS[id]||{};
