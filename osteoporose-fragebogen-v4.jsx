@@ -6161,7 +6161,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                     {/* Frage-Spalte */}
                                     <td style={{padding:"7px 10px",color:"#3a2a18",lineHeight:1.4,verticalAlign:"top",
                                       borderTop:isFirst?"none":"1px dashed #f0e0c8"}}>
-                                      {isFirst&&<>
+                                      {isFirst&&(
+                                        <>
                                         <div style={{fontWeight:500,fontSize:11.5}}>{shortLabel}
                                           {isIndicator&&INDICATOR_ASTERISK.has(q.id)&&
                                             <sup style={{color:"#b45309",marginLeft:2,fontSize:9}}>*</sup>}
@@ -6182,7 +6183,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                             {def.icd5_m&&<span style={{marginLeft:6}}>♂ {def.icd5_m}</span>}
                                           </div>
                                         )}
-                                      </>}
+                                        </>
+                                      )}
                                     </td>
                                     {/* RR-Badge */}
                                     <td style={{padding:"6px 8px",textAlign:"center",verticalAlign:"top"}}>
