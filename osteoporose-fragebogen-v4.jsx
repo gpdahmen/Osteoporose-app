@@ -7679,7 +7679,7 @@ function App(){
           </div>
           <label className="disclaimer-gate-check">
             <input type="checkbox" checked={disclaimerOk} onChange={e=>setDisclaimerOk(e.target.checked)}/>
-            <span>Ich habe den Hinweis gelesen und bin damit einverstanden, dass meine Angaben ausschließlich auf diesem Gerät gespeichert und vom behandelnden Praxisteam ausgewertet werden.</span>
+            <span>Ich habe den Hinweis gelesen und bin damit einverstanden, dass meine Angaben gespeichert und unter anderem zu Test- und Übungszwecken ausgewertet werden.</span>
           </label>
           {!disclaimerOk&&(
             <div className="disclaimer-gate-blocked">
