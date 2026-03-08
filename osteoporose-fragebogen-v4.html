@@ -6060,7 +6060,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
               )}
 
               {/* ═══ RISIKOÜBERSICHT TAB ══════════════════════════════ */}
-              {activeTab==="risikoliste"&&(()=>{
+              {activeTab==="risiko"&&(()=>{
                 const risk=gender?computeRisk(answers,gender):null;
                 const allQs=SECTIONS.flatMap(sec=>
                   (sec.qs||[]).map(q=>({...q,
@@ -6927,8 +6927,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
             )}
 
             <div className="admin-footer">
-              {(activeTab!=="auswertung"&&activeTab!=="verlauf"&&activeTab!=="briefkopf"&&activeTab!=="risikoliste"&&activeTab!=="patienten")&&<button className="admin-reset-btn" onClick={handleReset}>↩ Auf Standard zurücksetzen</button>}
-              <button className="admin-save-btn" onClick={handleSave}>{(activeTab==="auswertung"||activeTab==="verlauf"||activeTab==="briefkopf"||activeTab==="risikoliste"||activeTab==="patienten")?"✕ Schließen":"✓ Speichern & Schließen"}</button>
+              {(activeTab!=="auswertung"&&activeTab!=="verlauf"&&activeTab!=="briefkopf"&&activeTab!=="risiko"&&activeTab!=="patienten")&&<button className="admin-reset-btn" onClick={handleReset}>↩ Auf Standard zurücksetzen</button>}
+              <button className="admin-save-btn" onClick={handleSave}>{(activeTab==="auswertung"||activeTab==="verlauf"||activeTab==="briefkopf"||activeTab==="risiko"||activeTab==="patienten")?"✕ Schließen":"✓ Speichern & Schließen"}</button>
             </div>
           </>
         )}
