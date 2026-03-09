@@ -3374,28 +3374,28 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
 /* ── AutoTextarea: Zeilenzahl aus Inhalt berechnet, kein Leerraum ── */
 function AutoTextarea({value,onChange,placeholder,style,minRows=1,maxRows=10,...rest}){
   const ref=useRef(null);
-  const [height,setHeight]=useState("auto");
 
-  useEffect(()=>{
+  // useLayoutEffect: läuft synchron nach DOM-Update, VOR dem nächsten Paint
+  // → kein Flackern, keine sichtbare Höhenänderung
+  React.useLayoutEffect(()=>{
     const el=ref.current;
     if(!el)return;
-    // Temporär auf "auto" setzen um scrollHeight korrekt zu messen
-    el.style.height="auto";
+    el.style.height="0px"; // auf 0 setzen damit scrollHeight korrekt ist
     const cs=getComputedStyle(el);
-    const lh=parseFloat(cs.lineHeight)||20;
+    const lh=parseFloat(cs.lineHeight)||18;
     const pt=parseFloat(cs.paddingTop)||0;
     const pb=parseFloat(cs.paddingBottom)||0;
-    const minH=minRows*lh+pt+pb;
-    const maxH=maxRows*lh+pt+pb;
-    const needed=el.scrollHeight;
-    const final=Math.min(Math.max(needed,minH),maxH);
-    el.style.height="";
-    setHeight(final+"px");
-  },[value,minRows,maxRows]);
+    const border=(parseFloat(cs.borderTopWidth)||0)+(parseFloat(cs.borderBottomWidth)||0);
+    const minH=minRows*lh+pt+pb+border;
+    const maxH=maxRows*lh+pt+pb+border;
+    const needed=el.scrollHeight+border;
+    el.style.height=Math.min(Math.max(needed,minH),maxH)+"px";
+    el.style.overflow=needed>maxH?"auto":"hidden";
+  });  // kein Dependency-Array → läuft nach jedem Render, aber vor Paint
 
   return(
     <textarea ref={ref} value={value} onChange={onChange} placeholder={placeholder}
-      style={{...style,resize:"none",boxSizing:"border-box",height,minHeight:undefined,overflow:"auto"}}
+      style={{...style,resize:"none",boxSizing:"border-box",minHeight:undefined,height:undefined,overflow:"hidden"}}
       {...rest}/>
   );
 }
@@ -5811,7 +5811,7 @@ function BesonderheitPanel({med,onUpdate}){
       </div>
       {edit
         ?<AutoTextarea placeholder="Wirkungsvergleiche, Studiendaten, Literatur mit Links"
-            minRows={3} maxRows={14}
+            minRows={1} maxRows={14}
             style={{width:"100%",padding:"6px 8px",
               border:"1.5px solid #c8a84a",borderRadius:5,fontSize:12,
               fontFamily:"inherit",outline:"none",lineHeight:1.6}}
