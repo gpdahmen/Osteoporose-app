@@ -3365,9 +3365,10 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
 /* ── AutoTextarea: Zeilenzahl aus Inhalt berechnet, kein Leerraum ── */
 function AutoTextarea({value,onChange,placeholder,style,minRows=2,maxRows=10,...rest}){
   const text=value||"";
-  // Zeilen zählen: echte Umbrüche + Zeilenumbrüche durch Zeilenbreite (~52 Zeichen)
+  // Leerzeilen am Ende ignorieren, Höhe minimal halten
   const charsPerLine=52;
-  const lineCount=text.split("\n").reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/charsPerLine)),0);
+  const trimmedLines=text.replace(/[\n\r]+$/,"").split("\n");
+  const lineCount=trimmedLines.reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/charsPerLine)),0);
   const rows=Math.min(Math.max(lineCount,minRows),maxRows);
   return(
     <textarea rows={rows} value={value} onChange={onChange} placeholder={placeholder}
@@ -5645,6 +5646,131 @@ function PatientenListe({patients,sessions,onSelectPatient,onDeletePatient,onRes
 }
 
 /* ── BesonderheitPanel: Besonderheiten mit Edit-Toggle (Hook-konform) ── */
+
+/* ── RichTextField: WYSIWYG-Editor mit Link-Einfüge-Dialog ── */
+function RichTextField({value,onChange,placeholder,style,editMode=true}){
+  const editorRef=useRef(null);
+  const[showLink,setShowLink]=useState(false);
+  const[linkUrl,setLinkUrl]=useState("");
+  const[linkText,setLinkText]=useState("");
+  const savedSel=useRef(null);
+
+  useEffect(()=>{
+    if(!editMode||!editorRef.current)return;
+    // Nur initialisieren wenn leer oder beim ersten Öffnen
+    if(editorRef.current.innerHTML!==(value||""))
+      editorRef.current.innerHTML=value||"";
+  },[editMode]);
+
+  const saveSel=()=>{
+    const s=window.getSelection();
+    if(s&&s.rangeCount)savedSel.current=s.getRangeAt(0).cloneRange();
+  };
+  const restoreSel=()=>{
+    if(!savedSel.current||!editorRef.current)return;
+    editorRef.current.focus();
+    const s=window.getSelection();
+    s.removeAllRanges();
+    s.addRange(savedSel.current);
+  };
+  const cmd=(c)=>{
+    editorRef.current.focus();
+    document.execCommand(c,false,null);
+    onChange({target:{value:editorRef.current.innerHTML}});
+  };
+  const insertLink=()=>{
+    restoreSel();
+    if(linkUrl){
+      const txt=linkText||linkUrl;
+      document.execCommand("insertHTML",false,
+        `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer">${txt}</a> `);
+      onChange({target:{value:editorRef.current.innerHTML}});
+    }
+    setShowLink(false);setLinkUrl("");setLinkText("");
+  };
+
+  if(!editMode){
+    if(!value)return<span style={{color:"#ccc",fontStyle:"italic",fontSize:11.5}}>{placeholder||""}</span>;
+    return<div style={{...style,lineHeight:1.55,fontSize:12,wordBreak:"break-word"}}
+      dangerouslySetInnerHTML={{__html:value}}/>;
+  }
+  const btnSt={fontSize:11,padding:"1px 7px",background:"#fff",border:"1px solid #d4c4a8",
+    borderRadius:3,cursor:"pointer",fontFamily:"inherit",lineHeight:1.5};
+  return(
+    <div style={{position:"relative"}}>
+      {/* Toolbar */}
+      <div style={{display:"flex",gap:3,padding:"3px 4px",background:"#f4ede0",
+        borderRadius:"4px 4px 0 0",border:"1.5px solid #d4c4a8",borderBottom:"none",flexWrap:"wrap"}}>
+        <button style={{...btnSt,fontWeight:700}} title="Fett"
+          onMouseDown={e=>{e.preventDefault();cmd("bold");}}>B</button>
+        <button style={{...btnSt,fontStyle:"italic"}} title="Kursiv"
+          onMouseDown={e=>{e.preventDefault();cmd("italic");}}>I</button>
+        <button style={{...btnSt,textDecoration:"underline"}} title="Unterstrichen"
+          onMouseDown={e=>{e.preventDefault();cmd("underline");}}>U</button>
+        <button style={{...btnSt,background:"#e0eaff",borderColor:"#93c5fd",color:"#1e40af"}}
+          title="Link einfügen"
+          onMouseDown={e=>{e.preventDefault();saveSel();setLinkText("");setLinkUrl("");setShowLink(v=>!v);}}>
+          🔗 Link
+        </button>
+        {(value||"").includes("<a ")&&(
+          <button style={{...btnSt,background:"#fff0f0",borderColor:"#fca5a5",color:"#dc2626"}}
+            title="Link entfernen"
+            onMouseDown={e=>{e.preventDefault();cmd("unlink");}}>
+            ✂ Link entf.
+          </button>
+        )}
+      </div>
+      {/* Link-Dialog */}
+      {showLink&&(
+        <div style={{position:"absolute",zIndex:999,top:30,left:0,background:"#fff",
+          border:"1.5px solid #93c5fd",borderRadius:8,padding:"10px 12px",
+          boxShadow:"0 6px 24px rgba(0,0,0,.18)",display:"flex",flexDirection:"column",
+          gap:6,minWidth:300,maxWidth:460}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#1e40af",marginBottom:2}}>
+            🔗 Literatur-Link einfügen
+          </div>
+          <label style={{fontSize:10,color:"#8a7a6a",fontWeight:600}}>
+            Anzeigetext (Autoren, Titel – leer = markierter Text)
+          </label>
+          <input value={linkText} onChange={e=>setLinkText(e.target.value)}
+            placeholder="z. B. Ross et al. 2016 – ATA Guidelines"
+            style={{padding:"4px 8px",border:"1px solid #d4c4a8",borderRadius:4,
+              fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+          <label style={{fontSize:10,color:"#8a7a6a",fontWeight:600}}>
+            URL / DOI-Link
+          </label>
+          <input value={linkUrl} onChange={e=>setLinkUrl(e.target.value)}
+            placeholder="https://doi.org/10.xxxx/..."
+            onKeyDown={e=>e.key==="Enter"&&insertLink()}
+            style={{padding:"4px 8px",border:"1px solid #d4c4a8",borderRadius:4,
+              fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+          <div style={{display:"flex",gap:6,justifyContent:"flex-end",marginTop:2}}>
+            <button onClick={()=>setShowLink(false)}
+              style={{fontSize:11,padding:"2px 10px",background:"#f3f4f6",
+                border:"1px solid #d1d5db",borderRadius:4,cursor:"pointer",fontFamily:"inherit"}}>
+              Abbrechen
+            </button>
+            <button onClick={insertLink} disabled={!linkUrl}
+              style={{fontSize:11,padding:"2px 12px",
+                background:linkUrl?"#1e40af":"#b0c4e8",color:"#fff",border:"none",
+                borderRadius:4,cursor:linkUrl?"pointer":"default",fontFamily:"inherit"}}>
+              ✓ Einfügen
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Editierbares Feld */}
+      <div ref={editorRef} contentEditable suppressContentEditableWarning
+        onInput={e=>onChange({target:{value:e.currentTarget.innerHTML}})}
+        onBlur={e=>onChange({target:{value:e.currentTarget.innerHTML}})}
+        style={{...style,outline:"none",borderRadius:"0 0 5px 5px",
+          border:"1.5px solid #d4c4a8",borderTop:"none",
+          minHeight:28,padding:"5px 10px",lineHeight:1.6,
+          wordBreak:"break-word",caretColor:"#1a4a8f",fontSize:12}}/>
+    </div>
+  );
+}
+
 function BesonderheitPanel({med,onUpdate}){
   const[edit,setEdit]=React.useState(false);
   return(
@@ -5718,46 +5844,35 @@ function LitLinks({url,label}){
       .catch(()=>{_oaCache[doiId]=null;setOaUrl(null);});
   },[url]);
 
+  // Kompakt: eine Zeile – Label als Link + OA/PubMed-Badge
+  const badgeSt=(bg,col,bdr)=>({
+    display:"inline-flex",alignItems:"center",gap:2,padding:"1px 6px",flexShrink:0,
+    background:bg,color:col,border:`1px solid ${bdr}`,
+    borderRadius:4,fontSize:10,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"});
   return(
-    <span style={{display:"inline-flex",flexWrap:"wrap",gap:4,margin:"2px 0",alignItems:"center"}}>
-      {/* Link – mit Label: Zitationstext als Link; ohne Label: monospace URL */}
-      <a href={url} target="_blank" rel="noopener noreferrer"
+    <span style={{display:"inline-flex",flexWrap:"nowrap",gap:4,alignItems:"center",
+      maxWidth:"100%",overflow:"hidden"}}>
+      <a href={url} target="_blank" rel="noopener noreferrer" title={label||url}
         style={label
-          ?{fontSize:10.5,color:"#4a2a8a",fontWeight:600,textDecoration:"underline",wordBreak:"break-word"}
-          :{fontFamily:"'Courier New',monospace",fontSize:11,color:"#1a5a9a",textDecoration:"underline",wordBreak:"break-all"}
-        }>
+          ?{fontSize:10.5,color:"#4a2a8a",fontWeight:600,textDecoration:"underline",
+            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}
+          :{fontFamily:"'Courier New',monospace",fontSize:10,color:"#1a5a9a",
+            textDecoration:"underline",overflow:"hidden",textOverflow:"ellipsis",
+            whiteSpace:"nowrap",minWidth:0}}>
         {shortLabel}
       </a>
-      {/* Ladeindikator */}
-      {oaUrl===undefined&&isDoi&&(
-        <span style={{fontSize:9,color:"#aaa",fontStyle:"italic"}}>⏳</span>
-      )}
-      {/* Freies PDF gefunden */}
+      {oaUrl===undefined&&isDoi&&<span style={{fontSize:9,color:"#aaa",flexShrink:0}}>⏳</span>}
       {oaUrl&&(
         <a href={oaUrl} target="_blank" rel="noopener noreferrer"
-          style={{display:"inline-flex",alignItems:"center",gap:2,padding:"1px 7px",
-            background:"#dcfce7",color:"#166534",border:"1px solid #86efac",
-            borderRadius:4,fontSize:10,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
-          📄 PDF frei
-        </a>
+          style={badgeSt("#dcfce7","#166534","#86efac")}>📄 PDF</a>
       )}
-      {/* Kein freies PDF → PubMed-Fallback */}
       {oaUrl===null&&isDoi&&(
         <a href={pubmedUrl} target="_blank" rel="noopener noreferrer"
-          style={{display:"inline-flex",alignItems:"center",gap:2,padding:"1px 7px",
-            background:"#fef3c7",color:"#92400e",border:"1px solid #fcd34d",
-            borderRadius:4,fontSize:10,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
-          🔍 PubMed
-        </a>
+          style={badgeSt("#fef3c7","#92400e","#fcd34d")}>🔍</a>
       )}
-      {/* PubMed-Direktlink (kein DOI) */}
       {oaUrl===null&&isPubmed&&!isDoi&&(
         <a href={url} target="_blank" rel="noopener noreferrer"
-          style={{display:"inline-flex",alignItems:"center",gap:2,padding:"1px 7px",
-            background:"#dbeafe",color:"#1e40af",border:"1px solid #93c5fd",
-            borderRadius:4,fontSize:10,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
-          🔗 öffnen
-        </a>
+          style={badgeSt("#dbeafe","#1e40af","#93c5fd")}>🔗</a>
       )}
     </span>
   );
@@ -5787,6 +5902,9 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
   const[unlocked,setUnlocked]=useState(false);
   const[search,setSearch]=useState("");
   const[activeTab,setActiveTab]=useState(initialTab||"auswertung"); // "auswertung" | "risiko" | "sek" | "therapie"
+  const[editModeSek,setEditModeSek]=useState(false);
+  const[editModeRisiko,setEditModeRisiko]=useState(false);
+  const[editModeTherapie,setEditModeTherapie]=useState(false);
   const[patSearch,setPatSearch]=useState("");
   const[patSortCol,setPatSortCol]=useState("lastDate");
   const[patSortDir,setPatSortDir]=useState("desc");
@@ -5802,6 +5920,8 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
   const[sekUntersDraft,setSekUntersDraft]=useState(()=>({...buildSekUntersDefaults(),...(sekUntersDb||{})}));
   const[sekQsDraft,setSekQsDraft]=useState(()=>({...buildSekQsDefaults(),...(sekQsDb||{})}));
   const[sekScoringDraft,setSekScoringDraft]=useState(()=>({...buildSekScoringDefaults(),...(sekScoringDb||{})}));
+  const[sekEditMode,setSekEditMode]=useState({});
+  const[therapieEditMode,setTherapieEditMode]=useState(false);
   const[therapieDraft,setTherapieDraft]=useState(()=>{
     const base=buildOsteoTherapieDefaults();
     const over=osteoTherapieDb||[];
@@ -6184,9 +6304,19 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                     {/* Header */}
                     <div style={{marginBottom:14,padding:"12px 16px",
                       background:"#1a1208",borderRadius:10,color:"#e8d8b0",lineHeight:1.6}}>
-                      <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,
-                        fontWeight:700,color:"#c8a070",marginBottom:5}}>
-                        📋 DVO-Leitlinie 2023 – Risikofaktoren &amp; Risikoindikatoren
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
+                        <div style={{fontFamily:"'Playfair Display',serif",fontSize:14,
+                          fontWeight:700,color:"#c8a070"}}>
+                          📋 DVO-Leitlinie 2023 – Risikofaktoren &amp; Risikoindikatoren
+                        </div>
+                        <button onClick={()=>setEditModeRisiko(v=>!v)}
+                          style={{fontSize:11,padding:"3px 12px",borderRadius:5,cursor:"pointer",
+                            fontFamily:"inherit",border:"1.5px solid",flexShrink:0,
+                            background:editModeRisiko?"#c8a070":"transparent",
+                            color:editModeRisiko?"#1a1208":"#c8a070",
+                            borderColor:editModeRisiko?"#c8a070":"#6a5040"}}>
+                          {editModeRisiko?"✓ Bearbeitung aktiv":"✏ Bearbeiten"}
+                        </button>
                       </div>
                       <div style={{fontSize:12}}>
                         <strong style={{color:"#c8a070"}}>Risikofaktoren</strong> gehen mit RR in den DVO-Risikorechner ein.{" "}
@@ -6404,14 +6534,31 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                 if(!grouped[grp])grouped[grp]=[];
                 grouped[grp].push(sym);
               }
-              const inputSt={padding:"6px 10px",border:"1.5px solid #d4c4a8",borderRadius:5,
+              const inputSt={padding:"5px 10px",border:"1.5px solid #d4c4a8",borderRadius:5,
                 fontSize:12.5,fontFamily:"inherit",width:"100%",background:"#fff",outline:"none",
-                boxSizing:"border-box",lineHeight:1.5,height:36};
+                boxSizing:"border-box",lineHeight:1.45};
               const labelSt={fontSize:10,fontWeight:700,color:"#8b6a3a",textTransform:"uppercase",
                 letterSpacing:".8px",marginBottom:3,display:"block"};
               const icdSt=(ok)=>({...inputSt,width:130,border:`1.5px solid ${ok?"#d4c4a8":"#dc2626"}`,
                 flexShrink:0,background:ok?"#fff":"#fef2f2",fontFamily:"monospace",fontSize:12,height:36,padding:"7px 9px"});
-              return groupOrder.flatMap(grp=>{
+              // ── Edit-Mode-Toggle ──────────────────────────────────────
+              return [
+                <div key="sek-edit-toggle" style={{
+                  display:"flex",alignItems:"center",justifyContent:"space-between",
+                  padding:"8px 14px",background:"#1a1208",borderRadius:8,marginBottom:8,marginTop:4}}>
+                  <span style={{fontSize:11.5,color:"#c8a070",fontWeight:600}}>
+                    🔎 Sekundäre Osteoporosen – {Object.keys(SEK_PROFILE).length} Erkrankungen
+                  </span>
+                  <button onClick={()=>setEditModeSek(v=>!v)}
+                    style={{fontSize:11.5,padding:"4px 14px",borderRadius:6,cursor:"pointer",
+                      fontFamily:"inherit",border:"1.5px solid",
+                      background:editModeSek?"#c8a070":"transparent",
+                      color:editModeSek?"#1a1208":"#c8a070",
+                      borderColor:editModeSek?"#c8a070":"#6a5040"}}>
+                    {editModeSek?"✓ Bearbeitungsmodus aktiv":"✏ Bearbeitungsmodus"}
+                  </button>
+                </div>,
+                ...groupOrder.flatMap(grp=>{
                 if(!(grp in grouped))return[];
                 return[
                   <div key={"grp-"+grp} style={{
@@ -6450,21 +6597,44 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
 
                         {isOpen&&(
                           <div style={{padding:"14px 16px",display:"flex",flexDirection:"column",gap:14}}>
+                            {/* ── Bearbeitungsmodus-Toggle ── */}
+                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                              padding:"6px 10px",background:"#f0ece4",borderRadius:6,
+                              border:"1px solid #e0d4c0"}}>
+                              <span style={{fontSize:11,color:"#7a6a5a",fontStyle:"italic"}}>
+                                {sekEditMode[sym]?"✏ Bearbeitungsmodus aktiv":"👁 Nur-Lese-Ansicht"}
+                              </span>
+                              <button onClick={()=>setSekEditMode(m=>({...m,[sym]:!m[sym]}))}
+                                style={{fontSize:11,padding:"3px 12px",borderRadius:5,cursor:"pointer",
+                                  fontFamily:"inherit",fontWeight:600,
+                                  background:sekEditMode[sym]?"#fce7c0":"#d1fae5",
+                                  border:`1px solid ${sekEditMode[sym]?"#d97706":"#6ee7b7"}`,
+                                  color:sekEditMode[sym]?"#92400e":"#065f46"}}>
+                                {sekEditMode[sym]?"✓ Fertig":"✏ Bearbeiten"}
+                              </button>
+                            </div>
 
                             {/* ── Erkrankungsname ── */}
                             <div>
                               <label style={labelSt}>🏷 Erkrankungsname (Anzeige & Auswertung)</label>
-                              <input style={inputSt}
-                                value={profRow.label||""}
-                                placeholder="Erkrankungsname…"
-                                onChange={e=>setSekProfileDraft(d=>({...d,[sym]:{...d[sym]||{},label:e.target.value}}))}/>
+                              {sekEditMode[sym]
+                                ?<input style={inputSt}
+                                    value={profRow.label||""}
+                                    placeholder="Erkrankungsname…"
+                                    onChange={e=>setSekProfileDraft(d=>({...d,[sym]:{...d[sym]||{},label:e.target.value}}))}/>
+                                :<div style={{...inputSt,background:"#f8f4ee",color:"#3a2a10",cursor:"default",
+                                    height:"auto",padding:"6px 10px",fontSize:13,fontWeight:600}}>
+                                    {profRow.label||sym}
+                                  </div>
+                              }
                             </div>
 
                             {/* ── Klinischer Hinweis ── */}
                             <div>
                               <label style={labelSt}>📋 Klinischer Hinweis (Auswertungstext)</label>
-                              <AutoTextarea style={{...inputSt,lineHeight:1.6}}
-                                minRows={1} maxRows={12}
+                              <RichTextField
+                                editMode={!!sekEditMode[sym]}
+                                style={{...inputSt,lineHeight:1.6}}
                                 value={profRow.hinweis||""}
                                 placeholder="Klinischer Hinweis für die Auswertungsansicht…"
                                 onChange={e=>setSekProfileDraft(d=>({...d,[sym]:{...d[sym]||{},hinweis:e.target.value}}))}/>
@@ -6530,8 +6700,9 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                     <label style={{...labelSt,marginTop:6,marginBottom:3}}>
                                       Erklärungstext (wird dem Arzt als Hinweis angezeigt)
                                     </label>
-                                    <AutoTextarea style={{...inputSt,fontSize:12,lineHeight:1.55}}
-                                      minRows={1} maxRows={6}
+                                    <RichTextField
+                                      editMode={!!sekEditMode[sym]}
+                                      style={{...inputSt,fontSize:12,lineHeight:1.55}}
                                       value={qRow.hint||""}
                                       placeholder="Klinischer Erklärungstext (optional)…"
                                       onChange={e=>setSekQsDraft(d=>({...d,[q.id]:{...d[q.id]||{},hint:e.target.value}}))}/>
@@ -6546,11 +6717,13 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                 <label style={{...labelSt,marginBottom:0}}>
                                   🔬 Vorgeschlagene Untersuchungen ({untersRows.length})
                                 </label>
+                                {sekEditMode[sym]&&(
                                 <button onClick={()=>setSekUntersDraft(d=>({...d,[sym]:[...(d[sym]||[]),{name:"",icd:""}]}))}
                                   style={{fontSize:11,padding:"3px 10px",background:"#1a7f4f",color:"#fff",
                                     border:"none",borderRadius:5,cursor:"pointer",fontFamily:"inherit"}}>
                                   + Zeile hinzufügen
                                 </button>
+                                )}
                               </div>
                               {untersRows.length===0&&(
                                 <div style={{fontSize:12,color:"#a09080",fontStyle:"italic",padding:"4px 0"}}>
@@ -6597,20 +6770,33 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                   <div style={{display:"flex",flexDirection:"column",gap:8}}>
                                     <div>
                                       <label style={{...labelSt,marginBottom:2}}>Titel des Klassifikationssystems</label>
-                                      <AutoTextarea style={{...inputSt,fontSize:12,lineHeight:1.5,width:"100%"}}
-                                        minRows={1} maxRows={4}
-                                        value={sc.titel||""}
-                                        placeholder="z. B. Marsh-Oberhuber-Klassifikation (mod. 2001)"
-                                        onChange={e=>setSekScoringDraft(d=>({...d,[sym]:{...(d[sym]||{}),titel:e.target.value}}))}/>
+                                      {sekEditMode[sym]
+                                        ?<AutoTextarea style={{...inputSt,fontSize:12,lineHeight:1.5,width:"100%"}}
+                                            minRows={1} maxRows={4}
+                                            value={sc.titel||""}
+                                            placeholder="z. B. Marsh-Oberhuber-Klassifikation (mod. 2001)"
+                                            onChange={e=>setSekScoringDraft(d=>({...d,[sym]:{...(d[sym]||{}),titel:e.target.value}}))}/>
+                                        :<div style={{fontSize:12,fontWeight:600,color:"#3a1a6a",padding:"4px 0"}}>
+                                            {sc.titel||<em style={{color:"#bbb"}}>kein Titel</em>}
+                                          </div>
+                                      }
                                     </div>
                                     <div>
                                       <label style={{...labelSt,marginBottom:2}}>Quelle / Leitlinie</label>
-                                      <AutoTextarea style={{...inputSt,fontSize:12,lineHeight:1.5,width:"100%"}}
-                                        minRows={1} maxRows={4}
-                                        value={sc.quelle||""}
-                                        placeholder="z. B. DGVS S2k-Leitlinie Zöliakie 2022"
-                                        onChange={e=>setSekScoringDraft(d=>({...d,[sym]:{...(d[sym]||{}),quelle:e.target.value}}))}/>
+                                      {sekEditMode[sym]
+                                        ?<AutoTextarea style={{...inputSt,fontSize:12,lineHeight:1.5,width:"100%"}}
+                                            minRows={1} maxRows={4}
+                                            value={sc.quelle||""}
+                                            placeholder="z. B. DGVS S2k-Leitlinie Zöliakie 2022"
+                                            onChange={e=>setSekScoringDraft(d=>({...d,[sym]:{...(d[sym]||{}),quelle:e.target.value}}))}/>
+                                        :sc.quelle
+                                          ?<div style={{fontSize:11.5,color:"#4a2a8a",lineHeight:1.5,padding:"2px 0"}}>
+                                              <LitLinks url={sc.url} label={sc.quelle}/>
+                                            </div>
+                                          :<span style={{fontSize:11,color:"#bbb",fontStyle:"italic"}}>keine Quelle</span>
+                                      }
                                     </div>
+                                    {sekEditMode[sym]&&(
                                     <div>
                                       <label style={{...labelSt,marginBottom:2}}>URL (optional)</label>
                                       <div style={{display:"flex",gap:6,alignItems:"center"}}>
@@ -6630,9 +6816,11 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                         )}
                                       </div>
                                     </div>
+                                    )}
                                     <div>
                                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
                                         <label style={{...labelSt,marginBottom:0}}>Stufen / Grenzwerte ({(sc.stufen||[]).length})</label>
+                                        {sekEditMode[sym]&&(
                                         <button onClick={()=>setSekScoringDraft(d=>{
                                           const rows=[...(d[sym]?.stufen||[]),{name:"",beschreibung:""}];
                                           return{...d,[sym]:{...(d[sym]||{}),stufen:rows}};
@@ -6640,6 +6828,7 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                           border:"none",borderRadius:5,cursor:"pointer",fontFamily:"inherit"}}>
                                           + Stufe hinzufügen
                                         </button>
+                                        )}
                                       </div>
                                       {(sc.stufen||[]).map((st,si)=>(
                                         <div key={si} style={{display:"flex",gap:6,marginBottom:5,alignItems:"flex-start"}}>
@@ -6651,8 +6840,9 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                               rows[si]={...rows[si],name:e.target.value};
                                               return{...d,[sym]:{...(d[sym]||{}),stufen:rows}};
                                             })}/>
-                                          <AutoTextarea style={{...inputSt,flex:1,fontSize:12,lineHeight:1.6}}
-                                            minRows={1} maxRows={5}
+                                          <RichTextField
+                                            editMode={!!sekEditMode[sym]}
+                                            style={{...inputSt,flex:1,fontSize:12,lineHeight:1.6}}
                                             value={st.beschreibung||""}
                                             placeholder="Kriterien, Grenzwerte, klinische Bedeutung…"
                                             onChange={e=>setSekScoringDraft(d=>{
@@ -6660,10 +6850,12 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                                               rows[si]={...rows[si],beschreibung:e.target.value};
                                               return{...d,[sym]:{...(d[sym]||{}),stufen:rows}};
                                             })}/>
+                                          {sekEditMode[sym]&&(
                                           <button onClick={()=>setSekScoringDraft(d=>({...d,[sym]:{...(d[sym]||{}),stufen:(d[sym]?.stufen||[]).filter((_,i)=>i!==si)}}))}
                                             style={{flexShrink:0,background:"#fee2e2",color:"#dc2626",
                                               border:"1px solid #fca5a5",borderRadius:5,padding:"3px 8px",
                                               cursor:"pointer",fontSize:13,fontFamily:"inherit",marginTop:2}}>✕</button>
+                                          )}
                                         </div>
                                       ))}
                                     </div>
@@ -6678,14 +6870,29 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                     );
                   })
                 ];
-              });
+              })
+              ]
             })()}
             {activeTab==="therapie"&&(
               <div style={{padding:"10px 14px"}}>
+                {/* ── Bearbeitungsmodus-Toggle Therapie ── */}
+                <div style={{marginBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between",
+                  padding:"7px 12px",background:"#f0ece4",borderRadius:6,border:"1px solid #e0d4c0"}}>
+                  <span style={{fontSize:11,color:"#7a6a5a",fontStyle:"italic"}}>
+                    {therapieEditMode?"✏ Bearbeitungsmodus aktiv – Felder editierbar":"👁 Nur-Lese-Ansicht – WYSIWYG mit Klick auf ✏ Bearbeiten aktivieren"}
+                  </span>
+                  <button onClick={()=>setTherapieEditMode(v=>!v)}
+                    style={{fontSize:11,padding:"3px 12px",borderRadius:5,cursor:"pointer",
+                      fontFamily:"inherit",fontWeight:600,
+                      background:therapieEditMode?"#fce7c0":"#d1fae5",
+                      border:`1px solid ${therapieEditMode?"#d97706":"#6ee7b7"}`,
+                      color:therapieEditMode?"#92400e":"#065f46"}}>
+                    {therapieEditMode?"✓ Fertig":"✏ Bearbeiten"}
+                  </button>
+                </div>
                 <div style={{marginBottom:10,fontSize:12,color:"#8a7a6a",lineHeight:1.6,padding:"8px 12px",
                   background:"#fef9f4",border:"1px solid #e8d8c0",borderRadius:6}}>
-                  Hier können Sie Handelsnamen, Dosierungen, Zulassungstexte und Nebenwirkungen der Osteoporose-Medikamente anpassen.
-                  Änderungen gelten nur für dieses Gerät und werden lokal gespeichert.
+                  Handelsnamen, Dosierungen, Zulassungstexte und Nebenwirkungen – Änderungen nur lokal.
                 </div>
                 {therapieDraft.map((med,mi)=>{
                   const expanded=!!therapieExpanded[med.id];
@@ -6733,19 +6940,20 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                             <div key={field} style={{marginBottom:8}}>
                               <label style={{fontSize:11.5,fontWeight:700,color:"#6b5a4a",display:"block",marginBottom:3}}>{lbl}</label>
                               {type==="textarea"
-                                ? <AutoTextarea placeholder={ph}
-                                    minRows={1} maxRows={8}
+                                ? <RichTextField editMode={therapieEditMode}
+                                    placeholder={ph}
                                     style={{width:"100%",padding:"5px 8px",
-                                      border:"1px solid #d8c8b0",borderRadius:5,fontSize:12,fontFamily:"inherit",
-                                      outline:"none"}}
+                                      border:"1px solid #d8c8b0",borderRadius:5,fontSize:12,fontFamily:"inherit"}}
                                     value={med[field]||""}
                                     onChange={e=>setTherapieDraft(d=>d.map((m,i)=>i===mi?{...m,[field]:e.target.value}:m))}/>
-                                : <input placeholder={ph}
-                                    style={{width:"100%",boxSizing:"border-box",padding:"5px 8px",
-                                      border:"1px solid #d8c8b0",borderRadius:5,fontSize:12,fontFamily:"inherit",outline:"none"}}
-                                    value={med[field]||""}
-                                    onChange={e=>{const v=e.target.value;
-                                      setTherapieDraft(d=>d.map((m,i)=>i===mi?{...m,[field]:v}:m));}}/>
+                                : therapieEditMode
+                                  ?<input placeholder={ph}
+                                      style={{width:"100%",boxSizing:"border-box",padding:"5px 8px",
+                                        border:"1px solid #d8c8b0",borderRadius:5,fontSize:12,fontFamily:"inherit",outline:"none"}}
+                                      value={med[field]||""}
+                                      onChange={e=>{const v=e.target.value;
+                                        setTherapieDraft(d=>d.map((m,i)=>i===mi?{...m,[field]:v}:m));}}/>
+                                  :<div style={{fontSize:12,color:"#3a2010",padding:"3px 0"}}>{med[field]||<em style={{color:"#bbb"}}>{ph}</em>}</div>
                               }
                             </div>
                           ))}
