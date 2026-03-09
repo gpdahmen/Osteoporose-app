@@ -3372,16 +3372,30 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
 /* ═══════════════════════════════════════════════ COMPONENTS ═══ */
 
 /* ── AutoTextarea: Zeilenzahl aus Inhalt berechnet, kein Leerraum ── */
-function AutoTextarea({value,onChange,placeholder,style,minRows=2,maxRows=10,...rest}){
-  const text=value||"";
-  // Leerzeilen am Ende ignorieren, Höhe minimal halten
-  const charsPerLine=52;
-  const trimmedLines=text.replace(/[\n\r]+$/,"").split("\n");
-  const lineCount=trimmedLines.reduce((sum,line)=>sum+Math.max(1,Math.ceil(line.length/charsPerLine)),0);
-  const rows=Math.min(Math.max(lineCount,minRows),maxRows);
+function AutoTextarea({value,onChange,placeholder,style,minRows=1,maxRows=10,...rest}){
+  const ref=useRef(null);
+  const [height,setHeight]=useState("auto");
+
+  useEffect(()=>{
+    const el=ref.current;
+    if(!el)return;
+    // Temporär auf "auto" setzen um scrollHeight korrekt zu messen
+    el.style.height="auto";
+    const cs=getComputedStyle(el);
+    const lh=parseFloat(cs.lineHeight)||20;
+    const pt=parseFloat(cs.paddingTop)||0;
+    const pb=parseFloat(cs.paddingBottom)||0;
+    const minH=minRows*lh+pt+pb;
+    const maxH=maxRows*lh+pt+pb;
+    const needed=el.scrollHeight;
+    const final=Math.min(Math.max(needed,minH),maxH);
+    el.style.height="";
+    setHeight(final+"px");
+  },[value,minRows,maxRows]);
+
   return(
-    <textarea rows={rows} value={value} onChange={onChange} placeholder={placeholder}
-      style={{...style,resize:"none",boxSizing:"border-box",minHeight:undefined,height:undefined}}
+    <textarea ref={ref} value={value} onChange={onChange} placeholder={placeholder}
+      style={{...style,resize:"none",boxSizing:"border-box",height,minHeight:undefined,overflow:"auto"}}
       {...rest}/>
   );
 }
