@@ -6168,11 +6168,49 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                 const iSt={padding:"5px 9px",border:"1px solid #d8c8b0",borderRadius:6,fontSize:13,fontFamily:"inherit",background:"white",outline:"none",height:34,boxSizing:"border-box"};
                 return(
                   <div style={{padding:"6px 0"}}>
-                    {!gender&&(
-                      <div style={{padding:"20px",textAlign:"center",color:"#9b8a7a",fontSize:14}}>
-                        Bitte zuerst im Fragebogen das Geschlecht auswählen.
-                      </div>
-                    )}
+                    {!gender&&(()=>{
+                      const recentSessions=[...(sessions||[])].sort((a,b)=>b.id.localeCompare(a.id)).slice(0,20);
+                      if(recentSessions.length===0) return(
+                        <div style={{padding:"20px",textAlign:"center",color:"#9b8a7a",fontSize:14}}>
+                          Noch keine gespeicherten Befunde vorhanden.<br/>Bitte zuerst im Fragebogen das Geschlecht auswählen und einen Befund speichern.
+                        </div>
+                      );
+                      return(
+                        <div style={{padding:"14px"}}>
+                          <div style={{textAlign:"center",color:"#7a5a38",fontSize:14,fontWeight:600,marginBottom:12}}>
+                            Bitte einen Patienten auswählen:
+                          </div>
+                          <div style={{overflowX:"auto"}}>
+                            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12.5,fontFamily:"inherit"}}>
+                              <thead>
+                                <tr style={{background:"#f0e8d8",color:"#5a3a10"}}>
+                                  <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700,borderRight:"1px solid #d8c8a8"}}>Name</th>
+                                  <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700,borderRight:"1px solid #d8c8a8"}}>Geburtsdatum</th>
+                                  <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700,borderRight:"1px solid #d8c8a8"}}>Datum</th>
+                                  <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700}}>Geschlecht</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {recentSessions.map((s,i)=>(
+                                  <tr key={s.id}
+                                    style={{background:i%2===0?"white":"#faf6f0",borderBottom:"1px solid #ece5d8",cursor:"pointer",transition:"background .15s"}}
+                                    onMouseEnter={e=>e.currentTarget.style.background="#f0e8d8"}
+                                    onMouseLeave={e=>e.currentTarget.style.background=i%2===0?"white":"#faf6f0"}
+                                    onClick={()=>onLoadSession(s)}>
+                                    <td style={{padding:"9px 12px",fontWeight:700,color:"#5a3a10",borderRight:"1px solid #ece5d8"}}>
+                                      {s.patient?(s.patient.nachname||s.patient.name||"")+(s.patient.vorname?", "+s.patient.vorname:""):"—"}
+                                    </td>
+                                    <td style={{padding:"9px 12px",color:"#5a4a3a",borderRight:"1px solid #ece5d8"}}>{(s.patient&&s.patient.geburtsdatum)||"—"}</td>
+                                    <td style={{padding:"9px 12px",color:"#5a4a3a",borderRight:"1px solid #ece5d8"}}>{s.fillDate||"—"}</td>
+                                    <td style={{padding:"9px 12px"}}>{s.gender==="f"?"♀ Frau":s.gender==="m"?"♂ Mann":"—"}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {gender&&(<>
                       {/* Export-Buttons */}
                       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14,padding:"10px 4px"}}>
