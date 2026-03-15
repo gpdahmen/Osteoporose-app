@@ -4013,6 +4013,12 @@ function ResultCard({gender,answers,patient,diff,lh,painMaps}){
           {patient.geburtsdatum&&(
             <span><strong>Geb.:</strong> {patient.geburtsdatum}</span>
           )}
+          {answers.alter&&(
+            <span><strong>Alter:</strong> {answers.alter} Jahre</span>
+          )}
+          {gender&&(
+            <span><strong>Geschlecht:</strong> {gender==="f"?"weiblich":"männlich"}</span>
+          )}
           {patient.fillDate&&(
             <span><strong>Untersuchungsdatum:</strong> {patient.fillDate}</span>
           )}

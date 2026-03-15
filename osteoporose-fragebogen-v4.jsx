@@ -3731,6 +3731,25 @@ function ResultCard({gender,answers,patient,diff}){
   return(
     <div className="result">
       <div className="result-title">📊 Auswertung – Anamnese- und Osteoporose-Dokumentationshilfe</div>
+      {(patient&&(patient.nachname||patient.vorname||patient.name||patient.geburtsdatum||patient.fillDate))&&(
+        <div style={{background:"#faf4ed",border:"1.5px solid #c8a97a",borderRadius:7,padding:"10px 16px",marginBottom:14,display:"flex",flexWrap:"wrap",gap:"6px 28px",fontSize:13,color:"#4a3520"}}>
+          {(patient.nachname||patient.vorname||patient.name)&&(
+            <span><strong>Patient:</strong> {[patient.nachname||patient.name,patient.vorname].filter(Boolean).join(", ")}</span>
+          )}
+          {patient.geburtsdatum&&(
+            <span><strong>Geb.:</strong> {patient.geburtsdatum}</span>
+          )}
+          {answers.alter&&(
+            <span><strong>Alter:</strong> {answers.alter} Jahre</span>
+          )}
+          {gender&&(
+            <span><strong>Geschlecht:</strong> {gender==="f"?"weiblich":"männlich"}</span>
+          )}
+          {patient.fillDate&&(
+            <span><strong>Untersuchungsdatum:</strong> {patient.fillDate}</span>
+          )}
+        </div>
+      )}
       <div className="thresh-row">
         <ThreshPill label="3%-Schwelle (3 J.)" threshold={t3} reached={r3}/>
         <ThreshPill label="5%-Schwelle (3 J.)" threshold={t5} reached={r5}/>
