@@ -1980,7 +1980,7 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
   }
 
   const patName=[patient.vorname,patient.nachname].filter(Boolean).join(" ")||"–";
-  const genderLabel=gender==="w"?"weiblich":gender==="m"?"männlich":"–";
+  const genderLabel=gender==="f"?"weiblich":gender==="m"?"männlich":"–";
 
   return `<!DOCTYPE html>
 <html lang="de"><head>
