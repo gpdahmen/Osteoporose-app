@@ -8756,27 +8756,6 @@ function App(){
                 <span className="viewer-bar-title">
                   {viewer.type==="html"?"📄 Patienteneingabe – Vorschau":"🖨 Befundbericht – Druckansicht"}
                 </span>
-                {/* Neuer Tab öffnen – dort ist die Print-Bar direkt eingebaut */}
-                {/(Android|iPhone|iPad|iPod)/i.test(navigator.userAgent)?(
-                  <a className="viewer-btn primary"
-                    href={URL.createObjectURL(new Blob([viewer.content],{type:"text/html;charset=utf-8"}))}
-                    download="Osteoporose-Fragebogen.html"
-                    style={{textDecoration:"none",display:"inline-flex",alignItems:"center",gap:7}}>
-                    ⬇️ HTML herunterladen
-                  </a>
-                ):(
-                  <button className="viewer-btn primary" onClick={()=>{
-                    const blob=new Blob([viewer.content],{type:"text/html;charset=utf-8"});
-                    const url=URL.createObjectURL(blob);
-                    const opened=window.open(url,"_blank");
-                    if(!opened){
-                      const iframe=document.getElementById("viewer-iframe");
-                      if(iframe&&iframe.contentWindow)iframe.contentWindow.print();
-                      else window.print();
-                    }
-                    setTimeout(()=>URL.revokeObjectURL(url),120000);
-                  }}>🖨 In neuem Tab öffnen / Drucken</button>
-                )}
               </>
             )}
             <button className="viewer-close" onClick={()=>setViewer(null)}>×</button>
