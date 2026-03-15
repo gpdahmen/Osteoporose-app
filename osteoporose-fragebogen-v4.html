@@ -808,21 +808,54 @@ function calcAgeFromBirthdate(dob){
   if(!dob||dob.trim().length<4)return null;
   let day,mon,year;
   const s=dob.trim();
-  // TT.MM.JJJJ or T.M.JJJJ or T.M.JJ or TT.MM.JJ
+  // TT.MM.JJJJ or T.M.JJJJ or T.M.JJ or TT.MM.JJ (with separators)
   const de=/^(\d{1,2})\D(\d{1,2})\D(\d{2,4})$/.exec(s);
   // YYYY-MM-DD
   const iso=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  // Pure digits without separators: 4-8 digits (tmjj … ttmmjjjj)
+  const digits=/^(\d{4,8})$/.exec(s);
+
+  function fix2y(y){return y<=29?2000+y:1900+y;}
+  function tryDate(dd,mm,yy){
+    if(dd<1||dd>31||mm<1||mm>12)return null;
+    const yr=yy<100?fix2y(yy):yy;
+    const dt=new Date(yr,mm-1,dd);
+    if(isNaN(dt.getTime())||dt.getMonth()!==mm-1||dt.getDate()!==dd)return null;
+    return dt;
+  }
+
   if(de){
     day=parseInt(de[1]);mon=parseInt(de[2])-1;
     let y=parseInt(de[3]);
-    if(de[3].length===2){
-      // 2-digit year: 00-29 → 2000-2029, 30-99 → 1930-1999
-      y=y<=29?2000+y:1900+y;
-    }
+    if(de[3].length===2){y=fix2y(y);}
     year=y;
   } else if(iso){
     year=parseInt(iso[1]);mon=parseInt(iso[2])-1;day=parseInt(iso[3]);
+  } else if(digits){
+    // Try possible splits for pure digit input (TMJJ, TMMJJ, TTMJJ, TMJJJJ, TTMMJJ, TMMJJJJ, TTMJJJJ, TTMMJJJJ)
+    const n=s.length;
+    const splits=[];
+    if(n===4) splits.push([1,1,2]);                    // tmjj
+    if(n===5) splits.push([1,2,2],[2,1,2]);             // tmmjj, ttmjj
+    if(n===6) splits.push([2,2,2],[1,1,4]);             // ttmmjj (preferred), tmjjjj
+    if(n===7) splits.push([1,2,4],[2,1,4]);             // tmmjjjj, ttmjjjj
+    if(n===8) splits.push([2,2,4]);                     // ttmmjjjj
+    let found=null;
+    for(const [dl,ml,yl] of splits){
+      const dd=parseInt(s.substring(0,dl));
+      const mm=parseInt(s.substring(dl,dl+ml));
+      const yy=parseInt(s.substring(dl+ml));
+      const dt=tryDate(dd,mm,yy);
+      if(dt){found=dt;break;}
+    }
+    if(!found)return null;
+    const now=new Date();
+    let age=now.getFullYear()-found.getFullYear();
+    const m2=now.getMonth()-found.getMonth();
+    if(m2<0||(m2===0&&now.getDate()<found.getDate()))age--;
+    return age>=0&&age<=130?age:null;
   } else return null;
+
   const d=new Date(year,mon,day);
   if(isNaN(d.getTime())||d.getMonth()!==mon)return null;
   const now=new Date();
