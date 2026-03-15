@@ -5079,11 +5079,15 @@ function CameraScanner({onMedsFound, onClose}){
   const[statusCls,setStatusCls]=useState("scanning");
   const[result,setResult]=useState(null); // [{name, checked}]
   const[scanning,setScanning]=useState(true);
+  const[apiKey,setApiKey]=useState(()=>{try{return localStorage.getItem("osteo_claude_apikey")||"";}catch(e){return "";}});
+  const[showApiKeyInput,setShowApiKeyInput]=useState(false);
+  const[hasBarcodeDetector]=useState(()=>typeof window.BarcodeDetector!=="undefined");
   const videoRef=React.useRef(null);
   const canvasRef=React.useRef(null);
   const streamRef=React.useRef(null);
   const scanTimerRef=React.useRef(null);
   const jsQRRef=React.useRef(null);
+  const barcodeDetectorRef=React.useRef(null);
 
   // Load jsQR dynamically
   React.useEffect(()=>{
@@ -5094,6 +5098,14 @@ function CameraScanner({onMedsFound, onClose}){
       document.head.appendChild(s);
     } else {
       jsQRRef.current=window.jsQR;
+    }
+  },[]);
+
+  // Initialize BarcodeDetector
+  React.useEffect(()=>{
+    if(hasBarcodeDetector){
+      try{barcodeDetectorRef.current=new window.BarcodeDetector({formats:["ean_13","ean_8","code_128","data_matrix"]});}
+      catch(e){barcodeDetectorRef.current=null;}
     }
   },[]);
 
@@ -5141,21 +5153,61 @@ function CameraScanner({onMedsFound, onClose}){
     scanTimerRef.current=setInterval(()=>scanFrame(),300);
   };
 
-  const scanFrame=()=>{
+  // Convert EAN-13 to PZN (PZN is encoded in EAN with prefix 04 followed by 7-digit PZN)
+  const eanToPzn=(ean)=>{
+    const s=String(ean).replace(/\s/g,'');
+    // German pharma EAN: starts with 4, digits 2-8 are the PZN
+    if(s.length===13&&(s.startsWith('4')||s.startsWith('04'))){
+      const pzn=s.startsWith('04')?s.substring(2,9):s.substring(1,8);
+      return pzn.replace(/^0+/,'')||'0';
+    }
+    // 8-digit PZN directly
+    if(s.length>=7&&s.length<=8&&/^\d+$/.test(s)) return s.replace(/^0+/,'')||'0';
+    return null;
+  };
+
+  const scanFrame=async()=>{
     const video=videoRef.current;const canvas=canvasRef.current;
     if(!video||!canvas||video.readyState<2) return;
     const ctx=canvas.getContext('2d');
     canvas.width=video.videoWidth;canvas.height=video.videoHeight;
     ctx.drawImage(video,0,0);
-    const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
-    // Try jsQR for QR codes
+
+    // QR-Code scanning with jsQR
     if(mode==="qr"&&jsQRRef.current){
+      const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
       const code=jsQRRef.current(imgData.data,imgData.width,imgData.height);
       if(code){stopScanLoop();setScanning(false);parseQrCode(code.data);return;}
     }
-    // For barcodes: basic EAN detection hint
-    if(mode==="barcode"){
-      // ZXing not available inline – prompt user to snap photo for API
+
+    // Barcode scanning with BarcodeDetector API
+    if(mode==="barcode"&&barcodeDetectorRef.current){
+      try{
+        const barcodes=await barcodeDetectorRef.current.detect(video);
+        if(barcodes.length>0){
+          const bc=barcodes[0];
+          const raw=bc.rawValue;
+          stopScanLoop();setScanning(false);
+          const pzn=eanToPzn(raw);
+          if(pzn){
+            setStatus(`Barcode erkannt: PZN ${pzn} (EAN: ${raw})`);setStatusCls("success");
+            // Try AI lookup if API key is available, otherwise show PZN as result
+            if(apiKey){
+              await analyzeWithAI(`PZN: ${pzn}, EAN: ${raw}. Nenne den Medikamentennamen, Wirkstoff und Stärke für diese PZN. JSON-Array: [{"name":"Medikament Stärke Form"}]`);
+            } else {
+              setResult([{name:`PZN ${pzn} (EAN: ${raw}) – API-Key für Medikamentennamen hinterlegen`,checked:true}]);
+            }
+          } else {
+            setStatus(`Barcode erkannt: ${raw}`);setStatusCls("success");
+            setResult([{name:`Barcode: ${raw}`,checked:true}]);
+          }
+          return;
+        }
+      }catch(e){/* BarcodeDetector error – ignore */}
+    }
+
+    // Barcode fallback if no BarcodeDetector
+    if(mode==="barcode"&&!barcodeDetectorRef.current){
       setStatus("Barcode positionieren und 📸 Foto aufnehmen klicken");setStatusCls("scanning");
     }
   };
@@ -5204,6 +5256,7 @@ function CameraScanner({onMedsFound, onClose}){
   const takePhotoAndAnalyze=async()=>{
     const video=videoRef.current;const canvas=canvasRef.current;
     if(!video||!canvas) return;
+    if(!apiKey){setShowApiKeyInput(true);setStatus("Bitte API-Key eingeben für KI-Analyse");setStatusCls("error");return;}
     setScanning(false);setStatus("Foto wird analysiert…");setStatusCls("scanning");
     canvas.width=video.videoWidth;canvas.height=video.videoHeight;
     canvas.getContext('2d').drawImage(video,0,0);
@@ -5214,7 +5267,13 @@ function CameraScanner({onMedsFound, onClose}){
     await analyzeWithAI(null, base64, prompt);
   };
 
+  const saveApiKey=(k)=>{
+    setApiKey(k);
+    try{if(k)localStorage.setItem("osteo_claude_apikey",k);else localStorage.removeItem("osteo_claude_apikey");}catch(e){}
+  };
+
   const analyzeWithAI=async(textInput, imageBase64=null, prompt=null)=>{
+    if(!apiKey){setShowApiKeyInput(true);setStatus("Bitte Claude API-Key eingeben");setStatusCls("error");return;}
     try{
       const msgContent=[];
       if(imageBase64) msgContent.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:imageBase64}});
@@ -5223,13 +5282,27 @@ function CameraScanner({onMedsFound, onClose}){
 
       const resp=await fetch("https://api.anthropic.com/v1/messages",{
         method:"POST",
-        headers:{"Content-Type":"application/json"},
+        headers:{
+          "Content-Type":"application/json",
+          "x-api-key":apiKey,
+          "anthropic-version":"2023-06-01",
+          "anthropic-dangerous-direct-browser-access":"true"
+        },
         body:JSON.stringify({
           model:"claude-sonnet-4-20250514",
           max_tokens:1000,
           messages:[{role:"user",content:msgContent}]
         })
       });
+      if(!resp.ok){
+        const err=await resp.json().catch(()=>({}));
+        if(resp.status===401||resp.status===403){
+          setStatus("API-Key ungültig – bitte prüfen");setStatusCls("error");setShowApiKeyInput(true);
+        } else {
+          setStatus("API-Fehler: "+(err.error?.message||resp.statusText));setStatusCls("error");
+        }
+        setScanning(true);return;
+      }
       const data=await resp.json();
       const text=data.content?.map(b=>b.text||'').join('');
       const jsonMatch=text.match(/\[[\s\S]*\]/);
@@ -5273,6 +5346,24 @@ function CameraScanner({onMedsFound, onClose}){
             🤖 KI-Foto<br/><span style={{fontSize:10,fontWeight:400}}>Name/Plan erkennen</span>
           </button>
         </div>
+        {/* API Key Input */}
+        {showApiKeyInput&&(
+          <div style={{padding:"8px 12px",background:"#fff3cd",borderRadius:6,margin:"8px 12px",fontSize:12}}>
+            <div style={{marginBottom:4,fontWeight:600}}>Claude API-Key für KI-Erkennung:</div>
+            <div style={{display:"flex",gap:6}}>
+              <input type="password" value={apiKey}
+                onChange={e=>saveApiKey(e.target.value)}
+                placeholder="sk-ant-..."
+                style={{flex:1,padding:"5px 8px",border:"1px solid #ccc",borderRadius:4,fontSize:12,fontFamily:"monospace"}}/>
+              <button onClick={()=>setShowApiKeyInput(false)}
+                style={{padding:"5px 10px",background:"#2a6f2a",color:"#fff",border:"none",borderRadius:4,cursor:"pointer",fontSize:11}}>OK</button>
+            </div>
+            <div style={{fontSize:10,color:"#666",marginTop:4}}>
+              Wird lokal im Browser gespeichert. Benötigt für Foto- und Barcode-Erkennung per KI.
+              {!hasBarcodeDetector&&" (Barcode-Erkennung nur per KI-Foto – Ihr Browser unterstützt BarcodeDetector nicht.)"}
+            </div>
+          </div>
+        )}
         <div className="cam-video-wrap">
           <video ref={videoRef} className="cam-video" playsInline muted autoPlay/>
           <canvas ref={canvasRef} className="cam-canvas"/>
@@ -5281,14 +5372,19 @@ function CameraScanner({onMedsFound, onClose}){
           </div>
           <div className="cam-frame-hint">
             {mode==="qr"&&"QR-Code des Medikationsplans positionieren"}
-            {mode==="barcode"&&"Barcode auf Schachtel positionieren"}
+            {mode==="barcode"&&(hasBarcodeDetector?"Barcode auf Schachtel positionieren – wird automatisch erkannt":"Barcode auf Schachtel positionieren und Foto aufnehmen")}
             {mode==="foto"&&"Schachtel / Liste / Plan fotografieren"}
           </div>
         </div>
         <div className="cam-controls">
-          {(mode==="foto"||mode==="barcode")&&(
+          {(mode==="foto"||(mode==="barcode"&&!hasBarcodeDetector))&&(
             <button className="cam-snap-btn" onClick={takePhotoAndAnalyze} disabled={!scanning&&!result}>
               📸 Foto aufnehmen &amp; analysieren
+            </button>
+          )}
+          {mode==="barcode"&&hasBarcodeDetector&&scanning&&(
+            <button className="cam-snap-btn" onClick={takePhotoAndAnalyze}>
+              📸 Manuell Foto aufnehmen
             </button>
           )}
           {mode==="qr"&&scanning&&(
@@ -5299,6 +5395,12 @@ function CameraScanner({onMedsFound, onClose}){
           {!scanning&&mode==="qr"&&!result&&(
             <button className="cam-snap-btn" onClick={()=>{setScanning(true);startScanLoop();}}>
               ▶ Neu scannen
+            </button>
+          )}
+          {!apiKey&&(mode==="foto"||(mode==="barcode"&&!hasBarcodeDetector))&&(
+            <button className="cam-snap-btn" onClick={()=>setShowApiKeyInput(true)}
+              style={{background:"#e67e22",marginTop:6}}>
+              🔑 API-Key eingeben
             </button>
           )}
         </div>
@@ -5322,7 +5424,7 @@ function CameraScanner({onMedsFound, onClose}){
         )}
       </div>
       <div style={{color:"#666",fontSize:11,textAlign:"center",marginTop:12,padding:"0 20px",fontFamily:"'Source Sans 3',sans-serif"}}>
-        QR-Code: Einheitlicher Medikationsplan (KBV) · Barcode: EAN-13 / PZN · KI-Foto: Claude Vision API
+        QR-Code: Einheitlicher Medikationsplan (KBV) · Barcode: EAN-13 / PZN {hasBarcodeDetector?"(automatisch)":"(per Foto)"} · KI-Foto: Claude Vision API
       </div>
     </div>
   );
