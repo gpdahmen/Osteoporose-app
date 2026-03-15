@@ -8091,7 +8091,14 @@ function App(){
       const draft=await storageGet(STORE_DRAFT);
       if(draft){
         if(draft.gender)setGender(draft.gender);
-        if(draft.answers)setAnswers(draft.answers);
+        if(draft.answers){
+          const a={...draft.answers};
+          if(!a.alter&&draft.patient?.geburtsdatum){
+            const age=calcAgeFromBirthdate(draft.patient.geburtsdatum);
+            if(age!==null)a.alter=String(age);
+          }
+          setAnswers(a);
+        }
         if(draft.patient)setPatient(p=>({...p,...draft.patient,fillDate:today}));
         if(draft.patientId)setPatientId(draft.patientId);
       }
@@ -8288,7 +8295,13 @@ function App(){
   };
 
   const handleLoadSession=async(s)=>{
-    setGender(s.gender);setAnswers(s.answers);
+    const a={...s.answers};
+    // Recalculate age from geburtsdatum if alter is missing
+    if(!a.alter&&s.patient?.geburtsdatum){
+      const age=calcAgeFromBirthdate(s.patient.geburtsdatum);
+      if(age!==null)a.alter=String(age);
+    }
+    setGender(s.gender);setAnswers(a);
     setPatient({...s.patient,fillDate:today});
     if(s.patientId)setPatientId(s.patientId);
     setShowHist(false);setShowResult(false);
