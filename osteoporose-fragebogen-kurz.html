@@ -3993,6 +3993,13 @@ function GebDatInput({value,onChange}){
     }
   }
 
+  // Warn if year has 1 or 3 digits (must be 2 or 4)
+  const yearDigits = digits.length > 4 ? digits.length - 4 : 0;
+  if(!complete && (yearDigits===1||yearDigits===3)){
+    errMsg="Jahreszahl muss 2- oder 4-stellig sein (JJ oder JJJJ).";
+    borderColor="#c0392b";
+  }
+
   const isOver100Unconfirmed = complete && age!==null && age>100 && age<=130 && value!==lastConfirmed;
 
   function handleChange(e){
