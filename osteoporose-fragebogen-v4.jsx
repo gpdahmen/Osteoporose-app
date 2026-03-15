@@ -8124,6 +8124,14 @@ function App(){
 
   useEffect(()=>{if(gender){setSaveStatus("unsaved");triggerSave();}},[gender,answers,patient,triggerSave]);
 
+  // Always sync age from geburtsdatum
+  useEffect(()=>{
+    if(patient.geburtsdatum){
+      const age=calcAgeFromBirthdate(patient.geburtsdatum);
+      if(age!==null&&answers.alter!==String(age))setAnswers(a=>({...a,alter:String(age)}));
+    }
+  },[patient.geburtsdatum]);
+
   const setA=(id,val)=>setAnswers(p=>({...p,[id]:val}));
   const setP=(k,v)=>setPatient(p=>({...p,[k]:v}));
   const toggleSec=(id)=>setOpenSec(p=>({...p,[id]:!p[id]}));
