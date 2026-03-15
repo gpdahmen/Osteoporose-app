@@ -2189,6 +2189,7 @@ function computeRisk(answers,gender){
   const cF=top2.reduce((a,f)=>a*f.faktor,1);
   const age=parseInt(answers.alter)||null;
   const tHip=answers.dxa_hip||null;
+  const hasAgeDxa=!!(age&&(tHip||tHip===0));
   const t3=age?getTh(gender,3,age,tHip):null;
   const t5=age?getTh(gender,5,age,tHip):null;
   const t10=age?getTh(gender,10,age,tHip):null;
@@ -2202,7 +2203,7 @@ function computeRisk(answers,gender){
   else if(r3)cat="mod";
   else if(r3===false)cat="low";
   const indicators=getIndicators(answers,gender);
-  return{factors,top2,cF,t3,t5,t10,r3,r5,r10,genInd,cat,indicators};
+  return{factors,top2,cF,t3,t5,t10,r3,r5,r10,hasAgeDxa,genInd,cat,indicators};
 }
 function catLabel(c){return{top:"Sehr hohes Risiko / Generelle Indikation",high:"Deutlich erhöhtes Risiko",mod:"Mäßig erhöhtes Risiko",low:"Kein erhöhtes Risiko erkennbar"}[c]||"—";}
 function catShort(c){return{top:"Sehr hoch",high:"Hoch",mod:"Erhöht",low:"Gering"}[c]||"—";}
@@ -3637,10 +3638,10 @@ function Section({section,open,onToggle,answers,onAnswer,onRx,hasRisk,onCameraOp
   );
 }
 
-function ThreshPill({label,threshold,reached}){
+function ThreshPill({label,threshold,reached,hasAgeDxa}){
   const cls=threshold===null?"uk":reached?"yes":"no";
   const sym=threshold===null?"—":reached?"✓":"✗";
-  const sub=threshold!==null?`Benötigt: ×${threshold}`:"Alter/DXA fehlt";
+  const sub=threshold!==null?`Benötigt: ×${threshold}`:hasAgeDxa?"Kein Schwellenwert für diese Kombination":"Alter/DXA fehlt";
   return(
     <div className={`tp ${cls}`}>
       <div className="tp-lbl">{label}</div>
@@ -3687,7 +3688,7 @@ function DiffCard({diff,currRisk}){
 
 function ResultCard({gender,answers,patient,diff}){
   const risk=computeRisk(answers,gender);
-  const{factors,top2,cF,t3,t5,t10,r3,r5,r10,genInd,cat,indicators}=risk;
+  const{factors,top2,cF,t3,t5,t10,r3,r5,r10,hasAgeDxa,genInd,cat,indicators}=risk;
   // Zulassungsgerechte Therapieempfehlungen nach deutschen Fachinformationen (Stand 2024)
   // Romosozumab (Evenity®): in Deutschland nur für postmenopausale Frauen zugelassen
   // Raloxifen, Bazedoxifen: nur für Frauen zugelassen
@@ -3751,9 +3752,9 @@ function ResultCard({gender,answers,patient,diff}){
         </div>
       )}
       <div className="thresh-row">
-        <ThreshPill label="3%-Schwelle (3 J.)" threshold={t3} reached={r3}/>
-        <ThreshPill label="5%-Schwelle (3 J.)" threshold={t5} reached={r5}/>
-        <ThreshPill label="10%-Schwelle (3 J.)" threshold={t10} reached={r10}/>
+        <ThreshPill label="3%-Schwelle (3 J.)" threshold={t3} reached={r3} hasAgeDxa={hasAgeDxa}/>
+        <ThreshPill label="5%-Schwelle (3 J.)" threshold={t5} reached={r5} hasAgeDxa={hasAgeDxa}/>
+        <ThreshPill label="10%-Schwelle (3 J.)" threshold={t10} reached={r10} hasAgeDxa={hasAgeDxa}/>
       </div>
       {info&&(
         <div className={`rb ${info.cls}`}>
