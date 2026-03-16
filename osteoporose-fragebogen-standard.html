@@ -3361,11 +3361,11 @@ function AdminPanel({diagDb,onSave,onClose,
                     })()}
                     {gender&&(<>
                       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14,padding:"10px 4px"}}>
-                        <button onClick={onExportPdf}
+                        <button onClick={()=>{onClose();setTimeout(onExportPdf,150);}}
                           style={{padding:"9px 18px",borderRadius:6,border:"1.5px solid var(--P)",background:"white",color:"var(--M)",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
                           🖨 PDF speichern
                         </button>
-                        <button onClick={onExportTxt}
+                        <button onClick={()=>{onClose();setTimeout(onExportTxt,150);}}
                           style={{padding:"9px 18px",borderRadius:6,border:"1.5px solid var(--P)",background:"white",color:"var(--M)",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
                           💾 TXT speichern
                         </button>
