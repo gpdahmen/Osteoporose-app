@@ -4133,11 +4133,14 @@ function flattenEntries(id, entries, original){
 function AdminPanel({diagDb,onSave,onClose,
   gender,answers,patient,anamnese,therapieHistory,lh,onSaveLh,sessions,
   onExportPdf,onExportTxt,onLoadSession,onDeleteSession,
+  onAnswersChange,onGenderChange,
   initialTab,diff,painMaps}){
 
   const[pinInput,setPinInput]=useState("");
   const[pinErr,setPinErr]=useState(false);
   const[unlocked,setUnlocked]=useState(false);
+  const[editAnswers,setEditAnswers]=useState(false);
+  const[openEditSec,setOpenEditSec]=useState({dxa:true});
   const[activeTab,setActiveTab]=useState(initialTab||"auswertung");
 
   const tryPin=()=>{
@@ -4252,6 +4255,101 @@ function AdminPanel({diagDb,onSave,onClose,
                           ← Zurück zum Fragebogen
                         </button>
                       </div>
+                      {/* ── Fragebogen bearbeiten ── */}
+                      {onAnswersChange&&(()=>{
+                        const visSecs=SECTIONS.filter(s=>!s.onlyFor||s.onlyFor===gender);
+                        const eSt={padding:"6px 10px",border:"1.5px solid #d4c4a8",borderRadius:5,fontSize:13,fontFamily:"inherit",background:"#fffdf8"};
+                        const handleAns=(id,val)=>onAnswersChange({...answers,[id]:val});
+                        return(
+                          <div style={{marginBottom:16}}>
+                            <button onClick={()=>setEditAnswers(!editAnswers)}
+                              style={{padding:"9px 18px",borderRadius:6,border:"1.5px solid var(--P)",background:editAnswers?"var(--CL)":"white",color:"var(--M)",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,marginBottom:editAnswers?12:0}}>
+                              ✏️ Fragebogen bearbeiten
+                            </button>
+                            {editAnswers&&(
+                              <div style={{background:"#fffdf8",border:"1.5px solid #d4c4a8",borderRadius:8,padding:12}}>
+                                {visSecs.map(sec=>(
+                                  <div key={sec.id} style={{marginBottom:8}}>
+                                    <div onClick={()=>setOpenEditSec(p=>({...p,[sec.id]:!p[sec.id]}))}
+                                      style={{cursor:"pointer",padding:"8px 10px",background:openEditSec[sec.id]?"#f0e8d8":"#faf4ed",borderRadius:6,fontWeight:600,fontSize:13,display:"flex",alignItems:"center",gap:6,userSelect:"none"}}>
+                                      <span style={{transform:openEditSec[sec.id]?"rotate(90deg)":"rotate(0)",transition:"transform .15s",display:"inline-block"}}>▶</span>
+                                      {sec.icon} {sec.title}
+                                      <span style={{marginLeft:"auto",fontSize:11,color:"#8b7a68",fontWeight:400}}>
+                                        {sec.qs.filter(q=>answers[q.id]!==undefined&&answers[q.id]!=="").length}/{sec.qs.length} beantwortet
+                                      </span>
+                                    </div>
+                                    {openEditSec[sec.id]&&(
+                                      <div style={{padding:"8px 6px 4px",display:"flex",flexDirection:"column",gap:8}}>
+                                        {sec.qs.map(q=>{
+                                          const val=answers[q.id]||"";
+                                          const shortLabel=q.label.split("\n")[0].replace(/\?$/,"").substring(0,80)+(q.label.length>80?"…":"");
+                                          if(q.t==="dxa") return(
+                                            <div key={q.id} style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                                              <label style={{fontSize:13,color:"#5a4a3a",minWidth:200,flex:1}}>{q.label}</label>
+                                              <input type="number" step="0.01" placeholder={q.placeholder||"-2.5"} value={val}
+                                                onChange={e=>handleAns(q.id,e.target.value)}
+                                                style={{...eSt,width:100,textAlign:"center"}}/>
+                                              <span style={{fontSize:11,color:"#8b7a68"}}>{q.id.includes("tbs")?"":"SD"}</span>
+                                            </div>
+                                          );
+                                          if(q.t==="yn"||q.t==="yn_inv") return(
+                                            <div key={q.id} style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                                              <label style={{fontSize:13,color:"#5a4a3a",minWidth:200,flex:1}}>{shortLabel}</label>
+                                              <div style={{display:"flex",gap:4}}>
+                                                {["ja","nein"].map(o=>(
+                                                  <button key={o} onClick={()=>handleAns(q.id,o)}
+                                                    style={{padding:"4px 14px",borderRadius:5,border:"1.5px solid "+(val===o?"var(--P)":"#d4c4a8"),
+                                                      background:val===o?(o==="ja"?"#e8f5e9":"#fce4e4"):"white",
+                                                      color:val===o?"#1a3a1a":"#8b7a68",cursor:"pointer",fontSize:12,fontWeight:val===o?700:400,fontFamily:"inherit"}}>
+                                                    {o==="ja"?"Ja":"Nein"}
+                                                  </button>
+                                                ))}
+                                                {val&&<button onClick={()=>handleAns(q.id,"")}
+                                                  style={{padding:"4px 8px",borderRadius:5,border:"1px solid #ddd",background:"#f5f5f5",color:"#999",cursor:"pointer",fontSize:11,fontFamily:"inherit"}}>✕</button>}
+                                              </div>
+                                            </div>
+                                          );
+                                          if(q.t==="radio"){
+                                            const opts=q.opts||(q.fmap?Object.keys(q.fmap):[]);
+                                            return(
+                                              <div key={q.id} style={{display:"flex",flexDirection:"column",gap:4}}>
+                                                <label style={{fontSize:13,color:"#5a4a3a"}}>{shortLabel}</label>
+                                                <select value={val} onChange={e=>handleAns(q.id,e.target.value)}
+                                                  style={{...eSt,maxWidth:400}}>
+                                                  <option value="">– nicht beantwortet –</option>
+                                                  {opts.map(o=><option key={o} value={o}>{o}</option>)}
+                                                </select>
+                                              </div>
+                                            );
+                                          }
+                                          if(q.t==="number") return(
+                                            <div key={q.id} style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                                              <label style={{fontSize:13,color:"#5a4a3a",minWidth:200,flex:1}}>{shortLabel}</label>
+                                              <input type="number" placeholder={q.placeholder||""} value={val}
+                                                onChange={e=>handleAns(q.id,e.target.value)}
+                                                style={{...eSt,width:100}}/>
+                                            </div>
+                                          );
+                                          return(
+                                            <div key={q.id} style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                                              <label style={{fontSize:13,color:"#5a4a3a",minWidth:200,flex:1}}>{shortLabel}</label>
+                                              <input type="text" value={val}
+                                                onChange={e=>handleAns(q.id,e.target.value)}
+                                                style={{...eSt,width:160}}/>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Risiko-Ergebnis */}
                       <ResultCard gender={gender} answers={answers} patient={patient} diff={diff} lh={lh} painMaps={painMaps}/>
                     </>)}
                   </div>
@@ -5350,6 +5448,7 @@ function App(){
           therapieHistory={therapieHistory} lh={lh} onSaveLh={handleSaveLh} sessions={sessions}
           onExportPdf={handlePrint} onExportTxt={handleText}
           onLoadSession={handleLoadSession} onDeleteSession={handleDeleteSession}
+          onAnswersChange={setAnswers} onGenderChange={setGender}
           initialTab={arztStartTab||"auswertung"}
           diff={diff} painMaps={painMaps}/>
       )}
