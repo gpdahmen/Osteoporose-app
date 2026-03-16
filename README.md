@@ -8,7 +8,7 @@ Die App läuft vollständig im Browser, benötigt keine Serververbindung und spe
 
 ## 🖥️ Live-Demo & Download
 
-> **Einfachste Nutzung:** Die Datei `osteoporose-fragebogen-v4.html` herunterladen und direkt im Browser öffnen – keine Installation, kein Server, keine Abhängigkeiten.
+> **Einfachste Nutzung:** Die Datei `[Osteoporose-App-Vollversion](https://github.com/gpdahmen/Osteoporose-app/blob/claude/fix-gender-selection-display-EuE5d/osteoporose-app-vollversion.html)` herunterladen und direkt im Browser öffnen – keine Installation, kein Server, keine Abhängigkeiten.
 
 Die Anwendung funktioniert in allen modernen Browsern (Chrome, Firefox, Edge, Safari) und ist für Desktop, Tablet und Mobilgeräte optimiert.
 
