@@ -1,7 +1,8 @@
 # 🦴 Osteoporose-Fragebogen
 
-Eine vollständige, **DSGVO-konforme Webanwendung** zur strukturierten Osteoporose-Dokumentation und Risikoberechnung nach der **DVO-Leitlinie 2023** – entwickelt für den osteologischen Praxisalltag.
+Eine vollständige, **DSGVO-konforme Webanwendung** zur strukturierten Osteoporose-Dokumentation und Risikoberechnung auf der Grundlage der **DVO-Leitlinie 2023** – entwickelt für den osteologischen Praxisalltag.
 
+Es handelt sich um eine Demo-Version als Machbarkeitsstudie. Sie dient nur zur Veranschaulichung und zu Schukungszwecken. 
 Die App läuft vollständig im Browser, benötigt keine Serververbindung und speichert alle Daten ausschließlich lokal auf dem Gerät des Benutzers (IndexedDB / localStorage).
 
 ---
