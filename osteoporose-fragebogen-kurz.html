@@ -1764,25 +1764,6 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
       </div>`;
   }
 
-  // Anamnese-Zusammenfassung
-  let anamHtml="";
-  if(anamnese){
-    const dxList=(anamnese.diagnosen||[]).filter(d=>d&&(typeof d==="string"?d.trim():(d.name||"")));
-    const fracList=(anamnese.fractures||[]).filter(f=>f&&(f.typ||f.seite));
-    if(dxList.length||fracList.length||(anamnese.weitere||[]).filter(s=>s).length){
-      anamHtml=`
-      <div style="margin-bottom:20px;break-inside:avoid">
-        <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;
-          font-size:13px;font-weight:700">📋 Anamnese / Krankengeschichte</div>
-        <div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12.5px">`;
-      if(dxList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Diagnosen:</strong> ${dxList.map(d=>typeof d==="string"?d:[d.name,d.seitJahr?"seit "+d.seitJahr:""].filter(Boolean).join(" ")).join(" · ")}</div>`;
-      if(fracList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Frühere Frakturen:</strong> ${fracList.map(f=>[f.typ,f.seite,f.jahr].filter(Boolean).join(" ")).join(", ")}</div>`;
-      const weitereSet=(anamnese.weitere||[]).filter(s=>s);
-      if(weitereSet.length) anamHtml+=`<div><strong>Weitere Angaben:</strong> ${weitereSet.map(w=>typeof w==="string"?w:[w.name||w.substanz||"",w.seitJahr?"seit "+w.seitJahr:""].filter(Boolean).join(" ")).join(", ")}</div>`;
-      anamHtml+=`</div></div>`;
-    }
-  }
-
 
   // ABKLÄRUNGSHINWEISE – Sekundäre Osteoporoseformen
   let sekHinweisHtml="";
@@ -1915,7 +1896,6 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
   ${answers.gewicht?`<div class="pat-item"><label>Gewicht</label><span>${answers.gewicht} kg</span></div>`:""}
 </div>
 
-${anamHtml}
 ${sekHinweisHtml}
 ${sectionsHtml}
 
@@ -1952,98 +1932,6 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
   if(bmi)lines.push(`BMI            : ${bmi.toFixed(1)} kg/m²`);
   lines.push(`Ausfülldatum   : ${patient.fillDate||d}`);
   lines.push("");
-  // ─ Anamnese ─
-  const an=anamnese||{};
-  if((an.diagnosen||[]).length>0||(an.weitere||[]).length>0||(an.allergien||[]).length>0||(an.familienanamnese||[]).length>0||(an.fractures||[]).length>0||(an.ops||[]).length>0||an.menarche||an.menoPause||(an.kinder||[]).length>0){
-    lines.push("PERSÖNLICHE KRANKENGESCHICHTE");lines.push(sub);
-    if((an.diagnosen||[]).length>0){
-      lines.push("Bekannte Diagnosen / Vorerkrankungen:");
-      an.diagnosen.forEach(function(dx,i){
-        var flags=[];
-        if(dx.vitdRisiko)flags.push("VitD↓-Risiko");
-        if(dx.phosphatRisiko)flags.push("PO₄↑-Risiko");
-        var s="  "+(i+1)+". "+(dx.name||"–");
-        if(dx.seitJahr)s+=" (seit "+dx.seitJahr+")";
-        if(flags.length)s+=" ["+flags.join(", ")+"]";
-        lines.push(s);
-        if(dx.medikation)lines.push("     Medikation: "+dx.medikation);
-      });
-      lines.push("");
-    }
-    if((an.weitere||[]).length>0){
-      lines.push("Weitere Erkrankungen:");
-      an.weitere.forEach(function(we,i){
-        var s="  "+(i+1)+". "+(we.name||"–");
-        if(we.seitJahr)s+=" (seit "+we.seitJahr+")";
-        if(we.status&&we.status!=="aktiv")s+=" ["+we.status+"]";
-        if(we.anmerkung)s+=" – "+we.anmerkung;
-        lines.push(s);
-      });
-      lines.push("");
-    }
-    if((an.allergien||[]).length>0){
-      lines.push("Allergien / Unverträglichkeiten / Kontraindikationen:");
-      an.allergien.forEach(function(al,i){
-        var s="  "+(i+1)+". "+(al.substanz||"–");
-        if(al.reaktion)s+=" → "+al.reaktion;
-        if(al.schwere)s+=" ["+al.schwere+"]";
-        lines.push(s);
-      });
-      lines.push("");
-    }
-    if((an.familienanamnese||[]).length>0){
-      lines.push("Familienanamnese:");
-      an.familienanamnese.forEach(function(fa,i){
-        var s="  "+(i+1)+". "+(fa.verwandtschaft||"Verwandter")+": "+(fa.diagnose||"–");
-        if(fa.erkranktMit)s+=" (mit ca. "+fa.erkranktMit+" J.)";
-        if(fa.osteoRelevant)s+=" [OSTEOPOROSE-RELEVANT]";
-        lines.push(s);
-      });
-      lines.push("");
-    }
-    if((an.fractures||[]).length>0){
-      lines.push("Frühere Knochenbrüche:");
-      an.fractures.forEach(function(fr,i){
-        var parts=[fr.ort||"–"];
-        if(fr.seite)parts.push(fr.seite);
-        if(fr.jahr)parts.push("ca. "+fr.jahr);
-        if(fr.ursache)parts.push("("+fr.ursache+")");
-        lines.push("  "+(i+1)+". "+parts.join(" · "));
-      });
-      lines.push("");
-    }
-    if((an.ops||[]).length>0){
-      lines.push("Frühere Operationen:");
-      an.ops.forEach(function(op,i){
-        var parts=[op.art||"–"];
-        if(op.jahr)parts.push(""+op.jahr);
-        if(op.klinik)parts.push(op.klinik);
-        lines.push("  "+(i+1)+". "+parts.join(" · "));
-      });
-      lines.push("");
-    }
-    if(gender==="f"){
-      if(an.menarche)lines.push("Menarche           : "+an.menarche+" Jahre");
-      if(an.menoPause==="ja")lines.push("Regelblutung       : Vorhanden (regelmäßig)");
-      else if(an.menoPause==="unregelmaessig")lines.push("Regelblutung       : Vorhanden (unregelmäßig)");
-      else if(an.menoPause==="nein"){
-        lines.push("Menopause          : Ja (keine Regelblutung)");
-        if(an.menoYear)lines.push("Letzte Blutung     : "+an.menoYear);
-        var gMap={natuerlich:"Natürliche Wechseljahre",op:"Ovarektomie (OP)",medikamentoes:"Medikamentöse Unterdrückung",strahlen:"Strahlentherapie",pof:"Vorzeitige Ovarialinsuffizienz (<40. LJ)",sonstige:an.menoSonstige||"Sonstiges"};
-        if(an.menoGrund)lines.push("Ursache Menopause  : "+(gMap[an.menoGrund]||an.menoGrund));
-      }
-      if((an.kinder||[]).length>0){
-        lines.push("Kinder             : "+an.kinder.length);
-        an.kinder.forEach(function(k,i){
-          var s="  "+(i+1)+". Geburtsjahr "+(k.geburtsjahr||"–");
-          if(k.gestillt==="ja")s+=", gestillt "+(k.stilldauer||"?")+" Monate";
-          else if(k.gestillt==="nein")s+=", nicht gestillt";
-          lines.push(s);
-        });
-      }
-      lines.push("");
-    }
-  }
   if(answers.dxa_hip){
     lines.push("DXA-KNOCHENDICHTEMESSUNG");lines.push(sub);
     lines.push(`T-Score Gesamthüfte  : ${answers.dxa_hip}`);
