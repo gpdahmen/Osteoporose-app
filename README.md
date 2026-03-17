@@ -1,4 +1,4 @@
-# 🦴 Osteoporose-Fragebogen v4
+# 🦴 Osteoporose-Fragebogen
 
 Eine vollständige, **DSGVO-konforme Webanwendung** zur strukturierten Osteoporose-Dokumentation und Risikoberechnung nach der **DVO-Leitlinie 2023** – entwickelt für den osteologischen Praxisalltag.
 
@@ -6,9 +6,17 @@ Die App läuft vollständig im Browser, benötigt keine Serververbindung und spe
 
 ---
 
-## 🖥️ Live-Demo & Download
+## 🖥️ Live-Demo (GitHub Pages)
 
-> **Einfachste Nutzung:** Die Datei `[Osteoporose-App-Vollversion](https://github.com/gpdahmen/Osteoporose-app/blob/claude/fix-gender-selection-display-EuE5d/osteoporose-app-vollversion.html)` herunterladen und direkt im Browser öffnen – keine Installation, kein Server, keine Abhängigkeiten.
+Die drei Versionen sind direkt im Browser nutzbar – kein Download nötig:
+
+| Version | Beschreibung | Link |
+|---|---|---|
+| **Vollversion** | Alle Funktionen inkl. Arzt-Zugang, Laborwerte, Sekundäre Osteoporose | [Vollversion öffnen](https://gpdahmen.github.io/Osteoporose-app/osteoporose-app-vollversion.html) |
+| **Standard** | Standard-Fragebogen mit Arzt-Zugang | [Standard öffnen](https://gpdahmen.github.io/Osteoporose-app/osteoporose-fragebogen-standard.html) |
+| **Kurzversion** | Kompakter Fragebogen | [Kurzversion öffnen](https://gpdahmen.github.io/Osteoporose-app/osteoporose-fragebogen-kurz.html) |
+
+> **Offline-Nutzung:** Jede HTML-Datei kann auch heruntergeladen und lokal im Browser geöffnet werden – keine Installation, kein Server, keine Abhängigkeiten.
 
 Die Anwendung funktioniert in allen modernen Browsern (Chrome, Firefox, Edge, Safari) und ist für Desktop, Tablet und Mobilgeräte optimiert.
 
@@ -25,7 +33,7 @@ Der Fragebogen führt strukturiert durch alle relevanten Risikofaktoren:
 - **Medikamente** – Kortikosteroide, Aromatasehemmer, Antiepileptika, PPIs, Antikoagulanzien u. v. m.
 - **Sekundäre Osteoporose** – Symptomcheck für 7 Erkrankungsgruppen (endokrin, gastroenterologisch, renal, hämatologisch, immunologisch, neurologisch, genetisch)
 - **Bisherige Therapie** – Dokumentation laufender Osteoporose-Medikation
-- **DXA-Werte** – Eingabe von T-Score und Z-Score für LWS und Hüfte
+- **DXA-Werte** – Eingabe von T-Score (Gesamthüfte, LWS, Schenkelhals) und TBS
 
 Alle Felder sind responsiv und für die Eingabe am Touchscreen optimiert.
 
@@ -44,6 +52,12 @@ Alle Felder sind responsiv und für die Eingabe am Touchscreen optimiert.
 ### 🩺 Arzt-Zugang (PIN-geschützt)
 
 Der passwortgeschützte Arztzugang (Standard-PIN: `1234`) bietet erweiterte Funktionen:
+
+#### 📊 Auswertung
+- Risiko-Ergebnis mit Therapieempfehlung
+- **Fragebogen direkt bearbeiten** – alle Patientenantworten können nachträglich geändert oder ergänzt werden (insbesondere DXA-Werte)
+- Änderungen werden sofort in die Risikoberechnung übernommen
+- Export als PDF oder TXT
 
 #### 👥 Patienten-Tab
 - Vollständige Patientenliste aller gespeicherten Sitzungen
@@ -103,11 +117,14 @@ Der passwortgeschützte Arztzugang (Standard-PIN: `1234`) bietet erweiterte Funk
 ### Architektur
 
 ```
-osteoporose-fragebogen-v4.html    ← Standalone-Datei, direkt im Browser öffnen
-osteoporose-fragebogen-v4.jsx     ← Quellcode (React/JSX)
+├── index.html                              # Startseite (GitHub Pages)
+├── osteoporose-app-vollversion.html        # Vollversion (alle Features)
+├── osteoporose-fragebogen-standard.html    # Standard-Fragebogen
+├── osteoporose-fragebogen-kurz.html        # Kurzversion
+└── README.md
 ```
 
-Die HTML-Datei ist **vollständig self-contained**: React, ReactDOM und Babel werden von `cdnjs.cloudflare.com` geladen; alle medizinischen Datenbanken (Risikofaktoren, Therapie, Laborwerte) sind inline eingebettet. Es gibt keine weiteren Abhängigkeiten.
+Jede HTML-Datei ist **vollständig self-contained**: React, ReactDOM und Babel werden von `cdnjs.cloudflare.com` geladen; alle medizinischen Datenbanken (Risikofaktoren, Therapie, Laborwerte) sind inline eingebettet. Es gibt keine weiteren Abhängigkeiten.
 
 ### Stack
 
@@ -145,29 +162,18 @@ Die Risikoberechnung und alle Datenbankeinträge basieren auf:
 
 ## 🚀 Schnellstart
 
-1. Datei `osteoporose-fragebogen-v4.html` herunterladen
+1. Eine der drei Versionen oben über den Link öffnen – oder HTML-Datei herunterladen
 2. Im Browser öffnen (Doppelklick oder `Datei → Öffnen`)
 3. Fragebogen ausfüllen
-4. Für den Arzt-Zugang: Button **„🩺 Arzt-Zugang"** → PIN `1234`
+4. Für den Arzt-Zugang: Button **„🩺 Arzt-Zugang"** oben rechts → PIN `1234`
 5. Briefkopf unter **✏️ Briefkopf** einrichten (einmalig)
-
----
-
-## 📁 Repository-Inhalt
-
-```
-├── osteoporose-fragebogen-v4.html   # Fertige Anwendung (direkt nutzbar)
-├── osteoporose-fragebogen-v4.jsx    # React/JSX Quellcode
-├── osteoporose-risikocheck-4.html   # Ältere Version (Archiv)
-└── README.md
-```
 
 ---
 
 ## 👨‍⚕️ Entwickelt von
 
-**Dr. med. Georg P. Dahmen**  
-Orthopädie Langenhorn, Hamburg  
+**Dr. med. Georg P. Dahmen**
+Orthopädie Langenhorn, Hamburg
 
 ---
 
