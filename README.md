@@ -104,7 +104,7 @@ Der passwortgeschützte Arztzugang (Standard-PIN: `1234`) bietet erweiterte Funk
 |---|---|
 | **Speicherort** | Ausschließlich lokal (IndexedDB + localStorage im Browser) |
 | **Serververbindung** | Keine – die App funktioniert vollständig offline |
-| **Drittanbieter** | Nur Google Fonts (CDN, optional) sowie React/Babel von cdnjs.cloudflare.com |
+| **Drittanbieter** | Google Fonts (fonts.googleapis.com) sowie React/Babel von unpkg.com |
 | **Patientendaten** | Verlassen das Gerät zu keinem Zeitpunkt |
 | **Export** | Nur als lokaler Ausdruck / PDF |
 
@@ -135,6 +135,20 @@ Jede HTML-Datei ist **vollständig self-contained**: React, ReactDOM und Babel w
 | **IndexedDB** | Persistente Patientendaten-Speicherung |
 | **localStorage** | Einstellungen, Briefkopf, Datenbanküberschreibungen |
 | **CSS (vanilla)** | Responsives Layout, kein CSS-Framework |
+
+### Externe Bibliotheken (CDN)
+
+Alle externen Abhängigkeiten werden über CDN geladen – es gibt keine lokale Installation oder Build-Prozesse:
+
+| Bibliothek | Version | CDN | Zweck |
+|---|---|---|---|
+| **React** | 18.x | unpkg.com | UI-Rendering und Komponentenarchitektur |
+| **ReactDOM** | 18.x | unpkg.com | DOM-Rendering für React-Komponenten |
+| **Babel Standalone** | latest | unpkg.com | JSX-zu-JavaScript-Kompilierung im Browser |
+| **Google Fonts – Source Sans 3** | – | fonts.googleapis.com | Primäre UI-Schriftart (Gewichte: 300, 400, 500, 600, 700) |
+| **Google Fonts – Playfair Display** | – | fonts.googleapis.com | Überschriften und Praxisname (Gewichte: 400, 600, 700, kursiv) |
+
+> **Hinweis:** Außer den genannten CDN-Ressourcen bestehen keine weiteren externen Abhängigkeiten. Es werden keine npm-Pakete, Build-Tools oder serverseitige Frameworks verwendet.
 
 ### Datenpersistenz
 
@@ -174,6 +188,10 @@ Die Risikoberechnung und alle Datenbankeinträge basieren auf:
 
 **Dr. med. Georg P. Dahmen**
 Orthopädie Langenhorn, Hamburg
+
+### 🤖 KI-Unterstützung
+
+Dieses Projekt wurde mit Unterstützung von **Claude** (Anthropic) entwickelt. Claude hat bei der Programmierung, Strukturierung und Weiterentwicklung der Anwendung assistiert.
 
 ---
 
