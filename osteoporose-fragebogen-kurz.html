@@ -1857,6 +1857,191 @@ function getIcdArray(entry, gender, answers){
 }
 
 /* ═══════════════════════════════════════════════ TEXT EXPORT ═══ */
+
+/* ═══ ARZT-AUSWERTUNG (Befundbericht) ═══════════════════════════════════════ */
+function buildAuswertungHtml(patient,gender,answers,lh,diagDb,sekDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds,painMaps){
+  const risk=computeRisk(answers,gender);
+  const db=diagDb||DIAG_DB_DEFAULTS;
+  const d=new Date().toLocaleDateString("de-DE");
+  const patName=[patient.nachname||patient.name,patient.vorname].filter(Boolean).join(", ")||"–";
+  const genderLabel=gender==="f"?"Frau":"Mann";
+  const bmi=calcBMI(parseFloat(answers.groesse),parseFloat(answers.gewicht));
+
+  // ── Anamnese HTML ──
+  let anamRows="";
+  const an=anamnese||{};
+  if((an.diagnosen||[]).length>0){
+    anamRows+=`<tr><td style="font-weight:600;vertical-align:top;padding:4px 8px;width:35%">Diagnosen</td><td style="padding:4px 8px">${(an.diagnosen||[]).map(dx=>{const n=typeof dx==="string"?dx:(dx.name||"–");const s=dx.seitJahr?" (seit "+dx.seitJahr+")":"";return n+s;}).join(" · ")}</td></tr>`;
+  }
+  if((an.weitere||[]).length>0){
+    anamRows+=`<tr><td style="font-weight:600;vertical-align:top;padding:4px 8px">Weitere</td><td style="padding:4px 8px">${(an.weitere||[]).map(w=>typeof w==="string"?w:(w.name||"–")).join(" · ")}</td></tr>`;
+  }
+  if((an.allergien||[]).length>0){
+    anamRows+=`<tr><td style="font-weight:600;vertical-align:top;padding:4px 8px">Allergien</td><td style="padding:4px 8px">${(an.allergien||[]).map(a=>[a.substanz,a.reaktion?"→ "+a.reaktion:""].filter(Boolean).join(" ")).join(" · ")}</td></tr>`;
+  }
+  if((an.familienanamnese||[]).length>0){
+    anamRows+=`<tr><td style="font-weight:600;vertical-align:top;padding:4px 8px">Familienanamnese</td><td style="padding:4px 8px">${(an.familienanamnese||[]).map(f=>[(f.verwandtschaft||"")+":",(f.diagnose||"")].filter(Boolean).join(" ")).join(" · ")}</td></tr>`;
+  }
+  if((an.fractures||[]).length>0){
+    anamRows+=`<tr><td style="font-weight:600;vertical-align:top;padding:4px 8px">Frakturen</td><td style="padding:4px 8px">${(an.fractures||[]).map(f=>[f.ort||f.typ,f.seite,f.jahr?"ca. "+f.jahr:""].filter(Boolean).join(" ")).join(", ")}</td></tr>`;
+  }
+  if((an.ops||[]).length>0){
+    anamRows+=`<tr><td style="font-weight:600;vertical-align:top;padding:4px 8px">Operationen</td><td style="padding:4px 8px">${(an.ops||[]).map(o=>[o.art,o.jahr?""+o.jahr:""].filter(Boolean).join(" · ")).join(", ")}</td></tr>`;
+  }
+  if(gender==="f"&&(an.menarche||an.menoPause||(an.kinder||[]).length>0)){
+    let g="";
+    if(an.menarche) g+="Menarche: "+an.menarche+" J. ";
+    if(an.menoPause==="nein") g+="Menopause: Ja ";
+    if((an.kinder||[]).length>0) g+="Kinder: "+an.kinder.length;
+    if(g) anamRows+=`<tr><td style="font-weight:600;vertical-align:top;padding:4px 8px">Gynäkol. Anamnese</td><td style="padding:4px 8px">${g}</td></tr>`;
+  }
+
+  // ── Risikofaktoren HTML ──
+  let riskRows="";
+  for(const f of risk.factors){
+    const diag=db[f.id]||{};
+    const diagText=diag.diagnose||f.label;
+    const icds=getIcdArray(diag,gender,answers);
+    riskRows+=`<tr style="border-bottom:1px solid #e8e0d0"><td style="padding:5px 8px">${diagText}</td><td style="padding:5px 8px;text-align:center;font-weight:600">×${f.faktor}</td><td style="padding:5px 8px;font-family:monospace;font-size:11px">${icds.join(", ")}</td></tr>`;
+  }
+
+  // ── Risikoindikatoren ──
+  let indRows="";
+  const activeInds=risk.indicators||[];
+  for(const ind of activeInds){
+    indRows+=`<tr style="border-bottom:1px solid #e8e0d0"><td style="padding:5px 8px">${ind.label}</td><td style="padding:5px 8px;font-family:monospace;font-size:11px">${ind.icd||""}</td></tr>`;
+  }
+
+  // ── Therapie-Historie ──
+  let thRows="";
+  const th=therapieHistory||[];
+  const tdb=osteoTherapieDb||OSTEO_THERAPIE_DEFAULTS;
+  for(const en of th){
+    const med=tdb.find(m=>m.id===en.medId)||null;
+    const name=med?med.wirkstoff:(en.medId||"Unbekannt");
+    const zeit=en.vonJahr?(en.nochAktuell?en.vonJahr+" – aktuell":en.bisJahr?en.vonJahr+" – "+en.bisJahr:"seit "+en.vonJahr):"";
+    thRows+=`<tr style="border-bottom:1px solid #e8e0d0"><td style="padding:5px 8px">${name}</td><td style="padding:5px 8px">${zeit}</td><td style="padding:5px 8px;font-size:11px">${en.dosierung||""}</td></tr>`;
+  }
+
+  // ── Schmerzzeichnungen ──
+  let painHtml="";
+  const pm=painMaps||{};
+  if(Object.values(pm).some(v=>v)){
+    painHtml=`<div style="margin-top:16px"><div style="font-size:13px;font-weight:700;color:#2a1808;margin-bottom:8px">✏️ Schmerzzeichnung</div><div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">`;
+    for(const[vid,dataUrl] of Object.entries(pm)){
+      if(!dataUrl) continue;
+      const vd=(typeof PAIN_VIEWS!=="undefined"?PAIN_VIEWS:[]).find(v=>v.id===vid);
+      painHtml+=`<div style="text-align:center"><div style="font-size:10px;font-weight:600;margin-bottom:3px">${vd?vd.label:vid}</div><img src="${dataUrl}" style="max-width:150px;max-height:170px;border:1px solid #ddd;border-radius:4px"/></div>`;
+    }
+    painHtml+=`</div></div>`;
+  }
+
+  // ── Sekundäre Osteoporose Abklärung ──
+  let sekHtml="";
+  const sekHits=computeSecondary(answers);
+  if(sekHits.length>0){
+    sekHtml=`<div style="margin-top:16px;border:1.5px solid #c4a040;border-radius:6px;overflow:hidden"><div style="background:#f8f0d8;padding:8px 12px;font-weight:700;font-size:13px;color:#5a4010">⚠ Abklärungshinweise – Sekundäre Osteoporoseformen</div><table style="width:100%;border-collapse:collapse;font-size:12px">`;
+    for(const{sym,count,hits,profile} of sekHits){
+      const sekEntry=(sekDb||SEK_DIAG_DB_DEFAULTS)[sym]||{};
+      sekHtml+=`<tr style="border-bottom:1px solid #e8e0d0"><td style="padding:6px 8px;font-weight:600">${sekEntry.diagnose||profile.label}${sekEntry.icd5?" {"+sekEntry.icd5+"}":""}</td><td style="padding:6px 8px;font-size:11px">${count} Hinweis${count!==1?"e":""}: ${hits.map(h=>h.label).join(", ")}</td></tr>`;
+    }
+    sekHtml+=`</table></div>`;
+  }
+
+  // ── Kategorien ──
+  const catLabel=c=>({top:"Sehr hohes Risiko",high:"Hohes Risiko",mod:"Mäßiges Risiko",low:"Niedriges Risiko"}[c]||"–");
+  const catColor=c=>({top:"#b91c1c",high:"#c2410c",mod:"#a16207",low:"#15803d"}[c]||"#666");
+
+  return `<!DOCTYPE html>
+<html lang="de"><head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Auswertung – ${patName}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:12.5px;color:#1a1a1a;background:white;padding:16px}
+  @media print{body{padding:0;font-size:10.5px} .print-bar{display:none!important}}
+  h1{font-size:17px;color:#2a1808;margin-bottom:4px}
+  table{width:100%;border-collapse:collapse}
+  .sec{margin-bottom:14px;border:1.5px solid #d4a84b;border-radius:6px;overflow:hidden;page-break-inside:avoid}
+  .sec-hd{background:#3a2a0e;color:#f0e8d0;padding:7px 12px;font-size:13px;font-weight:700}
+  .sec-bd{padding:8px 12px}
+  .pat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 18px;margin-bottom:14px;background:#faf6f0;border:1.5px solid #d4a84b;border-radius:7px;padding:10px 14px}
+  .pat-item label{font-size:9.5px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px}
+  .pat-item span{font-size:13px;font-weight:600;color:#1a1a1a}
+  .cat-badge{display:inline-block;padding:5px 14px;border-radius:20px;color:white;font-weight:700;font-size:13px}
+  .footer{margin-top:20px;padding-top:8px;border-top:1px solid #ddd;font-size:10px;color:#888;text-align:center}
+  .print-bar{background:#2c1f0e;color:#f0e8d0;padding:12px 16px;margin:-16px -16px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .print-bar h2{font-size:14px;font-weight:700;flex:1;margin:0}
+  .print-btn{padding:9px 18px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;background:#4a9a4a;color:white}
+  @media(max-width:600px){.pat-grid{grid-template-columns:1fr 1fr}}
+</style>
+<script>window.doPrint=function(){window.print();};<\/script>
+</head><body>
+<div class="print-bar">
+  <h2>📊 Osteoporose – Auswertung / Befundbericht</h2>
+  <button class="print-btn" onclick="window.doPrint()">🖨 Drucken / Als PDF</button>
+</div>
+<h1>Anamnese- und Osteoporose-Dokumentationshilfe – Auswertung</h1>
+<div style="font-size:11px;color:#888;margin-bottom:12px">
+  ${lh.name||""} · ${lh.strasse||""}, ${lh.plz_ort||""} · DVO-Leitlinie 2023 · Ausgabedatum: ${d}
+</div>
+
+<div class="pat-grid">
+  <div class="pat-item"><label>Name</label><span>${patName}</span></div>
+  <div class="pat-item"><label>Geburtsdatum</label><span>${patient.geburtsdatum||"–"}</span></div>
+  <div class="pat-item"><label>Geschlecht</label><span>${genderLabel}</span></div>
+  <div class="pat-item"><label>Alter</label><span>${answers.alter||"–"} Jahre</span></div>
+  ${answers.groesse?`<div class="pat-item"><label>Größe / Gewicht</label><span>${answers.groesse} cm / ${answers.gewicht||"–"} kg${bmi?" (BMI "+bmi.toFixed(1)+")":""}</span></div>`:""}
+  <div class="pat-item"><label>Ausfülldatum</label><span>${patient.fillDate||d}</span></div>
+</div>
+
+${anamRows?`<div class="sec"><div class="sec-hd">📋 Persönliche Anamnese</div><div class="sec-bd"><table>${anamRows}</table></div></div>`:""}
+
+${painHtml}
+
+${answers.dxa_hip?`<div class="sec"><div class="sec-hd">🦴 DXA-Knochendichtemessung</div><div class="sec-bd"><table>
+  <tr><td style="padding:4px 8px;font-weight:600;width:40%">T-Score Gesamthüfte</td><td style="padding:4px 8px">${answers.dxa_hip}</td></tr>
+  ${answers.dxa_lws?`<tr><td style="padding:4px 8px;font-weight:600">T-Score LWS</td><td style="padding:4px 8px">${answers.dxa_lws}</td></tr>`:""}
+  ${answers.dxa_neck?`<tr><td style="padding:4px 8px;font-weight:600">T-Score Schenkelhals</td><td style="padding:4px 8px">${answers.dxa_neck}</td></tr>`:""}
+  ${answers.dxa_tbs?`<tr><td style="padding:4px 8px;font-weight:600">TBS</td><td style="padding:4px 8px">${answers.dxa_tbs}</td></tr>`:""}
+</table></div></div>`:""}
+
+${thRows?`<div class="sec"><div class="sec-hd">💊 Bisherige Osteoporose-Therapie</div><div class="sec-bd"><table><tr style="background:#f5f0e8;font-weight:700"><td style="padding:5px 8px">Wirkstoff</td><td style="padding:5px 8px">Zeitraum</td><td style="padding:5px 8px">Dosierung</td></tr>${thRows}</table></div></div>`:""}
+
+<div class="sec"><div class="sec-hd">⚖️ Risikofaktoren mit ICD-10-Codes</div><div class="sec-bd">
+  ${riskRows?`<table><tr style="background:#f5f0e8;font-weight:700"><td style="padding:5px 8px">Diagnose / Risikofaktor</td><td style="padding:5px 8px;text-align:center">RR</td><td style="padding:5px 8px">ICD-10</td></tr>${riskRows}</table>`:`<div style="color:#888;font-style:italic">Keine Risikofaktoren angegeben.</div>`}
+</div></div>
+
+${indRows?`<div class="sec"><div class="sec-hd">🔬 Risikoindikatoren (DVO 2023) – Basisdiagnostik empfohlen</div><div class="sec-bd"><table><tr style="background:#f5f0e8;font-weight:700"><td style="padding:5px 8px">Indikator</td><td style="padding:5px 8px">ICD-10</td></tr>${indRows}</table></div></div>`:""}
+
+<div class="sec"><div class="sec-hd">📊 Risikoberechnung &amp; Therapieschwellen</div><div class="sec-bd">
+  <div style="margin-bottom:10px">
+    <span class="cat-badge" style="background:${catColor(risk.cat)}">${catLabel(risk.cat)}</span>
+    ${risk.top2.length?`<span style="margin-left:12px;font-size:12px">Top-2-Faktoren: ${risk.top2.map(f=>f.label+" (×"+f.faktor+")").join(", ")} → Kombiniert: ×${risk.cF.toFixed(2)}</span>`:""}
+  </div>
+  <table>
+    <tr style="border-bottom:1px solid #e8e0d0"><td style="padding:4px 8px;width:40%">3%-Schwelle (3 J.)</td><td style="padding:4px 8px">Benötigt ×${risk.t3??"–"}</td><td style="padding:4px 8px;font-weight:700;color:${risk.r3?"#15803d":"#888"}">${risk.r3===null?"k.A.":risk.r3?"ERREICHT ✓":"nicht erreicht"}</td></tr>
+    <tr style="border-bottom:1px solid #e8e0d0"><td style="padding:4px 8px">5%-Schwelle (3 J.)</td><td style="padding:4px 8px">Benötigt ×${risk.t5??"–"}</td><td style="padding:4px 8px;font-weight:700;color:${risk.r5?"#c2410c":"#888"}">${risk.r5===null?"k.A.":risk.r5?"ERREICHT ✓":"nicht erreicht"}</td></tr>
+    <tr style="border-bottom:1px solid #e8e0d0"><td style="padding:4px 8px">10%-Schwelle (3 J.)</td><td style="padding:4px 8px">Benötigt ×${risk.t10??"–"}</td><td style="padding:4px 8px;font-weight:700;color:${risk.r10?"#b91c1c":"#888"}">${risk.r10===null?"k.A.":risk.r10?"ERREICHT ✓":"nicht erreicht"}</td></tr>
+  </table>
+  ${risk.genInd.length?`<div style="margin-top:8px;padding:6px 10px;background:#fef2f2;border:1px solid #fca5a5;border-radius:4px;font-size:12px"><strong>Generelle Therapieindikationen:</strong><ul style="margin:4px 0 0 16px">${risk.genInd.map(g=>`<li>${g}</li>`).join("")}</ul></div>`:""}
+</div></div>
+
+${sekHtml}
+
+<div style="margin-top:14px;padding:10px 12px;background:#f5f0e8;border-radius:6px;font-size:12px">
+  <strong>Diagnosen (ICD-10):</strong><br/>
+  ${risk.factors.map(f=>{const diag=db[f.id]||{};const t=diag.diagnose||f.label;const ic=getIcdArray(diag,gender,answers).join(", ");return ic?t+" {"+ic+"}":t;}).join("; ")||"Keine"}
+</div>
+
+<div class="footer">
+  Osteoporose-Auswertung · DVO-Leitlinie 2023 · S3-Leitlinie AWMF 183-001 ·
+  Dieser Ausdruck ersetzt keine ärztliche Diagnose. Die Therapieentscheidung trifft der behandelnde Arzt.
+</div>
+</body></html>`;
+}
+
 /* ═══ PATIENTEN-EINGABE-PDF (ohne Auswertung) ══════════════════════════════ */
 function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTIONS, painMaps){
   const fmt = v => v===undefined||v===null||v===""?"–":String(v);
@@ -4968,6 +5153,19 @@ function App(){
     setTimeout(()=>window.print(),500);
   };
 
+  const handleArztPdf=async()=>{
+    if(!gender){alert("Bitte zuerst Geschlecht auswählen.");return;}
+    await saveSession();
+    let html;
+    try{
+      html=buildAuswertungHtml(patient,gender,answers,lh,diagDb,SEK_DIAG_DB_DEFAULTS,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds,painMaps);
+    }catch(e){
+      alert("Auswertung konnte nicht erstellt werden: "+e.message);
+      return;
+    }
+    setViewer({type:"html",content:html});
+  };
+
   const handleCalc=async()=>{
     await saveSession();
     setShowResult(true);
@@ -5297,7 +5495,7 @@ function App(){
           onSave={db=>{setDiagDb(db);saveDiagDb(db);}}
           gender={gender} answers={answers} patient={patient} anamnese={anamnese}
           therapieHistory={therapieHistory} lh={lh} onSaveLh={handleSaveLh} sessions={sessions}
-          onExportPdf={handlePrint} onExportTxt={handleText}
+          onExportPdf={()=>{setAdminOpen(false);setAdminPin("");setTimeout(handleArztPdf,100);}} onExportTxt={()=>{setAdminOpen(false);setAdminPin("");setTimeout(handleText,100);}}
           onLoadSession={handleLoadSession} onDeleteSession={handleDeleteSession}
           initialTab={arztStartTab||"auswertung"}
           diff={diff} painMaps={painMaps}/>
