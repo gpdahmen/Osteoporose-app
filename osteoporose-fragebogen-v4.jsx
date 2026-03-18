@@ -2948,7 +2948,7 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
   // Anamnese-Zusammenfassung
   let anamHtml="";
   if(anamnese){
-    const dxList=(anamnese.diagnosen||[]).filter(d=>d&&d.trim());
+    const dxList=(anamnese.diagnosen||[]).filter(d=>d&&(typeof d==="string"?d.trim():d.name||d.id));
     const fracList=(anamnese.fractures||[]).filter(f=>f&&(f.typ||f.seite));
     if(dxList.length||fracList.length||(anamnese.weitere||[]).filter(s=>s).length){
       anamHtml=`
@@ -2956,7 +2956,7 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
         <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;
           font-size:13px;font-weight:700">📋 Anamnese / Krankengeschichte</div>
         <div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12.5px">`;
-      if(dxList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Diagnosen:</strong> ${dxList.join(" · ")}</div>`;
+      if(dxList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Diagnosen:</strong> ${dxList.map(d=>typeof d==="string"?d:d.name||d.id).join(" · ")}</div>`;
       if(fracList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Frühere Frakturen:</strong> ${fracList.map(f=>[f.typ,f.seite,f.jahr].filter(Boolean).join(" ")).join(", ")}</div>`;
       const weitereSet=(anamnese.weitere||[]).filter(s=>s);
       if(weitereSet.length) anamHtml+=`<div><strong>Weitere Angaben:</strong> ${weitereSet.join(", ")}</div>`;
@@ -8076,8 +8076,8 @@ function App(){
   const setP=(k,v)=>setPatient(p=>({...p,[k]:v}));
   const toggleSec=(id)=>setOpenSec(p=>({...p,[id]:!p[id]}));
 
-  const visibleSecs=gender?SECTIONS.filter(s=>(!s.onlyFor||s.onlyFor===gender)&&!s.symcheck):[];
-  const totalQ=visibleSecs.flatMap(s=>s.qs).length;
+  const visibleSecs=gender?SECTIONS.filter(s=>(!s.onlyFor||s.onlyFor===gender)):[];
+  const totalQ=visibleSecs.filter(s=>!s.symcheck).flatMap(s=>s.qs).length;
   const answeredQ=Object.values(answers).filter(v=>v!==null&&v!==undefined&&v!=="").length;
   const prog=totalQ>0?Math.round((answeredQ/totalQ)*100):0;
   const bmi=calcBMI(parseFloat(answers.groesse),parseFloat(answers.gewicht));
