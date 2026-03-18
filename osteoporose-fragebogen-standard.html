@@ -2083,7 +2083,7 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
   // Sektionen – nur beantwortete Fragen anzeigen (mindestens eine Antwort in Sektion)
   let sectionsHtml = "";
   for(const sec of SECTIONS){
-    if(sec.symcheck) continue;   // Sekundäre Osteoporose gehört nicht in die Patienteneingabe
+    // Symptomcheck-Sektionen werden jetzt auch in der Patienteneingabe angezeigt
     // Gender-Filter
     const gok = !sec.gender || sec.gender===gender;
     if(!gok) continue;
@@ -4143,7 +4143,7 @@ function App(){
   const setP=(k,v)=>setPatient(p=>({...p,[k]:v}));
   const toggleSec=(id)=>setOpenSec(p=>({...p,[id]:!p[id]}));
 
-  const visibleSecs=gender?SECTIONS.filter(s=>(!s.onlyFor||s.onlyFor===gender)&&!s.symcheck):[];
+  const visibleSecs=gender?SECTIONS.filter(s=>(!s.onlyFor||s.onlyFor===gender)):[];
   const totalQ=visibleSecs.flatMap(s=>s.qs).length;
   const answeredQ=Object.values(answers).filter(v=>v!==null&&v!==undefined&&v!=="").length;
   const prog=totalQ>0?Math.round((answeredQ/totalQ)*100):0;
@@ -4251,11 +4251,12 @@ function App(){
   /* ── Arzt-PDF: Auswertung als HTML-Viewer ── */
   const handleArztPdf=async()=>{
     if(!gender){alert("Bitte zuerst Geschlecht auswählen.");return;}
-    await saveSession();
+    try{ await saveSession(); }catch(e){ console.warn("saveSession vor PDF fehlgeschlagen:",e); }
     let html;
     try{
       html=buildAuswertungHtml(patient,gender,answers,lh,diagDb,SEK_DIAG_DB_DEFAULTS,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds);
     }catch(e){
+      console.error("buildAuswertungHtml Fehler:",e);
       alert("Auswertungs-PDF konnte nicht erstellt werden: "+e.message);
       return;
     }
