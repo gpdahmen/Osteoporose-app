@@ -8,13 +8,14 @@ Die App läuft vollständig im Browser, benötigt keine Serververbindung und spe
 
 ## 🖥️ Live-Ansicht (direkt im Browser öffnen)
 
-Die HTML-Dateien können **ohne Download** direkt im Browser angesehen und genutzt werden:
+Die HTML-Dateien können **ohne Download** direkt im Browser geöffnet und genutzt werden – über GitHub Pages:
 
 | Version | Beschreibung | Direkt öffnen |
 |---|---|---|
-| **Vollversion (v4)** | Alle Funktionen: Fragebogen, Anamnese, Schmerzzeichnungen, Symptomchecks, Therapiegeschichte | [Vollversion öffnen](https://htmlpreview.github.io/?https://github.com/gpdahmen/Osteoporose-app/blob/main/osteoporose-fragebogen-v4.html) |
-| **Kurzversion** | Nur DVO-Leitlinien-Fragen, kompakter Fragebogen | [Kurzversion öffnen](https://htmlpreview.github.io/?https://github.com/gpdahmen/Osteoporose-app/blob/main/osteoporose-fragebogen-kurz.html) |
-| **Risikocheck** | Ältere Version (Archiv) | [Risikocheck öffnen](https://htmlpreview.github.io/?https://github.com/gpdahmen/Osteoporose-app/blob/main/osteoporose-risikocheck-4.html) |
+| **Vollversion** | Alle Funktionen: Fragebogen, Anamnese, Schmerzzeichnungen, Symptomchecks, Therapiegeschichte | [Vollversion öffnen](https://gpdahmen.github.io/Osteoporose-app/osteoporose-app-vollversion.html) |
+| **Kurzversion** | Nur DVO-Leitlinien-Fragen, kompakter Fragebogen | [Kurzversion öffnen](https://gpdahmen.github.io/Osteoporose-app/osteoporose-fragebogen-kurz.html) |
+| **Einfach** | Vereinfachte Version für schnelle Eingabe | [Einfach öffnen](https://gpdahmen.github.io/Osteoporose-app/osteoporose-Fragebogen%20einfach.html) |
+| **Literaturverzeichnis** | Quellennachweis und Leitlinien-Referenzen | [Literaturverzeichnis öffnen](https://gpdahmen.github.io/Osteoporose-app/literaturverzeichnis.html) |
 
 > **Alternativ:** Jede HTML-Datei herunterladen und lokal im Browser öffnen – keine Installation, kein Server, keine Abhängigkeiten.
 
@@ -164,9 +165,12 @@ Die Risikoberechnung und alle Datenbankeinträge basieren auf:
 ## 📁 Repository-Inhalt
 
 ```
-├── osteoporose-fragebogen-v4.html       # Vollversion – alle Funktionen (direkt nutzbar)
-├── osteoporose-fragebogen-v4.jsx        # React/JSX Quellcode der Vollversion
+├── index.html                           # GitHub Pages Startseite
+├── osteoporose-app-vollversion.html     # Vollversion – alle Funktionen (direkt nutzbar)
 ├── osteoporose-fragebogen-kurz.html     # Kurzversion – nur DVO-Leitlinien-Fragen
+├── osteoporose-Fragebogen einfach.html  # Vereinfachte Version
+├── osteoporose-fragebogen-v4.jsx        # React/JSX Quellcode
+├── literaturverzeichnis.html            # Quellennachweis und Leitlinien-Referenzen
 ├── osteoporose-fragebogen-standard.html # Standardversion (Archiv, wird nicht weiterentwickelt)
 ├── osteoporose-risikocheck-4.html       # Ältere Version (Archiv)
 └── README.md
