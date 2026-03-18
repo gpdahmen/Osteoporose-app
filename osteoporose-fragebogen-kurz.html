@@ -4993,6 +4993,7 @@ function App(){
                 </div>
               )}
             </div>
+            {!viewer&&(
             <button className="no-print"
               onClick={()=>{setArztStartTab("auswertung");setAdminOpen(true);}}
               style={{marginLeft:"auto",padding:"8px 16px",background:"var(--L)",color:"white",
@@ -5001,6 +5002,7 @@ function App(){
                 boxShadow:"0 2px 8px rgba(139,110,78,.3)"}}>
               🩺 Arzt-Zugang
             </button>
+            )}
           </div>
         </div>
 
@@ -5316,7 +5318,7 @@ function App(){
               </>
             )}
             <button className="viewer-btn" onClick={()=>{setViewer(null);setArztStartTab("auswertung");setAdminOpen(true);}}
-              style={{background:"#8b6e4e",color:"white",fontWeight:700}}>🩺 Arztauswertung</button>
+              style={{background:"#8b6e4e",color:"white",fontWeight:700}}>🩺 Arzt-Zugang</button>
             <button className="viewer-close" onClick={()=>setViewer(null)}>×</button>
           </div>
           <div className="viewer-body">
