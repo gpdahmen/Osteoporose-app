@@ -3394,6 +3394,608 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
   return lines.join("\n");
 }
 
+/* ═══════════════════════════════════ FULL REPORT HTML (Arzt-PDF) ═══ */
+function buildFullReportHtml(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds,painMaps,SECTIONS_ARG){
+  const db=diagDb||DIAG_DB_DEFAULTS;
+  const d=new Date().toLocaleDateString("de-DE");
+  const patName=[patient.nachname||patient.name,patient.vorname].filter(Boolean).join(", ")||"–";
+  const genderLabel=gender==="f"?"weiblich":"männlich";
+  const bmi=calcBMI(parseFloat(answers.groesse),parseFloat(answers.gewicht));
+
+  // ── Risk category info ──
+  const catColors={top:{bg:"#fdf4ff",border:"#d8b4fe",eyeC:"#7e22ce",hC:"#7e22ce",dC:"#581c87"},
+    high:{bg:"#fff1f2",border:"#fca5a5",eyeC:"#b91c1c",hC:"#b91c1c",dC:"#991b1b"},
+    mod:{bg:"#fffbeb",border:"#fcd34d",eyeC:"#b45309",hC:"#b45309",dC:"#92400e"},
+    low:{bg:"#f0fdf4",border:"#86efac",eyeC:"#15803d",hC:"#15803d",dC:"#166534"}};
+  const catTexts={
+    top:{eye:"Sehr hohes Risiko / Generelle Indikation",h:"10%-Schwelle und/oder generelle Indikation erreicht",
+      d:gender==="f"
+        ?"Osteoanabole Therapie sollte unverzüglich erwogen werden (A). Romosozumab (Evenity®, 12 Monate) oder Teriparatid (Forsteo®/Terrosa®/Movymia®, max. 24 Monate). Anschließend Sequenztherapie essenziell."
+        :"Osteoanabole Therapie sollte unverzüglich erwogen werden (A). Teriparatid (Forsteo®/Terrosa®/Movymia®, max. 24 Monate). Romosozumab für Männer in DE nicht zugelassen. Sequenztherapie anschließen."},
+    high:{eye:"Deutlich erhöhtes Risiko",h:"5%-Schwelle erreicht – spezifische Therapie indiziert",
+      d:gender==="f"
+        ?"Antiresorptive Therapie empfohlen (A): Bisphosphonate, Denosumab, SERM. Bei 10%-Schwelle osteoanabole Substanz erwägen."
+        :"Antiresorptive Therapie empfohlen (A): Alendronat, Risedronat, Zoledronat, Denosumab. Bei 10%-Schwelle Teriparatid erwägen."},
+    mod:{eye:"Mäßig erhöhtes Risiko",h:"3%-Schwelle erreicht – Abklärung empfehlenswert",
+      d:"Spezifische Therapie kann erwogen werden (B). DXA empfohlen. Basistherapie: Kalzium 1000 mg/Tag, Vitamin D 800–1000 IE/Tag, Sturzprophylaxe."},
+    low:{eye:"Kein erhöhtes Risiko erkennbar",h:"Aktuell kein erhöhtes Frakturrisiko",
+      d:"Allgemeine Prophylaxe: Kalzium 1000 mg/Tag, Vitamin D 800–1000 IE/Tag, körperliche Aktivität, Sturzprophylaxe. Verlaufskontrolle in 3–5 Jahren."}
+  };
+
+  // ── Thresh pill HTML ──
+  function threshHtml(label,threshold,reached){
+    let bg,border,lblC,valC;
+    if(threshold===null){bg="#f8fafc";border="#cbd5e1";lblC="#64748b";valC="#475569";}
+    else if(reached){bg="#fef2f2";border="#fca5a5";lblC="#b91c1c";valC="#991b1b";}
+    else{bg="#f0fdf4";border="#86efac";lblC="#15803d";valC="#166534";}
+    const sym=threshold===null?"—":reached?"✓":"✗";
+    const sub=threshold!==null?"Benötigt: ×"+threshold:"Alter/DXA fehlt";
+    return `<div style="flex:1;min-width:100px;padding:11px 12px;border-radius:7px;text-align:center;border:1.5px solid ${border};background:${bg};-webkit-print-color-adjust:exact;print-color-adjust:exact">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${lblC};margin-bottom:3px">${label}</div>
+      <div style="font-size:20px;font-weight:700;color:${valC}">${sym}</div>
+      <div style="font-size:10px;color:${lblC};margin-top:2px">${sub}</div>
+    </div>`;
+  }
+
+  // ── DVO Table HTML (static, all 3 percentage tables) ──
+  function dvoTableHtml(perc){
+    const g=gender||"f";
+    const ages=[50,55,60,65,70,75,80,85,90];
+    const tscoreCols=["Ohne BMD","T 0,0","T −0,5","T −1,0","T −1,5","T −2,0","T −2,5","T −3,0","T −3,5","T −4,0"];
+    const patAge=parseInt(answers.alter)||null;
+    const patRowAge=patAge?ageRow(patAge):null;
+    const hipVal=answers.dxa_hip!==undefined&&answers.dxa_hip!==""?parseFloat(answers.dxa_hip):null;
+    const patColIdx=(hipVal!==null&&!isNaN(hipVal))?tCol(hipVal):null;
+    const percLabel={3:"3%-Tabelle",5:"5%-Tabelle",10:"10%-Tabelle"};
+    const percColor={3:"#22c55e",5:"#f97316",10:"#ef4444"};
+
+    let rows="";
+    for(const age of ages){
+      const isPatRow=patRowAge===age;
+      const rowStyle=isPatRow?'outline:2px solid #c8a070;outline-offset:-1px':'';
+      let cells=`<td style="font-weight:700;color:#5a3e2a;background:${isPatRow?'#c8a070':'#faf6f0'};${isPatRow?'color:#2c1f0e':''}padding:6px 8px;white-space:nowrap">${age}${isPatRow?' 👤':''}</td>`;
+      for(let ci=0;ci<tscoreCols.length;ci++){
+        const v=(THRESH[g][perc][age]||[])[ci];
+        const v10=(THRESH[g][10][age]||[])[ci];
+        const v5=(THRESH[g][5][age]||[])[ci];
+        const v3=(THRESH[g][3][age]||[])[ci];
+        const ex10=v10===null||(v10!==undefined&&v10<=1.0);
+        const ex5=v5===null||(v5!==undefined&&v5<=1.0);
+        const ex3=v3===null||(v3!==undefined&&v3<=1.0);
+        let bgC=ex10?"#D42020":ex5?"#F4A030":ex3?"#FFD966":"white";
+        let fgC=ex10?"#fff":ex5?"#4a1a00":ex3?"#5a3a00":"#5a4a38";
+        const isPatCell=isPatRow&&patColIdx===ci;
+        if(isPatCell){
+          const {cF}=risk;
+          cells+=`<td style="background:${bgC};color:${fgC};font-weight:700;padding:4px 6px;outline:3px solid #1a1a1a;outline-offset:-2px;-webkit-print-color-adjust:exact;print-color-adjust:exact"><div style="font-size:11px">${v!==null&&v!==undefined?v:'–'}</div><div style="font-size:12px;font-weight:900;margin-top:2px;border-top:1px solid rgba(0,0,0,0.25);padding-top:2px">${cF.toFixed(2)}</div></td>`;
+        }else{
+          cells+=`<td style="background:${bgC};color:${fgC};font-weight:${ex10||ex5||ex3?'700':'400'};padding:5px 6px;text-align:center;font-size:11px;-webkit-print-color-adjust:exact;print-color-adjust:exact">${v!==null&&v!==undefined?v:'–'}</td>`;
+        }
+      }
+      rows+=`<tr style="${rowStyle}">${cells}</tr>`;
+    }
+    return `<div style="margin-top:14px;border:1.5px solid #c8b89a;border-radius:8px;overflow:hidden;break-inside:avoid">
+      <div style="background:#2c1f0e;color:#e8ddd0;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+        <div>
+          <div style="font-size:13px;font-weight:700">DVO 2023 – Tabelle 3.2: ${percLabel[perc]} (${g==='f'?'Frau ♀':'Mann ♂'})</div>
+        </div>
+        <span style="background:${percColor[perc]};color:white;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">${perc}%</span>
+      </div>
+      <div style="overflow-x:auto;padding:6px">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:'Source Sans 3',sans-serif">
+          <thead><tr style="background:#3d2a15;color:#e8ddd0;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+            <th style="padding:6px 8px;text-align:left;font-size:10px">Alter</th>
+            ${tscoreCols.map((col,i)=>`<th style="padding:6px 4px;text-align:center;font-size:9px;${patColIdx===i?'background:#c8a070;color:#2c1f0e;font-weight:800':''}">${col}</th>`).join('')}
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:12px;padding:6px 10px;font-size:9px;color:#7a6a58;flex-wrap:wrap;border-top:1px solid #e8dfd4">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#FFD966;border:1px solid #c8a030;border-radius:2px;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> 3%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#F4A030;border:1px solid #c07010;border-radius:2px;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> 5%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#D42020;border:1px solid #a00000;border-radius:2px;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> 10%</span>
+        ${patRowAge?'<span><span style="display:inline-block;width:10px;height:10px;background:#c8a070;border:2px solid #8a6030;border-radius:2px;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> 👤 Patient</span>':''}
+      </div>
+    </div>`;
+  }
+
+  // ── Anamnese HTML ──
+  let anamHtml="";
+  const an=anamnese||{};
+  const hasAnam=(an.diagnosen||[]).length>0||(an.weitere||[]).length>0||(an.allergien||[]).length>0||(an.familienanamnese||[]).length>0||(an.fractures||[]).length>0||(an.ops||[]).length>0||an.menarche||an.menoPause||(an.kinder||[]).length>0;
+  if(hasAnam){
+    anamHtml+=`<div style="margin-bottom:18px;break-inside:avoid">
+      <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;font-size:13px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">📋 Persönliche Krankengeschichte / Anamnese</div>
+      <div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12px;line-height:1.7">`;
+    if((an.diagnosen||[]).length>0){
+      anamHtml+=`<div style="margin-bottom:8px"><strong>Bekannte Diagnosen / Vorerkrankungen:</strong><ul style="margin:4px 0 0 18px;padding:0">`;
+      an.diagnosen.forEach(function(dx,i){
+        let s=(dx.name||"–");
+        if(dx.seitJahr)s+=" (seit "+dx.seitJahr+")";
+        let flags=[];
+        if(dx.vitdRisiko)flags.push("VitD↓-Risiko");
+        if(dx.phosphatRisiko)flags.push("PO₄↑-Risiko");
+        if(flags.length)s+=' <span style="color:#b45309;font-size:11px">['+flags.join(", ")+']</span>';
+        if(dx.medikation)s+=' <span style="color:#6a4a9a;font-size:11px">– Medikation: '+dx.medikation+'</span>';
+        anamHtml+="<li>"+s+"</li>";
+      });
+      anamHtml+=`</ul></div>`;
+    }
+    if((an.weitere||[]).length>0){
+      anamHtml+=`<div style="margin-bottom:8px"><strong>Weitere Erkrankungen:</strong><ul style="margin:4px 0 0 18px;padding:0">`;
+      an.weitere.forEach(function(we){
+        let s=(we.name||"–");
+        if(we.seitJahr)s+=" (seit "+we.seitJahr+")";
+        if(we.status&&we.status!=="aktiv")s+=" ["+we.status+"]";
+        if(we.anmerkung)s+=" – "+we.anmerkung;
+        anamHtml+="<li>"+s+"</li>";
+      });
+      anamHtml+=`</ul></div>`;
+    }
+    if((an.allergien||[]).length>0){
+      anamHtml+=`<div style="margin-bottom:8px"><strong>Allergien / Unverträglichkeiten / Kontraindikationen:</strong><ul style="margin:4px 0 0 18px;padding:0">`;
+      an.allergien.forEach(function(al){
+        let s=(al.substanz||"–");
+        if(al.reaktion)s+=" → "+al.reaktion;
+        if(al.schwere)s+=' <span style="color:#b91c1c;font-size:11px">['+al.schwere+']</span>';
+        anamHtml+="<li>"+s+"</li>";
+      });
+      anamHtml+=`</ul></div>`;
+    }
+    if((an.familienanamnese||[]).length>0){
+      anamHtml+=`<div style="margin-bottom:8px"><strong>Familienanamnese:</strong><ul style="margin:4px 0 0 18px;padding:0">`;
+      an.familienanamnese.forEach(function(fa){
+        let s=(fa.verwandtschaft||"Verwandter")+": "+(fa.diagnose||"–");
+        if(fa.erkranktMit)s+=" (mit ca. "+fa.erkranktMit+" J.)";
+        if(fa.osteoRelevant)s+=' <span style="color:#7e22ce;font-weight:700;font-size:11px">[OSTEOPOROSE-RELEVANT]</span>';
+        anamHtml+="<li>"+s+"</li>";
+      });
+      anamHtml+=`</ul></div>`;
+    }
+    if((an.fractures||[]).length>0){
+      anamHtml+=`<div style="margin-bottom:8px"><strong>Frühere Knochenbrüche:</strong><ul style="margin:4px 0 0 18px;padding:0">`;
+      an.fractures.forEach(function(fr){
+        var parts=[fr.ort||"–"];
+        if(fr.seite)parts.push(fr.seite);
+        if(fr.jahr)parts.push("ca. "+fr.jahr);
+        if(fr.ursache)parts.push("("+fr.ursache+")");
+        anamHtml+="<li>"+parts.join(" · ")+"</li>";
+      });
+      anamHtml+=`</ul></div>`;
+    }
+    if((an.ops||[]).length>0){
+      anamHtml+=`<div style="margin-bottom:8px"><strong>Frühere Operationen:</strong><ul style="margin:4px 0 0 18px;padding:0">`;
+      an.ops.forEach(function(op){
+        var parts=[op.art||"–"];
+        if(op.jahr)parts.push(""+op.jahr);
+        if(op.klinik)parts.push(op.klinik);
+        anamHtml+="<li>"+parts.join(" · ")+"</li>";
+      });
+      anamHtml+=`</ul></div>`;
+    }
+    if(gender==="f"){
+      let gynaHtml="";
+      if(an.menarche)gynaHtml+=`<div>Menarche: ${an.menarche} Jahre</div>`;
+      if(an.menoPause==="ja")gynaHtml+=`<div>Regelblutung: Vorhanden (regelmäßig)</div>`;
+      else if(an.menoPause==="unregelmaessig")gynaHtml+=`<div>Regelblutung: Vorhanden (unregelmäßig)</div>`;
+      else if(an.menoPause==="nein"){
+        gynaHtml+=`<div>Menopause: Ja (keine Regelblutung)</div>`;
+        if(an.menoYear)gynaHtml+=`<div>Letzte Blutung: ${an.menoYear}</div>`;
+        var gMap={natuerlich:"Natürliche Wechseljahre",op:"Ovarektomie (OP)",medikamentoes:"Medikamentöse Unterdrückung",strahlen:"Strahlentherapie",pof:"Vorzeitige Ovarialinsuffizienz (<40. LJ)",sonstige:an.menoSonstige||"Sonstiges"};
+        if(an.menoGrund)gynaHtml+=`<div>Ursache: ${gMap[an.menoGrund]||an.menoGrund}</div>`;
+      }
+      if((an.kinder||[]).length>0){
+        gynaHtml+=`<div>Kinder: ${an.kinder.length}</div>`;
+        an.kinder.forEach(function(k,i){
+          var s=(i+1)+". Geburtsjahr "+(k.geburtsjahr||"–");
+          if(k.gestillt==="ja")s+=", gestillt "+(k.stilldauer||"?")+" Monate";
+          else if(k.gestillt==="nein")s+=", nicht gestillt";
+          gynaHtml+=`<div style="padding-left:14px;font-size:11px">${s}</div>`;
+        });
+      }
+      if(gynaHtml)anamHtml+=`<div style="margin-bottom:8px"><strong>Gynäkologische Anamnese:</strong>${gynaHtml}</div>`;
+    }
+    anamHtml+=`</div></div>`;
+  }
+
+  // ── Pain drawings HTML ──
+  let painHtml="";
+  const pm=painMaps||{};
+  const drawnViews=PAIN_VIEWS.filter(v=>pm[v.id]);
+  if(drawnViews.length>0){
+    painHtml+=`<div style="margin-bottom:18px;break-inside:avoid">
+      <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;font-size:13px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">🎨 Schmerzeinzeichnungen</div>
+      <div style="border:1px solid #ddd;border-top:none;padding:10px 14px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">`;
+    for(const v of drawnViews){
+      painHtml+=`<div style="text-align:center">
+        <div style="font-weight:700;font-size:10px;margin-bottom:3px;color:#5a3e2a">${v.label}</div>
+        <img src="${pm[v.id]}" style="max-width:100%;border:1px solid #d8c8b0;border-radius:4px" alt="${v.label}"/>
+      </div>`;
+    }
+    painHtml+=`</div>
+        <div style="margin-top:8px;font-size:10px;color:#8a7a68;display:flex;gap:14px;flex-wrap:wrap">
+          <span><span style="display:inline-block;width:12px;height:12px;background:#e63946;border-radius:50%;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> Starker Schmerz</span>
+          <span><span style="display:inline-block;width:12px;height:12px;background:#f4a261;border-radius:50%;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> Mäßiger Schmerz</span>
+          <span><span style="display:inline-block;width:12px;height:12px;background:#52b788;border-radius:50%;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> Gelegentlich</span>
+          <span><span style="display:inline-block;width:12px;height:12px;background:#9b5de5;border-radius:50%;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> Taubheit / Kribbeln</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── Questionnaire answers HTML ──
+  function renderAnswer(q){
+    const v=answers[q.id];
+    if(q.t==="yn"||q.t==="yn_inv"){
+      if(v==="ja"||v===true)return '<span style="color:#1a5a1a;font-weight:700">✓ Ja</span>';
+      if(v==="nein"||v===false)return '<span style="color:#5a1a1a">✗ Nein</span>';
+      return '<span style="color:#888">–</span>';
+    }
+    if(q.t==="radio"||q.t==="select") return v?`<span style="font-weight:600">${v}</span>`:'<span style="color:#888">–</span>';
+    if(q.t==="number"||q.t==="text"||q.t==="dxa") return v?`<span style="font-weight:600">${v}</span>`:'<span style="color:#888">–</span>';
+    if(q.t==="multi"){const sel=Array.isArray(v)?v:[];return sel.length?sel.join(", "):'<span style="color:#888">–</span>';}
+    return v?`<span style="font-weight:600">${v}</span>`:'<span style="color:#888">–</span>';
+  }
+  let sectionsHtml="";
+  const SECS=SECTIONS_ARG||SECTIONS;
+  for(const sec of SECS){
+    const gok=!sec.gender||sec.gender===gender;
+    if(!gok)continue;
+    const qs=(sec.qs||[]).filter(q=>!q.gender||q.gender===gender);
+    const answeredQs=qs.filter(q=>{const v=answers[q.id];return v!==undefined&&v!==null&&v!=="";});
+    if(!answeredQs.length)continue;
+    const isSymcheck=sec.symcheck;
+    sectionsHtml+=`<div style="margin-bottom:14px;break-inside:avoid">
+      <div style="background:${isSymcheck?'#4a1a3a':'#3a2a0e'};color:#f0e8d0;padding:7px 14px;border-radius:5px 5px 0 0;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+        <span>${sec.icon||""}</span><span>${sec.title}${isSymcheck?' (Symptomcheck)':''}</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:11.5px">`;
+    for(const q of answeredQs){
+      const shortLabel=q.label.split("\\n")[0].slice(0,120);
+      sectionsHtml+=`<tr style="border-bottom:1px solid #efe6d8">
+        <td style="padding:5px 10px;width:65%;color:#2a1a0a;line-height:1.4">${shortLabel}</td>
+        <td style="padding:5px 10px;text-align:right">${renderAnswer(q)}</td>
+      </tr>`;
+    }
+    sectionsHtml+=`</table></div>`;
+  }
+
+  // ── Secondary osteoporosis findings ──
+  const sekHits=computeSecondary(answers);
+  let sekHtml="";
+  if(sekHits.length>0){
+    sekHtml+=`<div style="margin-bottom:18px;break-inside:avoid">
+      <div style="background:#4a1a3a;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;font-size:13px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">🔬 Abklärungshinweise – Sekundäre Osteoporoseformen</div>
+      <div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12px">
+        <div style="color:#7a6a58;font-size:11px;margin-bottom:10px">Folgende Befundkonstellationen sollten weiter abgeklärt werden:</div>`;
+    for(const {sym,count,hits,profile} of sekHits){
+      const sekEntry=(sekDb||SEK_DIAG_DB_DEFAULTS)[sym]||{};
+      const diagText=sekEntry.diagnose||profile.label;
+      const icdCode=sekEntry.icd5||"";
+      sekHtml+=`<div style="margin-bottom:12px;padding:8px 10px;background:#fdf4ff;border:1px solid #e8d4f0;border-radius:6px">
+        <div style="font-weight:700;color:#7e22ce;font-size:12.5px">${diagText}${icdCode?' <span style="font-family:monospace;font-size:10px;background:#f3e8ff;padding:1px 6px;border-radius:3px">{'+icdCode+'}</span>':''}</div>
+        <div style="font-size:11px;color:#581c87;margin:4px 0">${profile.hinweis}</div>
+        <div style="font-size:10.5px;color:#5a4a38;margin-top:4px"><strong>Auslösende Angaben (${count}):</strong></div>
+        <ul style="margin:2px 0 0 18px;padding:0;font-size:10.5px;color:#4a3a28">`;
+      for(const h of hits){sekHtml+=`<li>${h.label}</li>`;}
+      sekHtml+=`</ul>`;
+      if(profile.untersuchungen&&profile.untersuchungen.length>0){
+        sekHtml+=`<div style="font-size:10.5px;color:#5a4a38;margin-top:4px"><strong>Vorgeschlagene Diagnostik:</strong></div>
+        <ul style="margin:2px 0 0 18px;padding:0;font-size:10.5px;color:#4a3a28">`;
+        for(const u of profile.untersuchungen){
+          sekHtml+=`<li>${u.name}${u.icd?' <span style="font-family:monospace;font-size:9px;color:#6a4a9a">['+u.icd+']</span>':''}</li>`;
+        }
+        sekHtml+=`</ul>`;
+      }
+      sekHtml+=`</div>`;
+    }
+    sekHtml+=`<div style="font-size:10px;color:#9a8a78;font-style:italic;margin-top:6px">⚠ Abklärungsempfehlungen sind Orientierungshilfen. Diagnosestellung obliegt dem Arzt.</div>
+      </div></div>`;
+  }
+
+  // ── Medications HTML ──
+  let medsHtml="";
+  const alleMeds=answers["alle_medikamente_rx"]||[];
+  if(alleMeds.length>0){
+    medsHtml+=`<div style="margin-bottom:14px;break-inside:avoid">
+      <div style="background:#3a2a0e;color:#f0e8d0;padding:7px 14px;border-radius:5px 5px 0 0;font-size:12px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">💊 Aktuelle Medikation (Patientenangabe)</div>
+      <div style="border:1px solid #ddd;border-top:none;padding:8px 14px;font-size:12px">
+        ${alleMeds.map((m,i)=>`<span style="display:inline-block;background:#d4ede4;border:1px solid #7ab0a0;border-radius:14px;padding:3px 10px;margin:2px 3px;font-size:11px">💊 ${m}</span>`).join('')}
+      </div></div>`;
+  }
+
+  // ── Therapy history HTML ──
+  let therapieHtml="";
+  const freiTh=freitextTherapieMeds||[];
+  const th=therapieHistory||[];
+  const tdb=osteoTherapieDb||[];
+  if(freiTh.length>0||th.length>0){
+    therapieHtml+=`<div style="margin-bottom:14px;break-inside:avoid">
+      <div style="background:#3a2a0e;color:#f0e8d0;padding:7px 14px;border-radius:5px 5px 0 0;font-size:12px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">💉 Bisherige Osteoporose-Therapie</div>
+      <div style="border:1px solid #ddd;border-top:none;padding:8px 14px;font-size:12px">`;
+    if(freiTh.length>0){
+      therapieHtml+=`<div style="margin-bottom:6px"><strong>Schnellerfassung:</strong> ${freiTh.join(", ")}</div>`;
+    }
+    if(th.length>0){
+      th.forEach(function(en,i){
+        const med=tdb.find(function(m){return m.id===en.medId;})||null;
+        let s=(i+1)+". "+(med?med.wirkstoff:(en.medId||"Unbekannt"));
+        if(med&&med.handelsnamen)s+=" ("+med.handelsnamen.split(",")[0]+")";
+        if(en.vonJahr)s+="  von "+en.vonJahr;
+        if(en.nochAktuell)s+=" – noch aktuell";
+        else if(en.bisJahr)s+=" bis "+en.bisJahr;
+        if(en.dosierung)s+=" · Dosierung: "+en.dosierung;
+        therapieHtml+=`<div style="margin-bottom:3px">${s}</div>`;
+      });
+    }
+    therapieHtml+=`</div></div>`;
+  }
+
+  // ── Risk factors table ──
+  let factorsHtml="";
+  if(risk.factors.length>0){
+    factorsHtml+=`<div style="margin-bottom:14px;break-inside:avoid">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#8b6e4e;margin-bottom:6px">Alle erfassten Risikofaktoren</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:#2c1f0e;color:#e8ddd0;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+          <th style="padding:5px 8px;text-align:left">Risikofaktor</th>
+          <th style="padding:5px 8px;text-align:left">ICD-10</th>
+          <th style="padding:5px 8px;text-align:center">Faktor</th>
+          <th style="padding:5px 8px;text-align:left">Gruppe</th>
+        </tr></thead><tbody>`;
+    for(const f of risk.factors){
+      factorsHtml+=`<tr style="border-bottom:1px solid #efe6d8">
+        <td style="padding:5px 8px">${f.label}</td>
+        <td style="padding:5px 8px;font-family:monospace;font-size:10px;color:#6a4a9a">${f.icd||"–"}</td>
+        <td style="padding:5px 8px;text-align:center;font-weight:700;color:#b45309">×${f.faktor}</td>
+        <td style="padding:5px 8px;font-size:10px;color:#8b7a68">${f.grp==="sturz"?"Sturzrisiko":f.grp==="gc_ra"?"GK/RA":"Allgemein"}</td>
+      </tr>`;
+    }
+    factorsHtml+=`</tbody></table></div>`;
+  }
+
+  // ── Indicators HTML ──
+  const activeInds=risk.indicators||[];
+  let indHtml="";
+  if(activeInds.length>0){
+    indHtml+=`<div style="margin-bottom:14px;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:8px;padding:10px 14px;break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+      <div style="font-weight:700;font-size:12px;color:#92400e;margin-bottom:4px">🔔 Risikoindikatoren (DVO 2023)</div>
+      <div style="font-size:11px;color:#78350f;margin-bottom:6px">Diese Befunde begründen eine Indikation zur Basisdiagnostik (DXA + Labor), fließen aber nicht in den Risikorechner ein.</div>`;
+    for(const ind of activeInds){
+      indHtml+=`<div style="display:flex;gap:6px;margin-bottom:3px;font-size:11px">
+        <span style="color:#f59e0b;flex-shrink:0">⚠</span>
+        <span style="color:#2a1a0a">${ind.label}${ind.asterisk?' <sup style="color:#b45309;font-size:8px">*</sup>':''}</span>
+        ${ind.icd?'<span style="font-family:monospace;font-size:9px;color:#6a4a9a;background:#f3e8ff;padding:1px 5px;border-radius:3px;white-space:nowrap;flex-shrink:0">'+ind.icd+'</span>':''}
+      </div>`;
+    }
+    if(activeInds.some(i=>i.asterisk))indHtml+=`<div style="font-size:9px;color:#9a6a3a;margin-top:4px;font-style:italic">* Basisdiagnostik auch vor dem Alter von 50 Jahren erwägen</div>`;
+    indHtml+=`</div>`;
+  }
+
+  // ── General therapy indications ──
+  let genIndHtml="";
+  if(risk.genInd.length>0){
+    genIndHtml+=`<div style="margin-bottom:14px;background:#fff1f2;border:1.5px solid #fca5a5;border-radius:8px;padding:10px 14px;break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+      <div style="font-weight:700;font-size:12px;color:#b91c1c;margin-bottom:4px">⚠ Generelle Therapieindikationen (Tabelle 3.1, DVO 2023)</div>`;
+    for(const g of risk.genInd){genIndHtml+=`<div style="font-size:11.5px;color:#991b1b;margin-bottom:2px">• ${g}</div>`;}
+    genIndHtml+=`</div>`;
+  }
+
+  // ── Diagnoses HTML ──
+  let diagHtml="";
+  const isPostMeno=gender==="f"&&answers?.menopause_aktuell==="nein";
+  diagHtml+=`<div style="margin-bottom:14px;break-inside:avoid">
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#8b6e4e;margin-bottom:6px">Diagnosen</div>
+    <div style="font-size:12px;line-height:1.7">`;
+  if(isPostMeno)diagHtml+=`<div>Postmenopausale Osteoporose <span style="font-family:monospace;font-size:10px;color:#6a4a9a">{M81.00G}</span></div>`;
+  else if(gender==="m"&&risk.factors.some(f=>["hueft_akut","hueft_alt","wirbelbruch_akut","wirbelbruch_anz","humerus","becken","unterarm"].includes(f.id)))
+    diagHtml+=`<div>Osteoporose beim Mann <span style="font-family:monospace;font-size:10px;color:#6a4a9a">{M81.50G}</span></div>`;
+  for(const f of risk.factors){
+    const diag=db[f.id]||{};
+    const diagTexts=getAllDiagnoses(diag,f.label);
+    const allIcds=getAllIcdCodes(diag,gender,answers);
+    if(diagTexts.length===1){
+      const icdStr=allIcds.join(", ");
+      diagHtml+=`<div>${diagTexts[0]}${icdStr?' <span style="font-family:monospace;font-size:10px;color:#6a4a9a">{'+icdStr+'}</span>':''}</div>`;
+    }else{
+      diagTexts.forEach((text,i)=>{
+        const icd=allIcds[i]||"";
+        diagHtml+=`<div>${text}${icd?' <span style="font-family:monospace;font-size:10px;color:#6a4a9a">{'+icd+'}</span>':''}</div>`;
+      });
+    }
+  }
+  for(const ind of activeInds){
+    const diag=db[ind.id]||DIAG_DB_DEFAULTS[ind.id]||{};
+    const diagText=diag.diagnose||ind.label;
+    const icdStr=ind.icd||"";
+    diagHtml+=`<div>${diagText}${icdStr?' <span style="font-family:monospace;font-size:10px;color:#6a4a9a">{'+icdStr+'}</span>':''}</div>`;
+  }
+  diagHtml+=`</div></div>`;
+
+  // ── Diff/comparison ──
+  let diffHtml="";
+  if(diff&&diff.diffs.length>0){
+    diffHtml+=`<div style="margin-bottom:14px;border:1.5px solid #93c5fd;border-radius:8px;padding:10px 14px;background:#eff6ff;break-inside:avoid">
+      <div style="font-weight:700;font-size:12px;color:#1e40af;margin-bottom:6px">📈 Verlaufsvergleich mit ${diff.prevDate}</div>
+      <div style="font-size:11px;margin-bottom:6px">Vorherige Kategorie: <strong>${catLabel(diff.prevCat)}</strong> → Aktuelle: <strong>${catLabel(risk.cat)}</strong></div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:#dbeafe;-webkit-print-color-adjust:exact;print-color-adjust:exact"><th style="padding:4px 8px;text-align:left">Parameter</th><th style="padding:4px 8px;text-align:left">Vorher</th><th style="padding:4px 8px;text-align:left">Jetzt</th></tr></thead><tbody>`;
+    for(const dd of diff.diffs){
+      diffHtml+=`<tr style="border-bottom:1px solid #bfdbfe"><td style="padding:4px 8px;color:#0369a1;font-weight:500">${dd.field}</td><td style="padding:4px 8px">${dd.old}</td><td style="padding:4px 8px;font-weight:600">${dd.new}</td></tr>`;
+    }
+    diffHtml+=`</tbody></table></div>`;
+  }
+
+  // ── Risk category box ──
+  let catHtml="";
+  if(risk.cat&&catTexts[risk.cat]){
+    const ci=catColors[risk.cat];
+    const ct=catTexts[risk.cat];
+    catHtml=`<div style="border-radius:8px;padding:14px 16px;margin-bottom:14px;background:${ci.bg};border:1.5px solid ${ci.border};-webkit-print-color-adjust:exact;print-color-adjust:exact">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${ci.eyeC};margin-bottom:3px">${ct.eye}</div>
+      <div style="font-size:14px;font-weight:700;color:${ci.hC};margin-bottom:6px">${ct.h}</div>
+      <div style="font-size:12px;color:${ci.dC};line-height:1.6">${ct.d}</div>
+    </div>`;
+  }
+
+  // ── Calculation box ──
+  let calcHtml=`<div style="background:#faf6f0;border:1.5px solid #c8b89a;border-radius:7px;padding:12px 14px;margin-bottom:14px">
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#8b6e4e;margin-bottom:6px">Risikoberechnung nach DVO-Algorithmus</div>`;
+  if(risk.top2.length){
+    for(let i=0;i<risk.top2.length;i++){
+      calcHtml+=`<div style="display:flex;justify-content:space-between;font-size:12px;color:#4a3520;padding:3px 0;border-bottom:1px solid #ece5d8"><span>${i+1}. ${risk.top2[i].label}</span><span style="font-weight:700">×${risk.top2[i].faktor}</span></div>`;
+    }
+    calcHtml+=`<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#2c1f0e;font-weight:700;padding:6px 0 0"><span>Kombinierter Risikofaktor</span><span>×${risk.cF.toFixed(2)}</span></div>`;
+  }else{
+    calcHtml+=`<div style="font-size:12px;color:#8b7a68;text-align:center;padding:6px 0">Keine Risikofaktoren erfasst</div>`;
+  }
+  calcHtml+=`</div>`;
+
+  // ── Determine which DVO table to show (based on T-score) ──
+  const hipVal=answers.dxa_hip!==undefined&&answers.dxa_hip!==""?parseFloat(answers.dxa_hip):null;
+  const hasDxa=hipVal!==null&&!isNaN(hipVal);
+  let primaryPerc=3;
+  if(hasDxa){
+    if(hipVal< -2.5)primaryPerc=10;
+    else if(hipVal< -1.5)primaryPerc=5;
+    else primaryPerc=3;
+  }
+
+  // ── Assemble full document ──
+  return `<!DOCTYPE html>
+<html lang="de"><head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Befundbericht – ${patName}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a1a;background:white;padding:16px}
+  @media print{
+    body{padding:0}
+    .print-bar{display:none!important}
+    @page{size:A4;margin:10mm 12mm}
+  }
+  h1{font-size:17px;color:#2a1808;margin-bottom:4px}
+  .print-bar{background:#2c1f0e;color:#f0e8d0;padding:12px 16px;margin:-16px -16px 18px;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .print-bar h2{font-size:14px;font-weight:700;flex:1;margin:0}
+  .print-btn{padding:9px 18px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit}
+  .print-btn.primary{background:#4a9a4a;color:white}
+</style>
+<script>
+window.doPrint=function(){window.print();};
+<\/script>
+</head><body>
+<div class="print-bar">
+  <h2>&#x1F9BE; Befundbericht – Anamnese- und Osteoporose-Dokumentationshilfe</h2>
+  <button class="print-btn primary" onclick="window.doPrint()">&#x1F5A8; Drucken / Als PDF</button>
+</div>
+
+<!-- Briefkopf -->
+<div style="border:1.5px solid #c8b89a;border-radius:7px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+  <div style="width:38px;height:38px;background:#2c1f0e;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#e8ddd0;flex-shrink:0;-webkit-print-color-adjust:exact;print-color-adjust:exact">⚕</div>
+  <div>
+    <div style="font-size:16px;font-weight:700;color:#2c1f0e">${lh.name||""}</div>
+    ${lh.title?`<div style="font-size:12px;color:#8b6e4e">${lh.title}</div>`:''}
+    <div style="font-size:11px;color:#7a6a58">${lh.strasse||""}, ${lh.plz_ort||""}</div>
+    ${lh.telefon?`<div style="font-size:10.5px;color:#9a8a78">Tel.: ${lh.telefon}${lh.fax?' | Fax: '+lh.fax:''}${lh.email?' | '+lh.email:''}</div>`:''}
+  </div>
+</div>
+
+<h1>Befundbericht – Anamnese- und Osteoporose-Dokumentationshilfe und Risikocheck</h1>
+<div style="font-size:10.5px;color:#888;margin-bottom:14px">DVO-Leitlinie 2023 | S3-Leitlinie AWMF 183-001 | Ausgabedatum: ${d}</div>
+
+<!-- Patientendaten -->
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 16px;margin-bottom:18px;background:#faf6f0;border:1.5px solid #d4a84b;border-radius:7px;padding:10px 14px;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+  <div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Name</span><span style="font-size:13px;font-weight:600">${patName}</span></div>
+  <div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Geburtsdatum</span><span style="font-size:13px;font-weight:600">${patient.geburtsdatum||"–"}</span></div>
+  <div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Geschlecht</span><span style="font-size:13px;font-weight:600">${genderLabel}</span></div>
+  <div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Alter</span><span style="font-size:13px;font-weight:600">${answers.alter||"–"} Jahre</span></div>
+  ${answers.groesse?`<div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Größe</span><span style="font-size:13px;font-weight:600">${answers.groesse} cm</span></div>`:''}
+  ${answers.gewicht?`<div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Gewicht</span><span style="font-size:13px;font-weight:600">${answers.gewicht} kg</span></div>`:''}
+  ${bmi?`<div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">BMI</span><span style="font-size:13px;font-weight:600">${bmi.toFixed(1)} kg/m²</span></div>`:''}
+  <div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Untersuchungsdatum</span><span style="font-size:13px;font-weight:600">${patient.fillDate||d}</span></div>
+</div>
+
+<!-- Anamnese -->
+${anamHtml}
+
+<!-- Schmerzeinzeichnungen -->
+${painHtml}
+
+<!-- Aktuelle Medikation -->
+${medsHtml}
+
+<!-- Bisherige Osteoporose-Therapie -->
+${therapieHtml}
+
+<!-- DXA-Werte -->
+${answers.dxa_hip?`<div style="margin-bottom:14px;break-inside:avoid">
+  <div style="background:#3a2a0e;color:#f0e8d0;padding:7px 14px;border-radius:5px 5px 0 0;font-size:12px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">📐 DXA-Knochendichtemessung</div>
+  <div style="border:1px solid #ddd;border-top:none;padding:8px 14px;font-size:12px;display:flex;gap:20px;flex-wrap:wrap">
+    <span><strong>T-Score Gesamthüfte:</strong> ${answers.dxa_hip}</span>
+    ${answers.dxa_lws?`<span><strong>T-Score LWS:</strong> ${answers.dxa_lws}</span>`:''}
+    ${answers.dxa_neck?`<span><strong>T-Score Schenkelhals:</strong> ${answers.dxa_neck}</span>`:''}
+    ${answers.dxa_tbs?`<span><strong>TBS:</strong> ${answers.dxa_tbs}</span>`:''}
+  </div>
+</div>`:''}
+
+<!-- ════ AUSWERTUNG ════ -->
+<div style="border:2px solid #2c1f0e;border-radius:10px;padding:18px;margin-top:18px;page-break-before:always">
+  <div style="font-size:17px;font-weight:700;color:#2c1f0e;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #e8dfd4">📊 Auswertung – Risikoberechnung</div>
+
+  <!-- Therapieschwellen (farbig) -->
+  <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px">
+    ${threshHtml("3%-Schwelle (3 J.)",risk.t3,risk.r3)}
+    ${threshHtml("5%-Schwelle (3 J.)",risk.t5,risk.r5)}
+    ${threshHtml("10%-Schwelle (3 J.)",risk.t10,risk.r10)}
+  </div>
+
+  <!-- Risikokategorie -->
+  ${catHtml}
+
+  <!-- Generelle Indikationen -->
+  ${genIndHtml}
+
+  <!-- Berechnung -->
+  ${calcHtml}
+
+  <!-- Risikoindikatoren -->
+  ${indHtml}
+
+  <!-- Risikofaktoren-Tabelle -->
+  ${factorsHtml}
+
+  <!-- Verlaufsvergleich -->
+  ${diffHtml}
+
+  <!-- DVO-Schwellentabelle -->
+  ${dvoTableHtml(primaryPerc)}
+  ${primaryPerc!==3?dvoTableHtml(3):''}
+  ${primaryPerc!==5?dvoTableHtml(5):''}
+  ${primaryPerc!==10?dvoTableHtml(10):''}
+
+  <!-- Diagnosen -->
+  ${diagHtml}
+</div>
+
+<!-- Symptomcheck / Sekundäre Osteoporose -->
+${sekHtml}
+
+<!-- Fragebogen-Antworten -->
+<div style="page-break-before:always">
+  <div style="font-size:15px;font-weight:700;color:#2c1f0e;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #e8dfd4">📝 Fragebogen – Alle Angaben</div>
+  ${sectionsHtml}
+</div>
+
+<div style="margin-top:20px;padding-top:10px;border-top:2px solid #2c1f0e;font-size:10px;color:#888;text-align:center;line-height:1.6">
+  <strong>Hinweis:</strong> Dieser Ausdruck ersetzt keine ärztliche Diagnose. Die Therapieentscheidung trifft der behandelnde Arzt.<br/>
+  Osteoporose-Fragebogen · Befundbericht (Vollversion) · DVO-Leitlinie 2023 · Nur für den internen Praxisgebrauch
+</div>
+</body></html>`;
+}
+
 /* ═══════════════════════════════════════════════ COMPONENTS ═══ */
 
 /* ── AutoTextarea: Zeilenzahl aus Inhalt berechnet, kein Leerraum ── */
@@ -8428,14 +9030,20 @@ function App(){
     setViewer({type:"txt",content:text});
   };
 
-  /* ── PDF: print dialog → user selects "Als PDF speichern" ── */
+  /* ── PDF: generates full report HTML and shows in viewer ── */
   const handlePrint=async()=>{
     if(!gender){alert("Bitte zuerst Geschlecht auswählen.");return;}
     await saveSession();
-    const allOpen={};visibleSecs.forEach(s=>allOpen[s.id]=true);
-    setOpenSec(allOpen);setShowResult(true);
-    // Short delay for DOM, then print dialog (browser handles "Save as PDF")
-    setTimeout(()=>window.print(),500);
+    const r=computeRisk(answers,gender);
+    const dd=prevSession?computeDiff(answers,prevSession,gender):null;
+    let html;
+    try{
+      html=buildFullReportHtml(patient,gender,answers,r,dd,lh,diagDb,sekDiagDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds,painMaps,SECTIONS);
+    }catch(e){
+      alert("PDF konnte nicht erstellt werden: "+e.message);
+      return;
+    }
+    setViewer({type:"pdf",content:html});
   };
 
   const handleCalc=async()=>{
@@ -8897,6 +9505,18 @@ function App(){
                 <span className="viewer-bar-title">
                   {viewer.type==="html"?"📄 Patienteneingabe – Vorschau":"🖨 Befundbericht – Druckansicht"}
                 </span>
+                <button className="viewer-btn" onClick={()=>{
+                  const fname=makeFilename("html");
+                  const blob=new Blob([viewer.content],{type:"text/html;charset=utf-8"});
+                  const url=URL.createObjectURL(blob);
+                  const a=document.createElement("a");a.href=url;a.download=fname;
+                  document.body.appendChild(a);a.click();
+                  document.body.removeChild(a);URL.revokeObjectURL(url);
+                }}>⬇️ HTML herunterladen</button>
+                <button className="viewer-btn primary" onClick={()=>{
+                  const iframe=document.getElementById("viewer-iframe");
+                  if(iframe&&iframe.contentWindow){iframe.contentWindow.print();}
+                }}>🖨 Drucken / Als PDF</button>
               </>
             )}
             <button className="viewer-close" onClick={()=>setViewer(null)}>×</button>

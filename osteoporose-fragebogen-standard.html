@@ -2377,6 +2377,118 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
   return lines.join("\n");
 }
 
+/* ═══════════════════════════════════ FULL REPORT HTML (Arzt-PDF) ═══ */
+function buildFullReportHtml(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds,painMaps,SECTIONS_ARG){
+  const db=diagDb||DIAG_DB_DEFAULTS;
+  const d=new Date().toLocaleDateString("de-DE");
+  const patName=[patient.nachname||patient.name,patient.vorname].filter(Boolean).join(", ")||"–";
+  const genderLabel=gender==="f"?"weiblich":"männlich";
+  const bmi=calcBMI(parseFloat(answers.groesse),parseFloat(answers.gewicht));
+  const catColors={top:{bg:"#fdf4ff",border:"#d8b4fe",eyeC:"#7e22ce",hC:"#7e22ce",dC:"#581c87"},high:{bg:"#fff1f2",border:"#fca5a5",eyeC:"#b91c1c",hC:"#b91c1c",dC:"#991b1b"},mod:{bg:"#fffbeb",border:"#fcd34d",eyeC:"#b45309",hC:"#b45309",dC:"#92400e"},low:{bg:"#f0fdf4",border:"#86efac",eyeC:"#15803d",hC:"#15803d",dC:"#166534"}};
+  const catTexts={
+    top:{eye:"Sehr hohes Risiko / Generelle Indikation",h:"10%-Schwelle und/oder generelle Indikation erreicht",d:gender==="f"?"Osteoanabole Therapie unverzüglich erwägen (A). Romosozumab oder Teriparatid. Sequenztherapie essenziell.":"Osteoanabole Therapie unverzüglich erwägen (A). Teriparatid. Sequenztherapie anschließen."},
+    high:{eye:"Deutlich erhöhtes Risiko",h:"5%-Schwelle erreicht – spezifische Therapie indiziert",d:gender==="f"?"Antiresorptive Therapie empfohlen (A): Bisphosphonate, Denosumab, SERM.":"Antiresorptive Therapie empfohlen (A): Alendronat, Risedronat, Zoledronat, Denosumab."},
+    mod:{eye:"Mäßig erhöhtes Risiko",h:"3%-Schwelle erreicht – Abklärung empfehlenswert",d:"Spezifische Therapie kann erwogen werden (B). DXA empfohlen. Basistherapie: Kalzium, Vitamin D, Sturzprophylaxe."},
+    low:{eye:"Kein erhöhtes Risiko erkennbar",h:"Aktuell kein erhöhtes Frakturrisiko",d:"Allgemeine Prophylaxe: Kalzium, Vitamin D, körperliche Aktivität. Kontrolle in 3–5 Jahren."}};
+  function threshHtml(label,threshold,reached){
+    let bg,border,lblC,valC;
+    if(threshold===null){bg="#f8fafc";border="#cbd5e1";lblC="#64748b";valC="#475569";}
+    else if(reached){bg="#fef2f2";border="#fca5a5";lblC="#b91c1c";valC="#991b1b";}
+    else{bg="#f0fdf4";border="#86efac";lblC="#15803d";valC="#166534";}
+    const sym=threshold===null?"—":reached?"✓":"✗";
+    const sub=threshold!==null?"Benötigt: ×"+threshold:"Alter/DXA fehlt";
+    return `<div style="flex:1;min-width:100px;padding:11px 12px;border-radius:7px;text-align:center;border:1.5px solid ${border};background:${bg};-webkit-print-color-adjust:exact;print-color-adjust:exact"><div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${lblC};margin-bottom:3px">${label}</div><div style="font-size:20px;font-weight:700;color:${valC}">${sym}</div><div style="font-size:10px;color:${lblC};margin-top:2px">${sub}</div></div>`;
+  }
+  function dvoTableHtml(perc){
+    const g=gender||"f";const ages=[50,55,60,65,70,75,80,85,90];
+    const tscoreCols=["Ohne BMD","T 0,0","T −0,5","T −1,0","T −1,5","T −2,0","T −2,5","T −3,0","T −3,5","T −4,0"];
+    const patAge=parseInt(answers.alter)||null;const patRowAge=patAge?ageRow(patAge):null;
+    const hipVal=answers.dxa_hip!==undefined&&answers.dxa_hip!==""?parseFloat(answers.dxa_hip):null;
+    const patColIdx=(hipVal!==null&&!isNaN(hipVal))?tCol(hipVal):null;
+    const percColor={3:"#22c55e",5:"#f97316",10:"#ef4444"};const percLabel={3:"3%-Tabelle",5:"5%-Tabelle",10:"10%-Tabelle"};
+    let rows="";
+    for(const age of ages){const isPatRow=patRowAge===age;
+      let cells=`<td style="font-weight:700;background:${isPatRow?'#c8a070':'#faf6f0'};padding:6px 8px">${age}${isPatRow?' 👤':''}</td>`;
+      for(let ci=0;ci<tscoreCols.length;ci++){
+        const v=(THRESH[g][perc][age]||[])[ci];const v10=(THRESH[g][10][age]||[])[ci];const v5=(THRESH[g][5][age]||[])[ci];const v3=(THRESH[g][3][age]||[])[ci];
+        const ex10=v10===null||(v10!==undefined&&v10<=1.0);const ex5=v5===null||(v5!==undefined&&v5<=1.0);const ex3=v3===null||(v3!==undefined&&v3<=1.0);
+        let bgC=ex10?"#D42020":ex5?"#F4A030":ex3?"#FFD966":"white";let fgC=ex10?"#fff":ex5?"#4a1a00":ex3?"#5a3a00":"#5a4a38";
+        const isPatCell=isPatRow&&patColIdx===ci;
+        if(isPatCell){cells+=`<td style="background:${bgC};color:${fgC};font-weight:700;padding:4px 6px;outline:3px solid #1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact"><div style="font-size:11px">${v!==null&&v!==undefined?v:'–'}</div><div style="font-size:12px;font-weight:900;margin-top:2px;border-top:1px solid rgba(0,0,0,0.25);padding-top:2px">${risk.cF.toFixed(2)}</div></td>`;}
+        else{cells+=`<td style="background:${bgC};color:${fgC};font-weight:${ex10||ex5||ex3?'700':'400'};padding:5px 6px;text-align:center;font-size:11px;-webkit-print-color-adjust:exact;print-color-adjust:exact">${v!==null&&v!==undefined?v:'–'}</td>`;}
+      }rows+=`<tr>${cells}</tr>`;}
+    return `<div style="margin-top:14px;border:1.5px solid #c8b89a;border-radius:8px;overflow:hidden;break-inside:avoid">
+      <div style="background:#2c1f0e;color:#e8ddd0;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+        <div style="font-size:13px;font-weight:700">DVO 2023 – ${percLabel[perc]} (${g==='f'?'Frau ♀':'Mann ♂'})</div>
+        <span style="background:${percColor[perc]};color:white;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">${perc}%</span></div>
+      <div style="overflow-x:auto;padding:6px"><table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:#3d2a15;color:#e8ddd0;-webkit-print-color-adjust:exact;print-color-adjust:exact"><th style="padding:6px 8px;text-align:left;font-size:10px">Alter</th>${tscoreCols.map((col,i)=>`<th style="padding:6px 4px;text-align:center;font-size:9px;${patColIdx===i?'background:#c8a070':''}">${col}</th>`).join('')}</tr></thead>
+        <tbody>${rows}</tbody></table></div>
+      <div style="display:flex;gap:12px;padding:6px 10px;font-size:9px;color:#7a6a58;flex-wrap:wrap;border-top:1px solid #e8dfd4">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#FFD966;border:1px solid #c8a030;border-radius:2px;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> 3%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#F4A030;border:1px solid #c07010;border-radius:2px;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> 5%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#D42020;border:1px solid #a00000;border-radius:2px;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> 10%</span>
+      </div></div>`;
+  }
+  let anamHtml="";const an=anamnese||{};
+  const hasAnam=(an.diagnosen||[]).length>0||(an.weitere||[]).length>0||(an.allergien||[]).length>0||(an.familienanamnese||[]).length>0||(an.fractures||[]).length>0||(an.ops||[]).length>0;
+  if(hasAnam){anamHtml+=`<div style="margin-bottom:18px;break-inside:avoid"><div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;font-size:13px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">📋 Anamnese</div><div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12px;line-height:1.7">`;
+    if((an.diagnosen||[]).length>0){anamHtml+=`<strong>Diagnosen:</strong> ${an.diagnosen.map(dx=>(dx.name||"–")+(dx.seitJahr?" (seit "+dx.seitJahr+")":"")).join(", ")}<br/>`;}
+    if((an.weitere||[]).length>0){anamHtml+=`<strong>Weitere:</strong> ${an.weitere.map(w=>(w.name||"–")).join(", ")}<br/>`;}
+    if((an.fractures||[]).length>0){anamHtml+=`<strong>Frakturen:</strong> ${an.fractures.map(f=>[f.ort,f.seite,f.jahr].filter(Boolean).join(" ")).join(", ")}<br/>`;}
+    anamHtml+=`</div></div>`;}
+  let painHtml="";const pm=painMaps||{};const drawnViews=PAIN_VIEWS.filter(v=>pm[v.id]);
+  if(drawnViews.length>0){painHtml+=`<div style="margin-bottom:18px"><div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;font-size:13px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">🎨 Schmerzeinzeichnungen</div><div style="border:1px solid #ddd;border-top:none;padding:10px 14px"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">`;
+    for(const v of drawnViews){painHtml+=`<div style="text-align:center"><div style="font-weight:700;font-size:10px;margin-bottom:3px">${v.label}</div><img src="${pm[v.id]}" style="max-width:100%;border:1px solid #d8c8b0;border-radius:4px"/></div>`;}
+    painHtml+=`</div></div></div>`;}
+  function renderAnswer(q){const v=answers[q.id];if(q.t==="yn"||q.t==="yn_inv"){if(v==="ja"||v===true)return'<span style="color:#1a5a1a;font-weight:700">✓ Ja</span>';if(v==="nein"||v===false)return'<span style="color:#5a1a1a">✗ Nein</span>';return'<span style="color:#888">–</span>';}return v?`<span style="font-weight:600">${v}</span>`:'<span style="color:#888">–</span>';}
+  let sectionsHtml="";const SECS=SECTIONS_ARG||SECTIONS;
+  for(const sec of SECS){const gok=!sec.gender||sec.gender===gender;if(!gok)continue;const qs=(sec.qs||[]).filter(q=>!q.gender||q.gender===gender);const answeredQs=qs.filter(q=>{const v=answers[q.id];return v!==undefined&&v!==null&&v!=="";});if(!answeredQs.length)continue;
+    sectionsHtml+=`<div style="margin-bottom:14px;break-inside:avoid"><div style="background:#3a2a0e;color:#f0e8d0;padding:7px 14px;border-radius:5px 5px 0 0;font-size:12px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact"><span>${sec.icon||""}</span> ${sec.title}</div><table style="width:100%;border-collapse:collapse;font-size:11.5px">`;
+    for(const q of answeredQs){sectionsHtml+=`<tr style="border-bottom:1px solid #efe6d8"><td style="padding:5px 10px;width:65%">${q.label.split("\\n")[0].slice(0,120)}</td><td style="padding:5px 10px;text-align:right">${renderAnswer(q)}</td></tr>`;}
+    sectionsHtml+=`</table></div>`;}
+  const sekHits=computeSecondary(answers);let sekHtml="";
+  if(sekHits.length>0){sekHtml+=`<div style="margin-bottom:18px"><div style="background:#4a1a3a;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;font-size:13px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">🔬 Sekundäre Osteoporoseformen – Abklärungshinweise</div><div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12px">`;
+    for(const{sym,count,hits,profile}of sekHits){const sekEntry=(sekDb||SEK_DIAG_DB_DEFAULTS)[sym]||{};sekHtml+=`<div style="margin-bottom:10px;padding:8px;background:#fdf4ff;border:1px solid #e8d4f0;border-radius:6px"><strong style="color:#7e22ce">${sekEntry.diagnose||profile.label}</strong><div style="font-size:11px;color:#581c87;margin:4px 0">${profile.hinweis}</div><div style="font-size:10.5px"><strong>Auslösende Angaben (${count}):</strong></div><ul style="margin:2px 0 0 18px;font-size:10.5px">${hits.map(h=>`<li>${h.label}</li>`).join('')}</ul></div>`;}
+    sekHtml+=`</div></div>`;}
+  let factorsHtml="";
+  if(risk.factors.length>0){factorsHtml+=`<div style="margin-bottom:14px"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#2c1f0e;color:#e8ddd0;-webkit-print-color-adjust:exact;print-color-adjust:exact"><th style="padding:5px 8px;text-align:left">Risikofaktor</th><th style="padding:5px 8px">ICD-10</th><th style="padding:5px 8px">Faktor</th></tr></thead><tbody>`;
+    for(const f of risk.factors){factorsHtml+=`<tr style="border-bottom:1px solid #efe6d8"><td style="padding:5px 8px">${f.label}</td><td style="padding:5px 8px;font-family:monospace;font-size:10px;color:#6a4a9a">${f.icd||"–"}</td><td style="padding:5px 8px;font-weight:700;color:#b45309">×${f.faktor}</td></tr>`;}
+    factorsHtml+=`</tbody></table></div>`;}
+  let catHtml="";
+  if(risk.cat&&catTexts[risk.cat]){const ci=catColors[risk.cat];const ct=catTexts[risk.cat];catHtml=`<div style="border-radius:8px;padding:14px 16px;margin-bottom:14px;background:${ci.bg};border:1.5px solid ${ci.border};-webkit-print-color-adjust:exact;print-color-adjust:exact"><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${ci.eyeC}">${ct.eye}</div><div style="font-size:14px;font-weight:700;color:${ci.hC};margin:3px 0 6px">${ct.h}</div><div style="font-size:12px;color:${ci.dC};line-height:1.6">${ct.d}</div></div>`;}
+  let calcHtml=`<div style="background:#faf6f0;border:1.5px solid #c8b89a;border-radius:7px;padding:12px 14px;margin-bottom:14px"><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#8b6e4e;margin-bottom:6px">Risikoberechnung</div>`;
+  if(risk.top2.length){for(let i=0;i<risk.top2.length;i++){calcHtml+=`<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #ece5d8"><span>${i+1}. ${risk.top2[i].label}</span><span style="font-weight:700">×${risk.top2[i].faktor}</span></div>`;}calcHtml+=`<div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;padding:6px 0 0"><span>Kombinierter Risikofaktor</span><span>×${risk.cF.toFixed(2)}</span></div>`;}
+  calcHtml+=`</div>`;
+  const hipVal=answers.dxa_hip!==undefined&&answers.dxa_hip!==""?parseFloat(answers.dxa_hip):null;const hasDxa=hipVal!==null&&!isNaN(hipVal);
+  let primaryPerc=3;if(hasDxa){if(hipVal< -2.5)primaryPerc=10;else if(hipVal< -1.5)primaryPerc=5;}
+  return `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"/><title>Befundbericht – ${patName}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a1a;background:white;padding:16px}@media print{body{padding:0}.print-bar{display:none!important}@page{size:A4;margin:10mm 12mm}}
+.print-bar{background:#2c1f0e;color:#f0e8d0;padding:12px 16px;margin:-16px -16px 18px;display:flex;align-items:center;gap:12px}.print-bar h2{font-size:14px;font-weight:700;flex:1}.print-btn{padding:9px 18px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700}.print-btn.primary{background:#4a9a4a;color:white}
+</style><script>window.doPrint=function(){window.print();};<\/script></head><body>
+<div class="print-bar"><h2>Befundbericht</h2><button class="print-btn primary" onclick="window.doPrint()">Drucken / Als PDF</button></div>
+<div style="border:1.5px solid #c8b89a;border-radius:7px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+  <div style="width:38px;height:38px;background:#2c1f0e;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#e8ddd0;-webkit-print-color-adjust:exact;print-color-adjust:exact">⚕</div>
+  <div><div style="font-size:16px;font-weight:700;color:#2c1f0e">${lh.name||""}</div><div style="font-size:11px;color:#7a6a58">${lh.strasse||""}, ${lh.plz_ort||""}</div></div></div>
+<h1 style="font-size:17px;color:#2a1808;margin-bottom:14px">Befundbericht – Risikocheck</h1>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 16px;margin-bottom:18px;background:#faf6f0;border:1.5px solid #d4a84b;border-radius:7px;padding:10px 14px">
+  <div><small style="font-weight:700;color:#7a5a38;text-transform:uppercase">Name</small><br/><strong>${patName}</strong></div>
+  <div><small style="font-weight:700;color:#7a5a38;text-transform:uppercase">Geb.</small><br/><strong>${patient.geburtsdatum||"–"}</strong></div>
+  <div><small style="font-weight:700;color:#7a5a38;text-transform:uppercase">Geschlecht</small><br/><strong>${genderLabel}</strong></div>
+  <div><small style="font-weight:700;color:#7a5a38;text-transform:uppercase">Alter</small><br/><strong>${answers.alter||"–"} J.</strong></div>
+  ${bmi?`<div><small style="font-weight:700;color:#7a5a38;text-transform:uppercase">BMI</small><br/><strong>${bmi.toFixed(1)}</strong></div>`:''}</div>
+${anamHtml}${painHtml}
+<div style="border:2px solid #2c1f0e;border-radius:10px;padding:18px;margin-top:18px;page-break-before:always">
+  <div style="font-size:17px;font-weight:700;color:#2c1f0e;margin-bottom:14px;border-bottom:1px solid #e8dfd4;padding-bottom:10px">📊 Auswertung</div>
+  <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px">${threshHtml("3%-Schwelle",risk.t3,risk.r3)}${threshHtml("5%-Schwelle",risk.t5,risk.r5)}${threshHtml("10%-Schwelle",risk.t10,risk.r10)}</div>
+  ${catHtml}${calcHtml}${factorsHtml}
+  ${dvoTableHtml(primaryPerc)}${primaryPerc!==3?dvoTableHtml(3):''}${primaryPerc!==5?dvoTableHtml(5):''}${primaryPerc!==10?dvoTableHtml(10):''}
+</div>
+${sekHtml}
+<div style="page-break-before:always"><div style="font-size:15px;font-weight:700;color:#2c1f0e;margin-bottom:12px;border-bottom:1px solid #e8dfd4;padding-bottom:8px">📝 Angaben</div>${sectionsHtml}</div>
+<div style="margin-top:20px;padding-top:10px;border-top:2px solid #2c1f0e;font-size:10px;color:#888;text-align:center">Hinweis: Dieser Ausdruck ersetzt keine ärztliche Diagnose. DVO-Leitlinie 2023.</div></body></html>`;
+}
+
 /* ═══════════════════════════════════════════════ COMPONENTS ═══ */
 
 /* ── AutoTextarea: Zeilenzahl aus Inhalt berechnet, kein Leerraum ── */
@@ -4935,14 +5047,20 @@ function App(){
     setViewer({type:"txt",content:text});
   };
 
-  /* ── PDF: print dialog → user selects "Als PDF speichern" ── */
+  /* ── PDF: generates full report HTML and shows in viewer ── */
   const handlePrint=async()=>{
     if(!gender){alert("Bitte zuerst Geschlecht auswählen.");return;}
     await saveSession();
-    const allOpen={};visibleSecs.forEach(s=>allOpen[s.id]=true);
-    setOpenSec(allOpen);setShowResult(true);
-    // Short delay for DOM, then print dialog (browser handles "Save as PDF")
-    setTimeout(()=>window.print(),500);
+    const r=computeRisk(answers,gender);
+    const dd=prevSession?computeDiff(answers,prevSession,gender):null;
+    let html;
+    try{
+      html=buildFullReportHtml(patient,gender,answers,r,dd,lh,diagDb,sekDiagDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds,painMaps,SECTIONS);
+    }catch(e){
+      alert("PDF konnte nicht erstellt werden: "+e.message);
+      return;
+    }
+    setViewer({type:"pdf",content:html});
   };
 
   const handleCalc=async()=>{
@@ -5319,6 +5437,18 @@ function App(){
                 <span className="viewer-bar-title">
                   {viewer.type==="html"?"📄 Patienteneingabe – Vorschau":"🖨 Befundbericht – Druckansicht"}
                 </span>
+                <button className="viewer-btn" onClick={()=>{
+                  const fname=makeFilename("html");
+                  const blob=new Blob([viewer.content],{type:"text/html;charset=utf-8"});
+                  const url=URL.createObjectURL(blob);
+                  const a=document.createElement("a");a.href=url;a.download=fname;
+                  document.body.appendChild(a);a.click();
+                  document.body.removeChild(a);URL.revokeObjectURL(url);
+                }}>⬇️ HTML herunterladen</button>
+                <button className="viewer-btn primary" onClick={()=>{
+                  const iframe=document.getElementById("viewer-iframe");
+                  if(iframe&&iframe.contentWindow){iframe.contentWindow.print();}
+                }}>🖨 Drucken / Als PDF</button>
               </>
             )}
             <button className="viewer-btn" onClick={()=>{setViewer(null);setArztStartTab("auswertung");setAdminOpen(true);}}
