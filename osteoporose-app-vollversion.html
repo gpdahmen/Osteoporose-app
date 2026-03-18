@@ -6440,6 +6440,18 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                             </button>
                             {editAnswers&&(
                               <div style={{background:"#fffdf8",border:"1.5px solid #d4c4a8",borderRadius:8,padding:12}}>
+                                {/* Gender selector */}
+                                <div style={{marginBottom:12,padding:"8px 10px",background:"#faf4ed",borderRadius:6}}>
+                                  <label style={{fontSize:13,fontWeight:600,color:"#5a4a3a",marginRight:10}}>Biologisches Geschlecht:</label>
+                                  <div style={{display:"inline-flex",gap:6,marginTop:4}}>
+                                    {[["f","♀ Frau"],["m","♂ Mann"]].map(([v,l])=>(
+                                      <button key={v} onClick={()=>onGenderChange(v)}
+                                        style={{padding:"5px 16px",borderRadius:5,border:"1.5px solid "+(gender===v?"var(--P)":"#d4c4a8"),
+                                          background:gender===v?"#e8f0e8":"white",color:gender===v?"#1a3a1a":"#8b7a68",
+                                          cursor:"pointer",fontSize:12.5,fontWeight:gender===v?700:400,fontFamily:"inherit"}}>{l}</button>
+                                    ))}
+                                  </div>
+                                </div>
                                 {visSecs.map(sec=>(
                                   <div key={sec.id} style={{marginBottom:8}}>
                                     <div onClick={()=>setOpenEditSec(p=>({...p,[sec.id]:!p[sec.id]}))}
