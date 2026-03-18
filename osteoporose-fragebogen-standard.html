@@ -1941,6 +1941,25 @@ function buildAuswertungHtml(patient,gender,answers,lh,diagDb,sekDb,anamnese,the
     sekHtml+=`</table></div>`;
   }
 
+  // ── Symptomcheck-Zusammenfassung ──
+  let symcheckHtml="";
+  const symSecs=SECTIONS.filter(s=>s.symcheck);
+  if(symSecs.length>0){
+    let symRows="";
+    for(const sec of symSecs){
+      const qs=(sec.qs||[]).filter(q=>!q.gender||q.gender===gender);
+      const answered=qs.filter(q=>{const v=answers[q.id];return v==="ja"||v===true||v==="true";});
+      if(answered.length===0) continue;
+      symRows+=`<tr style="background:#f5f0e8"><td colspan="2" style="padding:6px 8px;font-weight:700;font-size:12px">${sec.icon||""} ${sec.title}</td></tr>`;
+      for(const q of answered){
+        symRows+=`<tr style="border-bottom:1px solid #e8e0d0"><td style="padding:5px 8px;font-size:11px">${q.label.split("\\n")[0].slice(0,100)}</td><td style="padding:5px 8px;color:#1a5a1a;font-weight:700;text-align:center">✓ Ja</td></tr>`;
+      }
+    }
+    if(symRows){
+      symcheckHtml=`<div style="margin-top:16px;border:1.5px solid #d4a84b;border-radius:6px;overflow:hidden"><div style="background:#3a2a0e;color:#f0e8d0;padding:7px 12px;font-size:13px;font-weight:700">🔍 Symptomcheck – Patientenangaben</div><table style="width:100%;border-collapse:collapse;font-size:12px">${symRows}</table></div>`;
+    }
+  }
+
   // ── Kategorien ──
   const catLabel=c=>({top:"Sehr hohes Risiko",high:"Hohes Risiko",mod:"Mäßiges Risiko",low:"Niedriges Risiko"}[c]||"–");
   const catColor=c=>({top:"#b91c1c",high:"#c2410c",mod:"#a16207",low:"#15803d"}[c]||"#666");
@@ -2020,6 +2039,8 @@ ${indRows?`<div class="sec"><div class="sec-hd">🔬 Risikoindikatoren (DVO 2023
 </div></div>
 
 ${sekHtml}
+
+${symcheckHtml}
 
 <div style="margin-top:14px;padding:10px 12px;background:#f5f0e8;border-radius:6px;font-size:12px">
   <strong>Diagnosen (ICD-10):</strong><br/>

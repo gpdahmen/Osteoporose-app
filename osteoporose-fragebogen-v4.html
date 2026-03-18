@@ -2981,6 +2981,24 @@ function buildAuswertungHtml(patient,gender,answers,lh,diagDb,sekDb,anamnese,the
     sekHtml+=`</table></div>`;
   }
 
+  // ── Symptomcheck-Zusammenfassung (sekStatus) ──
+  let symcheckHtml="";
+  const ss=sekStatus||{};
+  const sekEntries=Object.entries(ss).filter(([k,v])=>v&&(v.bekannt==="ja"||v.bekannt==="nein"));
+  if(sekEntries.length>0){
+    symcheckHtml=`<div style="margin-top:16px;border:1.5px solid #d4a84b;border-radius:6px;overflow:hidden"><div style="background:#3a2a0e;color:#f0e8d0;padding:7px 12px;font-size:13px;font-weight:700">🔍 Symptomcheck – Sekundäre Osteoporose</div><table style="width:100%;border-collapse:collapse;font-size:12px">`;
+    for(const[sym,st] of sekEntries){
+      const prof=(typeof SEK_PROFILE!=="undefined"&&SEK_PROFILE[sym])?SEK_PROFILE[sym]:null;
+      const label=prof?prof.label:sym;
+      const bekannt=st.bekannt==="ja"?'<span style="color:#1a5a1a;font-weight:700">✓ Bekannt</span>':'<span style="color:#5a1a1a">✗ Nicht bekannt</span>';
+      let detail="";
+      if(st.seitWann) detail+=" seit "+st.seitWann;
+      if(st.behandlung) detail+=", Behandlung: "+st.behandlung;
+      symcheckHtml+=`<tr style="border-bottom:1px solid #e8e0d0"><td style="padding:6px 8px;width:50%">${label}</td><td style="padding:6px 8px">${bekannt}${detail?" – "+detail:""}</td></tr>`;
+    }
+    symcheckHtml+=`</table></div>`;
+  }
+
   // ── Kategorien ──
   const catLabel=c=>({top:"Sehr hohes Risiko",high:"Hohes Risiko",mod:"Mäßiges Risiko",low:"Niedriges Risiko"}[c]||"–");
   const catColor=c=>({top:"#b91c1c",high:"#c2410c",mod:"#a16207",low:"#15803d"}[c]||"#666");
@@ -3062,6 +3080,8 @@ ${indRows?`<div class="sec"><div class="sec-hd">🔬 Risikoindikatoren (DVO 2023
 </div></div>
 
 ${sekHtml}
+
+${symcheckHtml}
 
 <div style="margin-top:14px;padding:10px 12px;background:#f5f0e8;border-radius:6px;font-size:12px">
   <strong>Diagnosen (ICD-10):</strong><br/>
@@ -8520,7 +8540,7 @@ function App(){
       alert("Auswertung konnte nicht erstellt werden: "+e.message);
       return;
     }
-    setViewer({type:"html",content:html});
+    setViewer({type:"pdf",content:html});
   };
 
   const handleCalc=async()=>{
