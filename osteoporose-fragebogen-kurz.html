@@ -1858,7 +1858,7 @@ function getIcdArray(entry, gender, answers){
 
 /* ═══════════════════════════════════════════════ TEXT EXPORT ═══ */
 /* ═══ PATIENTEN-EINGABE-PDF (ohne Auswertung) ══════════════════════════════ */
-function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTIONS, therapieHistory){
+function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTIONS){
   const fmt = v => v===undefined||v===null||v===""?"–":String(v);
   const fmtDate = d => { if(!d)return "–"; const p=d.split(".");return p.length===3?d:d; };
 
@@ -1919,19 +1919,12 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
       </div>`;
   }
 
-  // Anamnese-Zusammenfassung (vollständig)
+  // Anamnese-Zusammenfassung (Kurzversion: nur Diagnosen und Frakturen)
   let anamHtml="";
   if(anamnese){
     const dxList=(anamnese.diagnosen||[]).filter(d=>d&&(typeof d==="string"?d.trim():(d.name||"")));
     const fracList=(anamnese.fractures||[]).filter(f=>f&&(f.typ||f.seite));
-    const allerList=(anamnese.allergien||[]).filter(a=>a&&(typeof a==="string"?a.trim():a.name));
-    const famList=(anamnese.familienanamnese||[]).filter(f=>f&&(typeof f==="string"?f.trim():f.name));
-    const opsList=(anamnese.ops||[]).filter(o=>o&&(typeof o==="string"?o.trim():o.name||o.typ));
-    const weitereSet=(anamnese.weitere||[]).filter(s=>s);
-    const kinderList=(anamnese.kinder||[]).filter(k=>k);
-    const hasMeno=anamnese.menoPause||anamnese.menoYear||anamnese.menarche;
-    const hasAny=dxList.length||fracList.length||allerList.length||famList.length||opsList.length||weitereSet.length||kinderList.length||hasMeno;
-    if(hasAny){
+    if(dxList.length||fracList.length||(anamnese.weitere||[]).filter(s=>s).length){
       anamHtml=`
       <div style="margin-bottom:20px;break-inside:avoid">
         <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;
@@ -1939,45 +1932,10 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
         <div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12.5px">`;
       if(dxList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Diagnosen:</strong> ${dxList.map(d=>typeof d==="string"?d:[d.name,d.seitJahr?"seit "+d.seitJahr:""].filter(Boolean).join(" ")).join(" · ")}</div>`;
       if(fracList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Frühere Frakturen:</strong> ${fracList.map(f=>[f.typ,f.seite,f.jahr].filter(Boolean).join(" ")).join(", ")}</div>`;
-      if(opsList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Operationen:</strong> ${opsList.map(o=>typeof o==="string"?o:[o.typ||o.name,o.jahr].filter(Boolean).join(" ")).join(", ")}</div>`;
-      if(allerList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Allergien / Unverträglichkeiten:</strong> ${allerList.map(a=>typeof a==="string"?a:[a.name,a.reaktion].filter(Boolean).join(" – ")).join(", ")}</div>`;
-      if(famList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Familienanamnese:</strong> ${famList.map(f=>typeof f==="string"?f:[f.name,f.verwandtschaft].filter(Boolean).join(" – ")).join(", ")}</div>`;
-      if(hasMeno&&gender==="w"){
-        let menoText=[];
-        if(anamnese.menarche) menoText.push("Menarche: "+anamnese.menarche);
-        if(anamnese.menoPause) menoText.push("Menopause: "+anamnese.menoPause);
-        if(anamnese.menoYear) menoText.push("Menopausealter/-jahr: "+anamnese.menoYear);
-        if(anamnese.menoGrund) menoText.push("Grund: "+anamnese.menoGrund);
-        if(anamnese.menoSonstige) menoText.push("Sonstiges: "+anamnese.menoSonstige);
-        if(menoText.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Gynäkologische Anamnese:</strong> ${menoText.join(" · ")}</div>`;
-      }
-      if(kinderList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Kinder:</strong> ${kinderList.map(k=>typeof k==="string"?k:[k.jahr,k.art].filter(Boolean).join(" ")).join(", ")}</div>`;
+      const weitereSet=(anamnese.weitere||[]).filter(s=>s);
       if(weitereSet.length) anamHtml+=`<div><strong>Weitere Angaben:</strong> ${weitereSet.map(w=>typeof w==="string"?w:[w.name||w.substanz||"",w.seitJahr?"seit "+w.seitJahr:""].filter(Boolean).join(" ")).join(", ")}</div>`;
       anamHtml+=`</div></div>`;
     }
-  }
-
-  // Therapiegeschichte
-  let therHtml="";
-  if(therapieHistory&&therapieHistory.length){
-    therHtml=`
-    <div style="margin-bottom:20px;break-inside:avoid">
-      <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;
-        font-size:13px;font-weight:700">💊 Bisherige Osteoporose-Therapie</div>
-      <div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12.5px">`;
-    for(const t of therapieHistory){
-      const parts=[];
-      if(t.medId) parts.push(t.medId);
-      if(t.dosierung) parts.push("Dosierung: "+t.dosierung);
-      if(t.vonJahr) parts.push("von "+t.vonJahr);
-      if(t.bisJahr) parts.push("bis "+t.bisJahr);
-      if(t.nochAktuell) parts.push("(aktuell)");
-      if(t.abgesetzt) parts.push("abgesetzt");
-      if(t.absetzGrund) parts.push("Grund: "+t.absetzGrund);
-      if(t.anmerkung) parts.push("Anm.: "+t.anmerkung);
-      therHtml+=`<div style="margin-bottom:4px">• ${parts.join(" · ")}</div>`;
-    }
-    therHtml+=`</div></div>`;
   }
 
 
@@ -2113,7 +2071,6 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
 </div>
 
 ${anamHtml}
-${therHtml}
 ${sekHinweisHtml}
 ${sectionsHtml}
 
@@ -4827,9 +4784,6 @@ function App(){
         if(draft.answers)setAnswers(draft.answers);
         if(draft.patient)setPatient(p=>({...p,...draft.patient,fillDate:today}));
         if(draft.patientId)setPatientId(draft.patientId);
-        if(draft.anamnese)setAnamnese(a=>({...a,...draft.anamnese}));
-        if(draft.painMaps)setPainMaps(draft.painMaps);
-        if(draft.therapieHistory)setTherapieHistory(draft.therapieHistory);
       }
       const savedDb=await loadDiagDbAsync();setDiagDb(savedDb);
       const sess=await idbLoadAll();
@@ -4838,17 +4792,17 @@ function App(){
     })();
   },[]);
 
-  // Auto-save draft (alle Bereiche: Anamnese, Schmerzzeichnungen, Therapiegeschichte)
+  // Auto-save draft (Kurzversion: nur Fragebogen-Antworten und Patientendaten)
   const triggerSave=useCallback(()=>{
     setSaveStatus("saving");
     clearTimeout(saveTimer.current);
     saveTimer.current=setTimeout(async()=>{
-      await storageSet(STORE_DRAFT,{gender,answers,patient,patientId,anamnese,painMaps,therapieHistory});
+      await storageSet(STORE_DRAFT,{gender,answers,patient,patientId});
       setSaveStatus("ok");
     },1500);
-  },[gender,answers,patient,anamnese,painMaps,therapieHistory]);
+  },[gender,answers,patient]);
 
-  useEffect(()=>{if(gender){setSaveStatus("unsaved");triggerSave();}},[gender,answers,patient,anamnese,painMaps,therapieHistory,triggerSave]);
+  useEffect(()=>{if(gender){setSaveStatus("unsaved");triggerSave();}},[gender,answers,patient,triggerSave]);
 
   const setA=(id,val)=>setAnswers(p=>({...p,[id]:val}));
   const setP=(k,v)=>setPatient(p=>({...p,[k]:v}));
@@ -4900,9 +4854,6 @@ function App(){
       patientId:patientId||Date.now().toString()+"_p",
       gender,
       answers:{...answers},
-      anamnese:{...anamnese},
-      painMaps:{...painMaps},
-      therapieHistory:[...therapieHistory],
       riskSnapshot:{cat:snap.cat,cF:snap.cF,r3:snap.r3,r5:snap.r5,r10:snap.r10}
     };
     await idbSaveBefund(session);
@@ -4984,9 +4935,6 @@ function App(){
     setGender(s.gender);setAnswers(s.answers);
     setPatient({...s.patient,fillDate:today});
     if(s.patientId)setPatientId(s.patientId);
-    if(s.anamnese)setAnamnese(a=>({...a,...s.anamnese}));
-    if(s.painMaps)setPainMaps(s.painMaps);
-    if(s.therapieHistory)setTherapieHistory(s.therapieHistory);
     setShowResult(false);
   };
 
@@ -5008,7 +4956,7 @@ function App(){
     // 2) PDF bauen (mit aktuellen Daten, BEVOR Reset)
     let html;
     try{
-      html=buildPatientEingabeHtml(patient,gender,answers,anamnese,lh,SECTIONS,therapieHistory);
+      html=buildPatientEingabeHtml(patient,gender,answers,anamnese,lh,SECTIONS);
     }catch(e){
       alert("PDF konnte nicht erstellt werden: "+e.message);
       return;
