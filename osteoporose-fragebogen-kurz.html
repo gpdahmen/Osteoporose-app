@@ -430,6 +430,10 @@ body{font-family:'Source Sans 3',sans-serif;background:var(--CR);min-height:100v
     overflow:visible!important;max-height:none!important;height:auto!important}
   /* Viewer und Cam-Overlay: ausblenden */
   .viewer-overlay,.cam-overlay{display:none!important}
+  /* ── Fix: Wenn Admin-Panel offen ist, Fragebogen-Inhalt im Druck ausblenden ── */
+  body.admin-print-mode .app{display:none!important}
+  /* Pat-card Opacity im Druck immer voll (falls doch sichtbar) */
+  .pat-card{opacity:1!important}
 }
 .print-hdr{display:none}
 @media(max-width:520px){
@@ -4907,8 +4911,14 @@ function App(){
     await saveSession();
     const allOpen={};visibleSecs.forEach(s=>allOpen[s.id]=true);
     setOpenSec(allOpen);setShowResult(true);
+    // Wenn Admin-Panel offen: Fragebogen im Druck ausblenden
+    const isAdmin=adminOpen;
+    if(isAdmin) document.body.classList.add("admin-print-mode");
     // Short delay for DOM, then print dialog (browser handles "Save as PDF")
-    setTimeout(()=>window.print(),500);
+    setTimeout(()=>{
+      window.print();
+      if(isAdmin) document.body.classList.remove("admin-print-mode");
+    },500);
   };
 
   const handleCalc=async()=>{
