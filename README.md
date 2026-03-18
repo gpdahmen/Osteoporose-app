@@ -429,4 +429,4 @@ Dieses Projekt wurde mit Unterstützung von **Claude** (Anthropic) entwickelt. C
 
 ## 📄 Lizenz
 
-Dieses Projekt steht für den nicht-kommerziellen Einsatz in medizinischen Einrichtungen zur freien Verfügung. Eine kommerzielle Nutzung oder Weitergabe bedarf der ausdrücklichen Genehmigung des Autors.
+Dieses Projekt steht für den nicht-kommerziellen Test-Einsatz in medizinischen Einrichtungen zur freien Verfügung. Eine kommerzielle Nutzung oder Weitergabe bedarf der ausdrücklichen Genehmigung des Autors.
