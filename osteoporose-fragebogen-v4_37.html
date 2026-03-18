@@ -3065,7 +3065,7 @@ function getIcdArray(entry, gender, answers){
 
 /* ═══════════════════════════════════════════════ TEXT EXPORT ═══ */
 /* ═══ PATIENTEN-EINGABE-PDF (ohne Auswertung) ══════════════════════════════ */
-function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTIONS){
+function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTIONS, painMaps, sekStatus, sekProfileDb){
   const fmt = v => v===undefined||v===null||v===""?"–":String(v);
   const fmtDate = d => { if(!d)return "–"; const p=d.split(".");return p.length===3?d:d; };
 
@@ -3126,25 +3126,89 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
       </div>`;
   }
 
-  // Anamnese-Zusammenfassung
+  // Anamnese-Zusammenfassung (vollständig)
   let anamHtml="";
   if(anamnese){
-    const dxList=(anamnese.diagnosen||[]).filter(d=>d&&(typeof d==="string"?d.trim():(d.name||"")));
-    const fracList=(anamnese.fractures||[]).filter(f=>f&&(f.typ||f.seite));
-    if(dxList.length||fracList.length||(anamnese.weitere||[]).filter(s=>s).length){
+    const an=anamnese;
+    const dxList=(an.diagnosen||[]).filter(d=>d&&(typeof d==="string"?d.trim():(d.name||"")));
+    const fracList=(an.fractures||[]).filter(f=>f&&(f.typ||f.seite||f.ort));
+    const weitereSet=(an.weitere||[]).filter(s=>s&&(typeof s==="string"?s.trim():(s.name||"")));
+    const allergList=(an.allergien||[]).filter(a=>a&&(a.substanz||""));
+    const famList=(an.familienanamnese||[]).filter(f=>f&&(f.diagnose||""));
+    const opsList=(an.ops||[]).filter(o=>o&&(o.art||""));
+    const hasGynaeko=gender==="f"&&(an.menarche||an.menoPause||(an.kinder||[]).length>0);
+    if(dxList.length||fracList.length||weitereSet.length||allergList.length||famList.length||opsList.length||hasGynaeko){
       anamHtml=`
       <div style="margin-bottom:20px;break-inside:avoid">
         <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;
-          font-size:13px;font-weight:700">📋 Anamnese / Krankengeschichte</div>
+          font-size:13px;font-weight:700">📋 Persönliche Anamnese / Krankengeschichte</div>
         <div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12.5px">`;
-      if(dxList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Diagnosen:</strong> ${dxList.map(d=>typeof d==="string"?d:[d.name,d.seitJahr?"seit "+d.seitJahr:""].filter(Boolean).join(" ")).join(" · ")}</div>`;
-      if(fracList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Frühere Frakturen:</strong> ${fracList.map(f=>[f.typ,f.seite,f.jahr].filter(Boolean).join(" ")).join(", ")}</div>`;
-      const weitereSet=(anamnese.weitere||[]).filter(s=>s);
-      if(weitereSet.length) anamHtml+=`<div><strong>Weitere Angaben:</strong> ${weitereSet.map(w=>typeof w==="string"?w:[w.name||w.substanz||"",w.seitJahr?"seit "+w.seitJahr:""].filter(Boolean).join(" ")).join(", ")}</div>`;
+      if(dxList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Diagnosen / Vorerkrankungen:</strong> ${dxList.map(d=>typeof d==="string"?d:[d.name,d.seitJahr?"seit "+d.seitJahr:"",d.medikation?"(Med: "+d.medikation+")":""].filter(Boolean).join(" ")).join(" · ")}</div>`;
+      if(weitereSet.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Weitere Erkrankungen:</strong> ${weitereSet.map(w=>typeof w==="string"?w:[w.name,w.seitJahr?"seit "+w.seitJahr:"",w.status&&w.status!=="aktiv"?"["+w.status+"]":""].filter(Boolean).join(" ")).join(" · ")}</div>`;
+      if(allergList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Allergien / Unverträglichkeiten:</strong> ${allergList.map(a=>[a.substanz,a.reaktion?"→ "+a.reaktion:"",a.schwere?"["+a.schwere+"]":""].filter(Boolean).join(" ")).join(" · ")}</div>`;
+      if(famList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Familienanamnese:</strong> ${famList.map(f=>[(f.verwandtschaft||"Verwandter")+":",(f.diagnose||""),f.erkranktMit?"(mit ca. "+f.erkranktMit+" J.)":"",f.osteoRelevant?"[OSTEO-RELEVANT]":""].filter(Boolean).join(" ")).join(" · ")}</div>`;
+      if(fracList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Frühere Frakturen:</strong> ${fracList.map(f=>[f.ort||f.typ,f.seite,f.jahr?"ca. "+f.jahr:"",f.ursache?"("+f.ursache+")":""].filter(Boolean).join(" ")).join(", ")}</div>`;
+      if(opsList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Frühere Operationen:</strong> ${opsList.map(o=>[o.art,o.jahr?""+o.jahr:"",o.klinik].filter(Boolean).join(" · ")).join(", ")}</div>`;
+      if(hasGynaeko){
+        let gynaeko="";
+        if(an.menarche) gynaeko+="Menarche: "+an.menarche+" J. ";
+        if(an.menoPause==="ja") gynaeko+="Regelblutung: vorhanden (regelmäßig) ";
+        else if(an.menoPause==="unregelmaessig") gynaeko+="Regelblutung: vorhanden (unregelmäßig) ";
+        else if(an.menoPause==="nein"){
+          gynaeko+="Menopause: Ja ";
+          if(an.menoYear) gynaeko+="(letzte Blutung: "+an.menoYear+") ";
+          const gMap={natuerlich:"Natürliche Wechseljahre",op:"Ovarektomie",medikamentoes:"Medikamentös",strahlen:"Strahlentherapie",pof:"Vorzeitige Ovarialinsuffizienz",sonstige:an.menoSonstige||"Sonstiges"};
+          if(an.menoGrund) gynaeko+="Ursache: "+(gMap[an.menoGrund]||an.menoGrund)+" ";
+        }
+        if((an.kinder||[]).length>0) gynaeko+="Kinder: "+an.kinder.length+" ";
+        if(gynaeko) anamHtml+=`<div style="margin-bottom:6px"><strong>Gynäkologische Anamnese:</strong> ${gynaeko}</div>`;
+      }
       anamHtml+=`</div></div>`;
     }
   }
 
+  // Schmerzzeichnungen
+  let painHtml="";
+  const pm=painMaps||{};
+  const hasPain=Object.values(pm).some(v=>v);
+  if(hasPain){
+    painHtml=`
+    <div style="margin-bottom:20px;break-inside:avoid">
+      <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;
+        font-size:13px;font-weight:700">✏️ Schmerzzeichnung</div>
+      <div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12.5px">
+        <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center">`;
+    for(const[vid,dataUrl] of Object.entries(pm)){
+      if(!dataUrl) continue;
+      const viewDef=(typeof PAIN_VIEWS!=="undefined"?PAIN_VIEWS:[]).find(v=>v.id===vid);
+      const label=viewDef?viewDef.label:vid;
+      painHtml+=`<div style="text-align:center"><div style="font-size:11px;font-weight:600;margin-bottom:4px">${label}</div><img src="${dataUrl}" style="max-width:180px;max-height:200px;border:1px solid #ddd;border-radius:4px" alt="${label}"/></div>`;
+    }
+    painHtml+=`</div></div></div>`;
+  }
+
+  // Symptomcheck-Zusammenfassung
+  let sekCheckHtml="";
+  const ss=sekStatus||{};
+  const sekEntries=Object.entries(ss).filter(([k,v])=>v&&(v.bekannt==="ja"||v.bekannt==="nein"));
+  if(sekEntries.length>0){
+    const spDb=sekProfileDb||{};
+    sekCheckHtml=`
+    <div style="margin-bottom:20px;break-inside:avoid">
+      <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;
+        font-size:13px;font-weight:700">🔍 Symptomcheck – Sekundäre Osteoporose</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">`;
+    for(const[sym,st] of sekEntries){
+      const profile=spDb[sym]||(spDb.find&&spDb.find(p=>p.id===sym))||null;
+      const label=profile?profile.label:sym;
+      const bekannt=st.bekannt==="ja"?'<span style="color:#1a5a1a;font-weight:700">✓ Bekannt</span>':'<span style="color:#5a1a1a">✗ Nicht bekannt</span>';
+      let detail="";
+      if(st.seitWann) detail+=" seit "+st.seitWann;
+      if(st.behandlung) detail+=", Behandlung: "+st.behandlung;
+      sekCheckHtml+=`<tr style="border-bottom:1px solid #efe6d8"><td style="padding:6px 10px;width:50%">${label}</td><td style="padding:6px 10px">${bekannt}${detail?" – "+detail:""}</td></tr>`;
+    }
+    sekCheckHtml+=`</table></div>`;
+  }
 
   // ABKLÄRUNGSHINWEISE – Sekundäre Osteoporoseformen
   let sekHinweisHtml="";
@@ -3278,6 +3342,8 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
 </div>
 
 ${anamHtml}
+${painHtml}
+${sekCheckHtml}
 ${sekHinweisHtml}
 ${sectionsHtml}
 
@@ -3288,7 +3354,7 @@ ${sectionsHtml}
 </body></html>`;
 }
 
-function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds){
+function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds,painMaps,sekStatus){
   const db=diagDb||DIAG_DB_DEFAULTS;
   const d=new Date().toLocaleDateString("de-DE");
   const lines=[];
@@ -3405,6 +3471,34 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
       }
       lines.push("");
     }
+  }
+  // ─ Schmerzzeichnungen ─
+  const pm=painMaps||{};
+  const painViews=Object.entries(pm).filter(([k,v])=>v);
+  if(painViews.length>0){
+    lines.push("SCHMERZZEICHNUNG");lines.push(sub);
+    lines.push("Folgende Körperregionen wurden vom Patienten als schmerzhaft markiert:");
+    for(const[vid] of painViews){
+      const viewDef=(typeof PAIN_VIEWS!=="undefined"?PAIN_VIEWS:[]).find(v=>v.id===vid);
+      lines.push("  • "+(viewDef?viewDef.label:vid)+" (Zeichnung vorhanden)");
+    }
+    lines.push("");
+  }
+  // ─ Symptomcheck Sekundäre Osteoporose ─
+  const ss=sekStatus||{};
+  const sekEntries=Object.entries(ss).filter(([k,v])=>v&&(v.bekannt==="ja"||v.bekannt==="nein"));
+  if(sekEntries.length>0){
+    lines.push("SYMPTOMCHECK – SEKUNDÄRE OSTEOPOROSE");lines.push(sub);
+    for(const[sym,st] of sekEntries){
+      const profile=(typeof SEK_PROFILE!=="undefined"&&SEK_PROFILE[sym])?SEK_PROFILE[sym]:null;
+      const label=profile?profile.label:sym;
+      const bekannt=st.bekannt==="ja"?"Bekannt":"Nicht bekannt";
+      let detail=bekannt;
+      if(st.seitWann) detail+=" (seit "+st.seitWann+")";
+      if(st.behandlung) detail+=", Behandlung: "+st.behandlung;
+      lines.push("  • "+label+": "+detail);
+    }
+    lines.push("");
   }
   if(answers.dxa_hip){
     lines.push("DXA-KNOCHENDICHTEMESSUNG");lines.push(sub);
@@ -8623,6 +8717,10 @@ function App(){
       patientId:pid,
       gender,
       answers:{...answers},
+      anamnese:{...anamnese},
+      painMaps:{...painMaps},
+      sekStatus:{...sekStatus},
+      therapieHistory:[...therapieHistory],
       riskSnapshot:{cat:snap.cat,cF:snap.cF,r3:snap.r3,r5:snap.r5,r10:snap.r10}
     };
     await idbSaveBefund(session);
@@ -8655,7 +8753,7 @@ function App(){
     await saveSession();
     const r=computeRisk(answers,gender);
     const d=prevSession?computeDiff(answers,prevSession,gender):null;
-    const text=buildTextExport(patient,gender,answers,r,d,lh,diagDb,sekDiagDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds);
+    const text=buildTextExport(patient,gender,answers,r,d,lh,diagDb,sekDiagDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds,painMaps,sekStatus);
     const fname=makeFilename("txt");
     // Try native File System Access API (shows real "Speichern unter" dialog)
     if(typeof window.showSaveFilePicker==="function"){
@@ -8708,6 +8806,10 @@ function App(){
     setGender(s.gender);setAnswers(s.answers);
     setPatient({...s.patient,fillDate:today});
     if(s.patientId)setPatientId(s.patientId);
+    if(s.anamnese)setAnamnese(s.anamnese);
+    if(s.therapieHistory)setTherapieHistory(s.therapieHistory);
+    if(s.painMaps)setPainMaps(s.painMaps);
+    if(s.sekStatus)setSekStatus(s.sekStatus);
     setShowHist(false);setShowResult(false);
   };
 
@@ -8729,7 +8831,7 @@ function App(){
     // 2) PDF bauen (mit aktuellen Daten, BEVOR Reset)
     let html;
     try{
-      html=buildPatientEingabeHtml(patient,gender,answers,anamnese,lh,SECTIONS);
+      html=buildPatientEingabeHtml(patient,gender,answers,anamnese,lh,SECTIONS,painMaps,sekStatus,SEK_PROFILE);
     }catch(e){
       alert("PDF konnte nicht erstellt werden: "+e.message);
       return;
@@ -9090,6 +9192,8 @@ function App(){
             setPatient({...s.patient,fillDate:today});
             if(s.anamnese)setAnamnese(s.anamnese);
             if(s.therapieHistory)setTherapieHistory(s.therapieHistory);
+            if(s.painMaps)setPainMaps(s.painMaps);
+            if(s.sekStatus)setSekStatus(s.sekStatus);
             setPatientId(pid);setPatientPw(pw);
             setDisclaimerOk(true);
             cookieSet("osteo_pat",pid);

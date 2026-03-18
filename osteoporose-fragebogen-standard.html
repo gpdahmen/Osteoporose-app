@@ -1925,21 +1925,43 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
       </div>`;
   }
 
-  // Anamnese-Zusammenfassung
+  // Anamnese-Zusammenfassung (vollständig)
   let anamHtml="";
   if(anamnese){
-    const dxList=(anamnese.diagnosen||[]).filter(d=>d&&(typeof d==="string"?d.trim():(d.name||"")));
-    const fracList=(anamnese.fractures||[]).filter(f=>f&&(f.typ||f.seite));
-    if(dxList.length||fracList.length||(anamnese.weitere||[]).filter(s=>s).length){
+    const an=anamnese;
+    const dxList=(an.diagnosen||[]).filter(d=>d&&(typeof d==="string"?d.trim():(d.name||"")));
+    const fracList=(an.fractures||[]).filter(f=>f&&(f.typ||f.seite||f.ort));
+    const weitereSet=(an.weitere||[]).filter(s=>s&&(typeof s==="string"?s.trim():(s.name||"")));
+    const allergList=(an.allergien||[]).filter(a=>a&&(a.substanz||""));
+    const famList=(an.familienanamnese||[]).filter(f=>f&&(f.diagnose||""));
+    const opsList=(an.ops||[]).filter(o=>o&&(o.art||""));
+    const hasGynaeko=gender==="f"&&(an.menarche||an.menoPause||(an.kinder||[]).length>0);
+    if(dxList.length||fracList.length||weitereSet.length||allergList.length||famList.length||opsList.length||hasGynaeko){
       anamHtml=`
       <div style="margin-bottom:20px;break-inside:avoid">
         <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;
-          font-size:13px;font-weight:700">📋 Anamnese / Krankengeschichte</div>
+          font-size:13px;font-weight:700">📋 Persönliche Anamnese / Krankengeschichte</div>
         <div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12.5px">`;
-      if(dxList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Diagnosen:</strong> ${dxList.map(d=>typeof d==="string"?d:[d.name,d.seitJahr?"seit "+d.seitJahr:""].filter(Boolean).join(" ")).join(" · ")}</div>`;
-      if(fracList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Frühere Frakturen:</strong> ${fracList.map(f=>[f.typ,f.seite,f.jahr].filter(Boolean).join(" ")).join(", ")}</div>`;
-      const weitereSet=(anamnese.weitere||[]).filter(s=>s);
-      if(weitereSet.length) anamHtml+=`<div><strong>Weitere Angaben:</strong> ${weitereSet.map(w=>typeof w==="string"?w:[w.name||w.substanz||"",w.seitJahr?"seit "+w.seitJahr:""].filter(Boolean).join(" ")).join(", ")}</div>`;
+      if(dxList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Diagnosen / Vorerkrankungen:</strong> ${dxList.map(d=>typeof d==="string"?d:[d.name,d.seitJahr?"seit "+d.seitJahr:"",d.medikation?"(Med: "+d.medikation+")":""].filter(Boolean).join(" ")).join(" · ")}</div>`;
+      if(weitereSet.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Weitere Erkrankungen:</strong> ${weitereSet.map(w=>typeof w==="string"?w:[w.name,w.seitJahr?"seit "+w.seitJahr:"",w.status&&w.status!=="aktiv"?"["+w.status+"]":""].filter(Boolean).join(" ")).join(" · ")}</div>`;
+      if(allergList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Allergien / Unverträglichkeiten:</strong> ${allergList.map(a=>[a.substanz,a.reaktion?"→ "+a.reaktion:"",a.schwere?"["+a.schwere+"]":""].filter(Boolean).join(" ")).join(" · ")}</div>`;
+      if(famList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Familienanamnese:</strong> ${famList.map(f=>[(f.verwandtschaft||"Verwandter")+":",(f.diagnose||""),f.erkranktMit?"(mit ca. "+f.erkranktMit+" J.)":"",f.osteoRelevant?"[OSTEO-RELEVANT]":""].filter(Boolean).join(" ")).join(" · ")}</div>`;
+      if(fracList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Frühere Frakturen:</strong> ${fracList.map(f=>[f.ort||f.typ,f.seite,f.jahr?"ca. "+f.jahr:"",f.ursache?"("+f.ursache+")":""].filter(Boolean).join(" ")).join(", ")}</div>`;
+      if(opsList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Frühere Operationen:</strong> ${opsList.map(o=>[o.art,o.jahr?""+o.jahr:"",o.klinik].filter(Boolean).join(" · ")).join(", ")}</div>`;
+      if(hasGynaeko){
+        let gynaeko="";
+        if(an.menarche) gynaeko+="Menarche: "+an.menarche+" J. ";
+        if(an.menoPause==="ja") gynaeko+="Regelblutung: vorhanden (regelmäßig) ";
+        else if(an.menoPause==="unregelmaessig") gynaeko+="Regelblutung: vorhanden (unregelmäßig) ";
+        else if(an.menoPause==="nein"){
+          gynaeko+="Menopause: Ja ";
+          if(an.menoYear) gynaeko+="(letzte Blutung: "+an.menoYear+") ";
+          const gMap={natuerlich:"Natürliche Wechseljahre",op:"Ovarektomie",medikamentoes:"Medikamentös",strahlen:"Strahlentherapie",pof:"Vorzeitige Ovarialinsuffizienz",sonstige:an.menoSonstige||"Sonstiges"};
+          if(an.menoGrund) gynaeko+="Ursache: "+(gMap[an.menoGrund]||an.menoGrund)+" ";
+        }
+        if((an.kinder||[]).length>0) gynaeko+="Kinder: "+an.kinder.length+" ";
+        if(gynaeko) anamHtml+=`<div style="margin-bottom:6px"><strong>Gynäkologische Anamnese:</strong> ${gynaeko}</div>`;
+      }
       anamHtml+=`</div></div>`;
     }
   }
@@ -3976,6 +3998,8 @@ function App(){
       patientId:patientId||Date.now().toString()+"_p",
       gender,
       answers:{...answers},
+      anamnese:{...anamnese},
+      therapieHistory:[...therapieHistory],
       riskSnapshot:{cat:snap.cat,cF:snap.cF,r3:snap.r3,r5:snap.r5,r10:snap.r10}
     };
     await idbSaveBefund(session);
@@ -4051,6 +4075,8 @@ function App(){
     setGender(s.gender);setAnswers(s.answers);
     setPatient({...s.patient,fillDate:today});
     if(s.patientId)setPatientId(s.patientId);
+    if(s.anamnese)setAnamnese(s.anamnese);
+    if(s.therapieHistory)setTherapieHistory(s.therapieHistory);
     setShowResult(false);
   };
 
