@@ -6,9 +6,17 @@ Die App läuft vollständig im Browser, benötigt keine Serververbindung und spe
 
 ---
 
-## 🖥️ Live-Demo & Download
+## 🖥️ Live-Ansicht (direkt im Browser öffnen)
 
-> **Einfachste Nutzung:** Die Datei `osteoporose-fragebogen-v4.html` herunterladen und direkt im Browser öffnen – keine Installation, kein Server, keine Abhängigkeiten.
+Die HTML-Dateien können **ohne Download** direkt im Browser angesehen und genutzt werden:
+
+| Version | Beschreibung | Direkt öffnen |
+|---|---|---|
+| **Vollversion (v4)** | Alle Funktionen: Fragebogen, Anamnese, Schmerzzeichnungen, Symptomchecks, Therapiegeschichte | [Vollversion öffnen](https://htmlpreview.github.io/?https://github.com/gpdahmen/Osteoporose-app/blob/main/osteoporose-fragebogen-v4.html) |
+| **Kurzversion** | Nur DVO-Leitlinien-Fragen, kompakter Fragebogen | [Kurzversion öffnen](https://htmlpreview.github.io/?https://github.com/gpdahmen/Osteoporose-app/blob/main/osteoporose-fragebogen-kurz.html) |
+| **Risikocheck** | Ältere Version (Archiv) | [Risikocheck öffnen](https://htmlpreview.github.io/?https://github.com/gpdahmen/Osteoporose-app/blob/main/osteoporose-risikocheck-4.html) |
+
+> **Alternativ:** Jede HTML-Datei herunterladen und lokal im Browser öffnen – keine Installation, kein Server, keine Abhängigkeiten.
 
 Die Anwendung funktioniert in allen modernen Browsern (Chrome, Firefox, Edge, Safari) und ist für Desktop, Tablet und Mobilgeräte optimiert.
 
@@ -156,9 +164,11 @@ Die Risikoberechnung und alle Datenbankeinträge basieren auf:
 ## 📁 Repository-Inhalt
 
 ```
-├── osteoporose-fragebogen-v4.html   # Fertige Anwendung (direkt nutzbar)
-├── osteoporose-fragebogen-v4.jsx    # React/JSX Quellcode
-├── osteoporose-risikocheck-4.html   # Ältere Version (Archiv)
+├── osteoporose-fragebogen-v4.html       # Vollversion – alle Funktionen (direkt nutzbar)
+├── osteoporose-fragebogen-v4.jsx        # React/JSX Quellcode der Vollversion
+├── osteoporose-fragebogen-kurz.html     # Kurzversion – nur DVO-Leitlinien-Fragen
+├── osteoporose-fragebogen-standard.html # Standardversion (Archiv, wird nicht weiterentwickelt)
+├── osteoporose-risikocheck-4.html       # Ältere Version (Archiv)
 └── README.md
 ```
 
