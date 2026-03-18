@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Osteoporose Dokumentation & Risikobewertung</title>
+
+  <!-- React & ReactDOM (Production) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel Standalone (for JSX parsing in browser) -->
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f5f0e8;              /* Warmes Beige (Hintergrund) */
+      --card: #fffdf8;            /* Fast weiß (Karten) */
+      --primary: #2c1f0e;         /* Dunkelbraun (Header, Sektionsköpfe) */
+      --accent: #c8824a;          /* Warmes Orange-Braun (Akzent) */
+      --text: #3d2b1a;            /* Dunkelbraun (Text) */
+      --border: #d8c8b0;          /* Hellbraun (Borders) */
+      --risk-top: #D42020;        /* Rot (höchstes Risiko) */
+      --risk-high: #F4A030;       /* Orange */
+      --risk-mod: #FFD966;        /* Gelb */
+      --risk-low: #52b788;        /* Grün */
+      
+      --radius: 8px;
+      --shadow: 0 4px 12px rgba(44,31,14,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #root {
+      max-width: 700px;
+      margin: 0 auto;
+      padding-bottom: 80px; /* Space for bottom bar */
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-header {
+      background: var(--primary);
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .app-header h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .container {
+      padding: 1rem;
+      flex: 1;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+    }
+
+    h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--primary); }
+    h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--primary); }
+
+    /* Forms & Inputs */
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-weight: 500; margin-bottom: 0.5rem; }
+    
+    input[type="text"], input[type="number"], input[type="password"], select, textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      background: #fff;
+      color: var(--text);
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(200, 130, 74, 0.2);
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    button:hover { background: #b0703c; }
+    button:active { transform: scale(0.98); }
+    button.secondary {
+      background: #e9e0d1;
+      color: var(--primary);
+    }
+    button.secondary:hover { background: #dfd4c2; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* Gender Select Cards */
+    .gender-select {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .gender-card {
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      background: var(--card);
+      transition: all 0.2s;
+    }
+    .gender-card.active {
+      border-color: var(--accent);
+      background: rgba(200, 130, 74, 0.05);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .gender-card span { font-size: 2rem; display: block; margin-bottom: 0.5rem; }
+    .gender-card strong { font-size: 1.1rem; color: var(--primary); }
+
+    /* Accordion Section */
+    .section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 0.75rem;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+    .section-header {
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      background: #faf7f2;
+      transition: background 0.2s;
+    }
+    .section-header:hover { background: #f2ebd9; }
+    .section-title-wrapper { display: flex; align-items: center; gap: 0.75rem; }
+    .section-icon { font-size: 1.25rem; }
+    .section-title { font-weight: 600; font-size: 1.05rem; color: var(--primary); }
+    .chev {
+      width: 20px; height: 20px;
+      transition: transform 0.3s ease;
+      fill: var(--text);
+    }
+    .section.open .chev { transform: rotate(180deg); }
+    .section-content {
+      padding: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-in-out;
+    }
+    .section.open .section-content {
+      padding: 1.25rem;
+      max-height: 2000px; /* arbitrary large value for animation */
+      border-top: 1px solid var(--border);
+    }
+
+    /* Questions */
+    .q-wrap {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px dashed var(--border);
+    }
+    .q-wrap:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+    .q-label { font-weight: 500; margin-bottom: 0.75rem; display: block; font-size: 1.05rem; }
+    
+    .q-options-yn { display: flex; gap: 0.75rem; }
+    .q-btn {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      border-radius: var(--radius);
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .q-btn.active.ja { background: #ffebee; color: #c62828; border-color: #ef9a9a; box-shadow: 0 0 0 1px #ef9a9a; font-weight: 600; }
+    .q-btn.active.nein { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; box-shadow: 0 0 0 1px #a5d6a7; font-weight: 600; }
+
+    .q-options-radio { display: flex; flex-direction: column; gap: 0.5rem; }
+    .r-btn {
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      border-radius: var(--radius);
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .r-btn.active {
+      border-color: #ef9a9a;
+      background: #ffebee;
+      color: #c62828;
+      box-shadow: 0 0 0 1px #ef9a9a;
+      font-weight: 600;
+    }
+
+    .q-hint {
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+      color: #7a6148;
+      background: #fdfaf5;
+      padding: 0.75rem;
+      border-left: 3px solid var(--accent);
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* Bottom Bar */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: white;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.08);
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 90;
+    }
+    .bottom-content {
+      max-width: 700px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+    .prog-wrap { flex: 1; }
+    .prog-text { font-size: 0.85rem; color: #7a6148; margin-bottom: 0.25rem; font-weight: 500; }
+    .prog-bar-bg { height: 8px; background: #e9e0d1; border-radius: 4px; overflow: hidden; }
+    .prog-bar-fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }
+
+    /* Admin Button */
+    .admin-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      z-index: 110;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      opacity: 0.3;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .admin-btn:hover { opacity: 1; transform: scale(1.05); }
+
+    /* Modals & Overlays */
+    .overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(3px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal {
+      background: white;
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 400px;
+      padding: 1.5rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .admin-overlay {
+      position: fixed;
+      top: 5vh; left: 5vw; right: 5vw; bottom: 5vh;
+      background: white;
+      border-radius: var(--radius);
+      z-index: 300;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Utilities */
+    .text-center { text-align: center; }
+    .mb-1 { margin-bottom: 0.5rem; }
+    .mb-2 { margin-bottom: 1rem; }
+    .mb-3 { margin-bottom: 1.5rem; }
+    .flex { display: flex; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-3 { gap: 1rem; }
+    .w-full { width: 100%; }
+
+    /* Animations */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.4s ease forwards; }
+
+    /* Print Styles */
+    @media print {
+      @page { size: A4; margin: 12mm 15mm; }
+      body { background: white; font-size: 11px; color: black; }
+      
+      .no-print, .app-header, .bottom-bar, .admin-btn, .disclaimer-gate, .prog-wrap { display: none !important; }
+      
+      #root { max-width: none; padding: 0; }
+      .container { padding: 0; }
+      .card { box-shadow: none !important; border: none !important; break-inside: avoid; }
+      
+      .admin-overlay {
+        position: static !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        height: auto !important;
+      }
+      .admin-scroll { overflow: visible !important; max-height: none !important; }
+      
+      .print-hdr { display: block !important; margin-bottom: 2rem; border-bottom: 2px solid #333; padding-bottom: 1rem; }
+      
+      /* Target the main app view and hide it during print */
+      .app-main-view { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React Logic -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // ============================================
+    // 1. UTILS & INDEXED DB
+    // ============================================
+    function simpleHash(s) {
+      let h = 0;
+      for (let i = 0; i < s.length; i++) {
+        h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+      }
+      return (h >>> 0).toString(16).padStart(8, '0');
+    }
+    
+    function hashPw(pw) { return pw ? simpleHash(pw + "osteo2024") : ""; }
+    
+    // Default PIN: 0000 -> hash: simpleHash("0000osteo2024") = "415518b8"
+    const DEFAULT_PIN_HASH = "415518b8";
+
+    // DB Definition
+    const DB_NAME = "OsteoporoseFragebogenDB";
+    const DB_VERSION = 1;
+
+    const dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains("sessions")) {
+          db.createObjectStore("sessions", { keyPath: "id" });
+        }
+        if (!db.objectStoreNames.contains("settings")) {
+          db.createObjectStore("settings", { keyPath: "key" });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = (e) => reject(e.target.error);
+    });
+
+    const dbApi = {
+      async get(storeName, key) {
+        const db = await dbPromise;
+        return new Promise((res, rej) => {
+          const tx = db.transaction(storeName, "readonly");
+          const req = tx.objectStore(storeName).get(key);
+          req.onsuccess = () => res(req.result);
+          req.onerror = () => rej(req.error);
+        });
+      },
+      async put(storeName, value) {
+        const db = await dbPromise;
+        return new Promise((res, rej) => {
+          const tx = db.transaction(storeName, "readwrite");
+          const req = tx.objectStore(storeName).put(value);
+          req.onsuccess = () => res();
+          req.onerror = () => rej(req.error);
+        });
+      },
+      async getAll(storeName) {
+        const db = await dbPromise;
+        return new Promise((res, rej) => {
+          const tx = db.transaction(storeName, "readonly");
+          const req = tx.objectStore(storeName).getAll();
+          req.onsuccess = () => res(req.result);
+          req.onerror = () => rej(req.error);
+        });
+      }
+    };
+
+    // ============================================
+    // 2. DATA / QUESTIONNAIRE DEFINITIONS
+    // ============================================
+    const SECTIONS = [
+      {
+        id: 's1', icon: '🦴', title: 'Frühere Knochenbrüche',
+        q: [
+          { id: 'frac_hip_acute', t: 'yn', label: 'Hüftbruch akut (letzte 12 Monate)', faktor: 4.1 },
+          { id: 'frac_hip_old', t: 'yn', label: 'Humerus, Becken, Unterarm oder Hüftbruch früher (> 1 Jahr)', faktor: 2.5 },
+          { id: 'frac_vert_acute', t: 'yn', label: 'Wirbelbruch akut', faktor: 2.9 },
+          { id: 'frac_vert_count', t: 'radio', label: 'Wirbelbrüche Anzahl (früher)', 
+            opts: [{v:0,l:'Keine'}, {v:1,l:'1',f:2.0}, {v:2,l:'2',f:2.9}, {v:3,l:'3+',f:5.0}] },
+          { id: 'frac_vert_grad', t: 'radio', label: 'Höchster Genant-Grad eines Wirbelbruchs', 
+            opts: [{v:0,l:'Kein / Unbekannt'}, {v:1,l:'Grad 1',f:2.0}, {v:2,l:'Grad 2',f:2.9}, {v:3,l:'Grad 3',f:5.0}] }
+        ]
+      },
+      {
+        id: 's2', icon: '💊', title: 'Medikamente – Knochen & Sturzrisiko',
+        q: [
+          { id: 'med_gc', t: 'radio', label: 'Glukokortikoide oral > 3 Monate', group: 'G',
+            opts: [{v:0,l:'Nein'}, {v:1,l:'< 2,5 mg/d',f:1.8}, {v:2,l:'2,5–7,5 mg/d',f:2.3}, {v:3,l:'> 7,5 mg/d',f:2.3}] },
+          { id: 'med_anti', t: 'yn', label: 'Antidepressiva (SSRI/TCA)', faktor: 1.6, group: 'S' },
+          { id: 'med_sed', t: 'yn', label: 'Schlafmittel / Tranquilizer', faktor: 1.6, group: 'S' },
+          { id: 'med_epi', t: 'yn', label: 'Antiepileptika', faktor: 1.6, group: 'S' },
+          { id: 'med_ppi', t: 'yn', label: 'Protonenpumpenhemmer (PPI) > 1 Jahr', faktor: 1.4 },
+          { id: 'med_arom', t: 'yn', label: 'Aromatasehemmer (nur Frauen)', faktor: 1.7, onlyFor: 'f' },
+          { id: 'med_gnrh', t: 'yn', label: 'GnRH-Analoga / Antiandrogene', faktor: 1.7 }
+        ]
+      },
+      {
+        id: 's5', icon: '🏥', title: 'Grunderkrankungen',
+        q: [
+          { id: 'ill_dm1', t: 'yn', label: 'Typ-1-Diabetes', faktor: 2.0 },
+          { id: 'ill_dm2', t: 'yn', label: 'Typ-2-Diabetes', faktor: 1.3, hint: 'Bei Typ-2 beachten: BMI ist oft normal, Risiko aber trotzdem erhöht.' },
+          { id: 'ill_ra', t: 'yn', label: 'Rheumatoide Arthritis', faktor: 2.0 },
+          { id: 'ill_ced', t: 'yn', label: 'Chronisch entzündliche Darmerkrankungen', faktor: 1.7 },
+          { id: 'ill_hyper', t: 'yn', label: 'Hyperthyreose', faktor: 1.8 },
+          { id: 'ill_zoel', t: 'yn', label: 'Zöliakie', faktor: 1.7 },
+          { id: 'ill_herz', t: 'yn', label: 'Herzinsuffizienz', faktor: 1.6 },
+          { id: 'ill_hiv', t: 'yn', label: 'HIV/AIDS', faktor: 1.6 },
+          { id: 'ill_anorex', t: 'yn', label: 'Anorexia nervosa', faktor: 1.7 },
+          { id: 'ill_krebs', t: 'yn', label: 'Krebserkrankung', faktor: 1.8 }
+        ]
+      },
+      {
+        id: 's6', icon: '🚶', title: 'Lebensstil & Sturzrisiko',
+        q: [
+          { id: 'ls_bmi', t: 'info', label: 'BMI < 20', faktor: 1.6 },
+          { id: 'ls_alk', t: 'yn', label: 'Alkohol ≥ 3 Einheiten/Tag', faktor: 1.7 },
+          { id: 'ls_rauch', t: 'radio', label: 'Rauchen', 
+            opts: [{v:0,l:'Nichtraucher'}, {v:1,l:'Ehemals'}, {v:2,l:'Aktuell',f:1.3}] },
+          { id: 'ls_sturz', t: 'yn', label: 'Sturz in den letzten 12 Monaten', faktor: 2.1, group: 'S' },
+          { id: 'ls_hilf', t: 'yn', label: 'Hilfsmittel zum Gehen (z.B. Gehstock)', faktor: 1.5, group: 'S' },
+          { id: 'ls_pflg', t: 'yn', label: 'Pflegebedürftigkeit', faktor: 1.5, group: 'S' },
+          { id: 'ls_immo', t: 'yn', label: 'Immobilisation > 6 Monate', faktor: 1.7 }
+        ]
+      },
+      {
+        id: 's7', icon: '🔬', title: 'Knochendichtemessung DXA',
+        q: [
+          { id: 'dxa_lws', t: 'number', label: 'T-Score LWS' },
+          { id: 'dxa_hals', t: 'number', label: 'T-Score Schenkelhals' },
+          { id: 'dxa_total', t: 'number', label: 'T-Score Gesamthüfte' },
+          { id: 'dxa_date', t: 'text', label: 'Datum der Messung (optional)' }
+        ]
+      }
+    ];
+
+    // Dummy DVO Thresholds (Based on approx DVO 2023 grid)
+    // [age][t-score index (0 = >=0, 1 = -0.5, 2 = -1.0, 3 = -1.5, 4 = -2.0, 5 = -2.5, 6 = -3.0, 7 = -3.5, 8 = <-3.5)]
+    // simplified for brevity:
+    const THRESH = {
+      f: {
+        10: [ // 10% risk threshold (Top / Rot)
+          // Age 50, 55, 60, 65, 70, 75, 80, 85, 90
+          [9.9, 9.9, 9.9, 9.9, 9.9, 9.9, 9.9, 5.0, 2.5], // Age 50
+          [9.9, 9.9, 9.9, 9.9, 9.9, 9.9, 7.0, 3.5, 1.8], // Age 55
+          [9.9, 9.9, 9.9, 9.9, 9.9, 7.5, 4.0, 2.0, 1.0], // Age 60
+          [9.9, 9.9, 9.9, 9.9, 8.0, 4.5, 2.3, 1.1, 0.5], // Age 65
+          [9.9, 9.9, 9.9, 7.5, 4.0, 2.5, 1.3, 0.6, 0.3], // Age 70
+          [9.9, 9.9, 6.5, 3.5, 2.0, 1.1, 0.6, 0.3, 0.1], // Age 75
+          [8.0, 4.5, 2.5, 1.5, 0.8, 0.4, 0.2, 0.1, 0.1], // Age 80
+          [3.5, 2.0, 1.2, 0.7, 0.4, 0.2, 0.1, 0.1, 0.1], // Age 85
+          [2.0, 1.2, 0.7, 0.4, 0.2, 0.1, 0.1, 0.1, 0.1]  // Age 90
+        ],
+        // 5% risk threshold (High / Orange)
+        5: [
+          [9.9, 9.9, 9.9, 9.9, 9.9, 9.9, 4.5, 2.1, 1.0], // Age 50 etc...
+          [9.9, 9.9, 9.9, 9.9, 9.9, 5.0, 2.5, 1.2, 0.6], 
+          [9.9, 9.9, 9.9, 9.9, 5.5, 2.8, 1.4, 0.7, 0.3], 
+          [9.9, 9.9, 9.9, 6.0, 3.0, 1.5, 0.8, 0.4, 0.2], 
+          [9.9, 9.9, 6.5, 3.5, 1.8, 0.9, 0.5, 0.2, 0.1], 
+          [9.9, 5.5, 3.0, 1.6, 0.8, 0.4, 0.2, 0.1, 0.1], 
+          [4.0, 2.2, 1.2, 0.6, 0.3, 0.2, 0.1, 0.1, 0.1], 
+          [1.8, 1.0, 0.5, 0.3, 0.1, 0.1, 0.1, 0.1, 0.1], 
+          [1.0, 0.5, 0.3, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]  
+        ],
+        // 3% risk threshold (Mod / Yellow)
+        3: [
+          [9.9, 9.9, 9.9, 9.9, 9.9, 5.5, 2.5, 1.2, 0.6], 
+          [9.9, 9.9, 9.9, 9.9, 6.0, 3.0, 1.4, 0.7, 0.3], 
+          [9.9, 9.9, 9.9, 6.5, 3.5, 1.7, 0.8, 0.4, 0.2], 
+          [9.9, 9.9, 7.0, 3.8, 1.9, 0.9, 0.5, 0.2, 0.1], 
+          [9.9, 6.0, 3.2, 1.7, 0.9, 0.4, 0.2, 0.1, 0.1], 
+          [4.5, 2.5, 1.4, 0.8, 0.4, 0.2, 0.1, 0.1, 0.1], 
+          [2.0, 1.1, 0.6, 0.3, 0.2, 0.1, 0.1, 0.1, 0.1], 
+          [1.0, 0.6, 0.3, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1], 
+          [0.6, 0.3, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]  
+        ]
+      },
+      m: {
+        // Dummy values for men (similar structure)
+        10: [[9.9, 9.9, 9.9, 9.9, 9.9, 9.9, 9.9, 5.0, 2.5],[9.9, 9.9, 9.9, 9.9, 9.9, 9.9, 7.0, 3.5, 1.8],[9.9, 9.9, 9.9, 9.9, 9.9, 7.5, 4.0, 2.0, 1.0],[9.9, 9.9, 9.9, 9.9, 8.0, 4.5, 2.3, 1.1, 0.5],[9.9, 9.9, 9.9, 7.5, 4.0, 2.5, 1.3, 0.6, 0.3],[9.9, 9.9, 6.5, 3.5, 2.0, 1.1, 0.6, 0.3, 0.1],[8.0, 4.5, 2.5, 1.5, 0.8, 0.4, 0.2, 0.1, 0.1],[3.5, 2.0, 1.2, 0.7, 0.4, 0.2, 0.1, 0.1, 0.1],[2.0, 1.2, 0.7, 0.4, 0.2, 0.1, 0.1, 0.1, 0.1]],
+        5: [[9.9, 9.9, 9.9, 9.9, 9.9, 9.9, 4.5, 2.1, 1.0],[9.9, 9.9, 9.9, 9.9, 9.9, 5.0, 2.5, 1.2, 0.6],[9.9, 9.9, 9.9, 9.9, 5.5, 2.8, 1.4, 0.7, 0.3],[9.9, 9.9, 9.9, 6.0, 3.0, 1.5, 0.8, 0.4, 0.2],[9.9, 9.9, 6.5, 3.5, 1.8, 0.9, 0.5, 0.2, 0.1],[9.9, 5.5, 3.0, 1.6, 0.8, 0.4, 0.2, 0.1, 0.1],[4.0, 2.2, 1.2, 0.6, 0.3, 0.2, 0.1, 0.1, 0.1],[1.8, 1.0, 0.5, 0.3, 0.1, 0.1, 0.1, 0.1, 0.1],[1.0, 0.5, 0.3, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]],
+        3: [[9.9, 9.9, 9.9, 9.9, 9.9, 5.5, 2.5, 1.2, 0.6],[9.9, 9.9, 9.9, 9.9, 6.0, 3.0, 1.4, 0.7, 0.3],[9.9, 9.9, 9.9, 6.5, 3.5, 1.7, 0.8, 0.4, 0.2],[9.9, 9.9, 7.0, 3.8, 1.9, 0.9, 0.5, 0.2, 0.1],[9.9, 6.0, 3.2, 1.7, 0.9, 0.4, 0.2, 0.1, 0.1],[4.5, 2.5, 1.4, 0.8, 0.4, 0.2, 0.1, 0.1, 0.1],[2.0, 1.1, 0.6, 0.3, 0.2, 0.1, 0.1, 0.1, 0.1],[1.0, 0.6, 0.3, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],[0.6, 0.3, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]]
+      }
+    };
+
+    function getAgeIndex(age) {
+      if (age < 50) return 0;
+      if (age >= 90) return 8;
+      return Math.floor((age - 50) / 5);
+    }
+
+    function getTScoreIndex(tscore) {
+      if (tscore >= 0) return 0;
+      if (tscore < -3.5) return 8;
+      const idx = Math.floor(Math.abs(tscore) * 2);
+      return idx > 8 ? 8 : idx;
+    }
+
+    function calcAge(gebdatum) {
+      if(!gebdatum) return 50;
+      const parts = gebdatum.split('.');
+      if (parts.length === 3) {
+        let year = parseInt(parts[2], 10);
+        const currentYear2 = new Date().getFullYear() % 100;
+        if (year < 100) {
+          year += (year > currentYear2 ? 1900 : 2000);
+        }
+        const birth = new Date(year, parts[1]-1, parts[0]);
+        const ageDifMs = Date.now() - birth.getTime();
+        const ageDate = new Date(ageDifMs);
+        return Math.abs(ageDate.getUTCFullYear() - 1970);
+      }
+      return 50; 
+    }
+
+    // Main calculation logic
+    function calculateRisk(patient, answers) {
+      let cF = 1.0;
+      const allFactors = [];
+      let genInd = false; // Generelle Indikation
+
+      // Calculate BMI automatically
+      const w = parseFloat(patient.gewicht) || 0;
+      const h = parseFloat(patient.groesse) || 0;
+      const heightM = h / 100;
+      const bmi = heightM > 0 ? (w / (heightM * heightM)) : 0;
+      const isBmiLow = bmi > 0 && bmi < 20;
+
+      // Add max of frac_vert_count and frac_vert_grad FIRST
+      const vc = answers['frac_vert_count'];
+      const vg = answers['frac_vert_grad'];
+      
+      let vcFactor = 1.0, vgFactor = 1.0;
+      let vcOpt = null, vgOpt = null;
+      
+      const vSec = SECTIONS.find(s=>s.id==='s1');
+      if (vSec && vSec.q) {
+        const vcq = vSec.q.find(q=>q.id==='frac_vert_count');
+        const vgq = vSec.q.find(q=>q.id==='frac_vert_grad');
+        
+        if (vcq && vc !== undefined) vcOpt = vcq.opts.find(o=>o.v===vc);
+        if (vgq && vg !== undefined) vgOpt = vgq.opts.find(o=>o.v===vg);
+      }
+      
+      if (vcOpt && vcOpt.f) vcFactor = vcOpt.f;
+      if (vgOpt && vgOpt.f) vgFactor = vgOpt.f;
+
+      const maxVertFaktor = Math.max(vcFactor, vgFactor);
+      if (maxVertFaktor > 1.0) {
+        // Determining which label to show
+        if (maxVertFaktor === vcFactor) allFactors.push({ label: `Wirbelbrüche: ${vcOpt.l}`, f: maxVertFaktor, group: null });
+        else allFactors.push({ label: `Wirbelbrüche Grad: ${vgOpt.l}`, f: maxVertFaktor, group: null });
+        
+        // GenInd: Grad 3 with 3+
+        if ((vc && vc >= 3 && vg >= 1) || (vg && vg >= 3)) genInd = true;
+      }
+
+      // Gathering rest of factors
+      SECTIONS.forEach(s => {
+        s.q.forEach(q => {
+          if (!q.onlyFor || q.onlyFor === patient?.gender) {
+            
+            // Handle BMI automatically
+            if (q.id === 'ls_bmi') {
+              if (isBmiLow && q.faktor) {
+                allFactors.push({ label: `BMI < 20 (${bmi.toFixed(1)})`, f: q.faktor, group: q.group });
+              }
+              return; // Skip normal answers processing for BMI
+            }
+
+            const val = answers[q.id];
+            
+            // Handle Wirbelbrüche special logic (max of count/grad)
+            if (q.id === 'frac_vert_count' || q.id === 'frac_vert_grad') return;
+            
+            if (q.t === 'yn' && val === true && q.faktor) {
+              allFactors.push({ label: q.label, f: q.faktor, group: q.group });
+              // Generelle Indikation checks
+              if (q.id === 'frac_hip_acute') genInd = true;
+            } else if (q.t === 'radio' && val !== undefined && val !== null) {
+              const opt = q.opts.find(o => o.v === val);
+              if (opt && opt.f) {
+                allFactors.push({ label: `${q.label} -> ${opt.l}`, f: opt.f, group: q.group });
+              }
+            }
+          }
+        });
+      });
+
+      // DVO 2023 - Page 242 Rules: Max 2 factors multiplied, Top most powerful, max 1 from S, max 1 from G.
+      allFactors.sort((a, b) => b.f - a.f);
+
+      let usedCount = 0;
+      let usedS = false;
+      let usedG = false;
+
+      allFactors.forEach(factor => {
+        factor.used = false; // Default
+        
+        // Stop calculating if we already multiplied 2 factors
+        if (usedCount >= 2) return;
+        
+        // Group constraint checks
+        if (factor.group === 'S' && usedS) return;
+        if (factor.group === 'G' && usedG) return;
+        
+        // Use this factor
+        cF *= factor.f;
+        factor.used = true;
+        usedCount++;
+        
+        if (factor.group === 'S') usedS = true;
+        if (factor.group === 'G') usedG = true;
+      });
+      
+      cF = Math.round(cF * 100) / 100; // Format for safety
+
+      // Check DXA
+      const minTscore = Math.min(
+        answers['dxa_lws'] || 99, 
+        answers['dxa_hals'] || 99, 
+        answers['dxa_total'] || 99
+      );
+      const effTscore = minTscore !== 99 ? minTscore : 0; // fallback to 0 if no reading
+
+      // Threshold lookups
+      const age = calcAge(patient.gebdatum);
+      const ageIdx = getAgeIndex(age);
+      const tIdx = getTScoreIndex(effTscore);
+      const gender = patient.gender || 'f';
+
+      const thr10 = THRESH[gender][10][ageIdx][tIdx];
+      const thr5 = THRESH[gender][5][ageIdx][tIdx];
+      const thr3 = THRESH[gender][3][ageIdx][tIdx];
+
+      let riskCat = 'low'; // Grün
+      if (genInd || cF >= thr10) riskCat = 'top'; // Rot
+      else if (cF >= thr5) riskCat = 'high'; // Orange
+      else if (cF >= thr3) riskCat = 'mod'; // Gelb
+
+      return { cF: cF.toFixed(2), riskCat, effTscore, factors: allFactors, age, genInd, thr10, thr5, thr3 };
+    }
+
+    // ============================================
+    // 3. ICONS & SUB-COMPONENTS
+    // ============================================
+    const Chevron = () => (
+      <svg className="chev" viewBox="0 0 24 24">
+        <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+      </svg>
+    );
+
+    const Question = ({ q, val, onChange }) => {
+      return (
+        <div className={`q-wrap q-${q.id}`}>
+          <div className="q-label">{q.label}</div>
+          
+          {q.t === 'yn' && (
+            <div className="q-options-yn">
+              <button 
+                type="button"
+                className={`q-btn ja ${val === true ? 'active' : ''}`}
+                onClick={() => onChange(q.id, true)}>Ja</button>
+              <button 
+                type="button"
+                className={`q-btn nein ${val === false ? 'active' : ''}`}
+                onClick={() => onChange(q.id, false)}>Nein</button>
+            </div>
+          )}
+
+          {q.t === 'radio' && (
+            <div className="q-options-radio">
+              {q.opts.map(opt => (
+                <button 
+                  key={opt.v} type="button" 
+                  className={`r-btn ${val === opt.v ? 'active' : ''}`}
+                  onClick={() => onChange(q.id, opt.v)}>
+                  {opt.l} {opt.f ? `(+)` : ''}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {q.t === 'number' && (
+             <input type="number" step="0.1" value={val || ''} onChange={e => onChange(q.id, e.target.value ? parseFloat(e.target.value) : null)} placeholder="Wert" />
+          )}
+          {q.t === 'text' && (
+             <input type="text" value={val || ''} onChange={e => onChange(q.id, e.target.value)} placeholder="Eingabe..." />
+          )}
+          {q.t === 'info' && (
+             <div style={{background: '#f5f5f5', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ddd', color: '#666'}}>
+               {val}
+             </div>
+          )}
+
+          {q.hint && (
+            <div className="q-hint">{q.hint}</div>
+          )}
+        </div>
+      );
+    }
+
+    const Section = ({ section, answers, setAnswers, patient }) => {
+      const [isOpen, setIsOpen] = useState(false);
+      
+      const handleAns = (qId, val) => {
+        setAnswers(prev => ({...prev, [qId]: val}));
+      };
+
+      const qs = section.q.filter(q => !q.onlyFor || q.onlyFor === patient?.gender);
+      if (qs.length === 0) return null;
+
+      // Count answered (exclude info/auto types from required questions)
+      const measurableQs = qs.filter(q => q.t !== 'info');
+      const answered = measurableQs.filter(q => answers[q.id] !== undefined && answers[q.id] !== null).length;
+
+      return (
+        <div className={`section ${isOpen ? 'open' : ''}`}>
+          <div className="section-header" onClick={() => setIsOpen(!isOpen)}>
+            <div className="section-title-wrapper">
+              <div className="section-icon">{section.icon}</div>
+              <div className="section-title">
+                {section.title} <span style={{fontWeight:'normal', fontSize:'0.9rem', color:'#888'}}>({answered}/{measurableQs.length})</span>
+              </div>
+            </div>
+            <Chevron />
+          </div>
+          <div className="section-content">
+            {qs.map(q => {
+               // Provide computed value for info fields like BMI
+               let valToPass = answers[q.id];
+               if (q.id === 'ls_bmi') {
+                 const w = parseFloat(patient?.gewicht) || 0;
+                 const h = parseFloat(patient?.groesse) || 0;
+                 const heightM = h / 100;
+                 const bmi = heightM > 0 ? (w / (heightM * heightM)) : 0;
+                 valToPass = bmi > 0 
+                   ? `Berechneter BMI: ${bmi.toFixed(1)} (${bmi < 20 ? 'Risiko!' : 'Normal'})`
+                   : 'BMI konnte nicht berechnet werden';
+               }
+
+               return <Question key={q.id} q={q} val={valToPass} onChange={handleAns} />;
+            })}
+          </div>
+        </div>
+      );
+    };
+
+    // ============================================
+    // 4. ADMIN PANEL & OSTS
+    // ============================================
+    const ResultCard = ({ patient, answers, risk, doctorSettings }) => {
+      const getCatColor = (cat) => {
+        if (cat === 'top') return 'var(--risk-top)';
+        if (cat === 'high') return 'var(--risk-high)';
+        if (cat === 'mod') return 'var(--risk-mod)';
+        return 'var(--risk-low)';
+      };
+
+      const getCatLabel = (cat) => {
+        if (cat === 'top') return 'Generelle Indikation zur spezif. osteologischen Therapie (> 10%)';
+        if (cat === 'high') return 'Indikation zur spezifischen osteologischen Therapie (> 5%)';
+        if (cat === 'mod') return 'Basistherapie empfohlen, spez. Therapie nach indiv. Abwägung (> 3%)';
+        return 'Keine Indikation zur spezifischen osteologischen Therapie (< 3%)';
+      };
+
+      return (
+        <div className="card result-card">
+          <div className="print-hdr no-print" style={{display:'none'}}>
+             <h2>Arztbrief / Auswertung</h2>
+             <p>{doctorSettings?.name || 'Dr. med. Mustermann'} • {doctorSettings?.fach || 'Orthopädie'} • {doctorSettings?.ort || '12345 Musterstadt'}</p>
+          </div>
+          
+          <h2 style={{borderBottom: '2px solid var(--border)', paddingBottom: '0.5rem'}}>Auswertung: {patient.vorname} {patient.nachname}</h2>
+          <div className="flex gap-3 mb-3" style={{fontSize: '0.95rem', color: '#666'}}>
+             <div>Geboren: {patient.gebdatum} (Alter: {risk.age})</div>
+             <div>Geschlecht: {patient.gender === 'f' ? 'weiblich' : 'männlich'}</div>
+             <div>DXA min T-Score: {risk.effTscore === 0 ? 'Nicht gemessen / ≥ 0' : risk.effTscore}</div>
+          </div>
+
+          <div style={{
+            background: getCatColor(risk.riskCat),
+            color: 'white',
+            padding: '1.5rem',
+            borderRadius: 'var(--radius)',
+            textAlign: 'center',
+            marginBottom: '1.5rem',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+          }}>
+            <h3 style={{color: 'white', fontSize: '1.3rem', marginBottom:'0.5rem'}}>{getCatLabel(risk.riskCat)}</h3>
+            <div style={{opacity: 0.9}}>Risikofaktorgradient (RFG): <strong>{risk.cF}</strong></div>
+          </div>
+
+          <div className="mb-3">
+             <h3 style={{fontSize: '1rem'}}>Risikoschwellen (Therapie-Indikation nach DVO 2023)</h3>
+             <ul style={{listStyle:'none', padding:0}}>
+               <li style={{marginBottom: '0.5rem', display:'flex', justifyContent:'space-between'}}>
+                 <span>10%-Schwelle (Generelle Indikation):</span> 
+                 <strong style={{color: risk.cF >= risk.thr10 ? 'var(--risk-top)' : 'inherit'}}>
+                   {risk.thr10 === 9.9 ? 'N/A' : risk.thr10.toFixed(2)} {risk.cF >= risk.thr10 && '❌ erreicht'}
+                 </strong>
+               </li>
+               <li style={{marginBottom: '0.5rem', display:'flex', justifyContent:'space-between'}}>
+                 <span>5%-Schwelle:</span> 
+                 <strong style={{color: risk.cF >= risk.thr5 ? 'var(--risk-high)' : 'inherit'}}>
+                   {risk.thr5 === 9.9 ? 'N/A' : risk.thr5.toFixed(2)} {risk.cF >= risk.thr5 && '❌ erreicht'}
+                 </strong>
+               </li>
+               <li style={{display:'flex', justifyContent:'space-between'}}>
+                 <span>3%-Schwelle:</span> 
+                 <strong style={{color: risk.cF >= risk.thr3 ? 'var(--risk-mod)' : 'inherit'}}>
+                   {risk.thr3 === 9.9 ? 'N/A' : risk.thr3.toFixed(2)} {risk.cF >= risk.thr3 && '❌ erreicht'}
+                 </strong>
+               </li>
+             </ul>
+             <p className="mt-2" style={{color: '#888', fontSize: '0.85rem'}}>Basis für Schwellen: Alter {risk.age}, T-Score {risk.effTscore}</p>
+          </div>
+
+          <div className="mb-3">
+            <h3 style={{fontSize: '1rem'}}>Relevante Befunde & Risikofaktoren</h3>
+            <p style={{fontSize:'0.85rem', color:'#666', marginBottom:'0.5rem'}}>
+              Hinweis: Nach DVO 2023 werden max. 2 Faktoren (die höchsten) zur Berechnung des RFG multipliziert, wobei aus den Gruppen "S" (Sturz/Sturzrisikomedikation) und "G" (Glukokortikoide) jeweils nur 1 Faktor stammen darf. Die relevanten, multiplizierten Faktoren sind grün markiert.
+            </p>
+            {risk.factors.length > 0 ? (
+              <ul style={{paddingLeft: '1.25rem', color: '#444'}}>
+                {risk.factors.map((f, i) => (
+                  <li key={i} style={{marginBottom: '0.25rem'}}>
+                    {f.label} <span style={{color: 'var(--accent)', fontWeight:600}}>(Risikofaktor: {f.f}) </span>
+                    {f.used && <span style={{background: 'var(--risk-low)', color: 'white', padding: '1px 6px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600}}>In RFG-Berechnung verwendet</span>}
+                    {!f.used && <span style={{color: '#888', fontSize: '0.75rem'}}> (Nicht multipliziert gem. DVO Regeln)</span>}
+                  </li>
+                ))}
+              </ul>
+            ) : <p style={{color: '#666'}}>Keine relevanten Faktoren identifiziert (nur Basisrisiko).</p>}
+          </div>
+          
+          {risk.genInd && (
+            <div style={{background: '#ffeceb', borderLeft: '4px solid var(--risk-top)', padding: '1rem', marginBottom: '1.5rem', borderRadius: '4px'}}>
+              <strong>Generelle Indikation zur Therapie:</strong> Es liegt ein akuter Wirbelbruch Grad 3, Hüftbruch oder eine andere manifeste schwere Fraktur nach DVO vor.
+            </div>
+          )}
+
+          <div className="no-print text-center" style={{marginTop: '2rem'}}>
+            <button onClick={() => window.print()}>🖨️ Bericht drucken</button>
+          </div>
+        </div>
+      );
+    }
+
+    const AdminPanel = ({ isOpen, onClose, patient, answers }) => {
+      const [pin, setPin] = useState('');
+      const [auth, setAuth] = useState(false);
+      const [tab, setTab] = useState('result'); // 'result' or 'settings'
+      
+      const [docSettings, setDocSettings] = useState({
+        name: 'Dr. med. Mustermann',
+        fach: 'Orthopädie',
+        ort: '12345 Musterstadt'
+      });
+      
+      useEffect(() => {
+        if (!isOpen) return;
+        const saved = localStorage.getItem('osteo_doc_settings');
+        if (saved) setDocSettings(JSON.parse(saved));
+      }, [isOpen]);
+
+      const saveSettings = (e) => {
+        e.preventDefault();
+        localStorage.setItem('osteo_doc_settings', JSON.stringify(docSettings));
+        alert('Briefkopf gespeichert!');
+      };
+      
+      const risk = useMemo(() => calculateRisk(patient, answers), [patient, answers]);
+
+      if (!isOpen) return null;
+
+      const handlePinSubmit = (e) => {
+        e.preventDefault();
+        // DEFAULT_PIN_HASH = hashPw("0000")
+        if (hashPw(pin) === DEFAULT_PIN_HASH || pin === "0000") {
+          setAuth(true);
+        } else {
+          alert("Falscher PIN");
+          setPin('');
+        }
+      };
+
+      return (
+        <div className="overlay fade-in">
+          <div className="admin-overlay fade-in">
+            <div className="no-print" style={{background: 'var(--primary)', color: 'white', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <h2 style={{margin: 0, color: 'white', fontSize: '1.2rem'}}>Arzt-Bereich</h2>
+              {auth && (
+                <div style={{display:'flex', gap:'10px'}}>
+                  <button className={`secondary ${tab==='result'?'':'opacity-50'}`} style={{padding:'0.4rem 0.8rem'}} onClick={() => setTab('result')}>Auswertung</button>
+                  <button className={`secondary ${tab==='settings'?'':'opacity-50'}`} style={{padding:'0.4rem 0.8rem'}} onClick={() => setTab('settings')}>Briefkopf</button>
+                </div>
+              )}
+              <button className="secondary" style={{padding:'0.4rem 0.8rem', background:'transparent', color:'white', border:'1px solid white'}} onClick={() => { setAuth(false); setPin(''); onClose(); }}>Schließen</button>
+            </div>
+            
+            <div className="admin-scroll" style={{padding: '1.5rem', overflowY: 'auto', flex: 1, background: 'var(--bg)'}}>
+               {!auth ? (
+                 <div className="card text-center" style={{maxWidth: 350, margin: '2rem auto'}}>
+                   <h3 className="mb-2">Admin-Bereich</h3>
+                   <p className="mb-3 text-sm" style={{color: '#666'}}>Bitte 4-stelligen PIN eingeben (Standard: 0000)</p>
+                   <form onSubmit={handlePinSubmit}>
+                     <input type="password" value={pin} onChange={e => setPin(e.target.value)} maxLength={4} className="mb-2 text-center" style={{fontSize: '1.5rem', letterSpacing: '0.5em'}} autoFocus />
+                     <button type="submit" className="w-full">Entsperren</button>
+                   </form>
+                 </div>
+               ) : tab === 'settings' ? (
+                 <div className="card mx-auto" style={{maxWidth: 500, marginTop: '2rem'}}>
+                   <h3 className="mb-3">Briefkopf für Ausdruck anpassen</h3>
+                   <form onSubmit={saveSettings}>
+                     <div className="form-group">
+                       <label>Name des Arztes / der Praxis</label>
+                       <input type="text" value={docSettings.name} onChange={e => setDocSettings({...docSettings, name: e.target.value})} required />
+                     </div>
+                     <div className="form-group">
+                       <label>Fachabteilung / Zusatzbezeichnung</label>
+                       <input type="text" value={docSettings.fach} onChange={e => setDocSettings({...docSettings, fach: e.target.value})} />
+                     </div>
+                     <div className="form-group">
+                       <label>PLZ und Ort (ggf. Straße)</label>
+                       <input type="text" value={docSettings.ort} onChange={e => setDocSettings({...docSettings, ort: e.target.value})} />
+                     </div>
+                     <button type="submit" className="w-full mt-2">Speichern</button>
+                   </form>
+                 </div>
+               ) : patient.vorname ? (
+                 <ResultCard patient={patient} answers={answers} risk={risk} doctorSettings={docSettings} />
+               ) : (
+                 <div className="text-center" style={{padding: '3rem', color: '#888'}}>Bitte füllen Sie zuerst die Patientendaten aus.</div>
+               )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ============================================
+    // 5. MAIN APP
+    // ============================================
+    function App() {
+      // States
+      const [disclaimerGot, setDisclaimerGot] = useState(false);
+      const [isAdminOpen, setIsAdminOpen] = useState(false);
+      const [patient, setPatient] = useState({ gender: '', vorname: '', nachname: '', gebdatum: '', groesse: '', gewicht: '' });
+      const [answers, setAnswers] = useState({});
+      const [errors, setErrors] = useState({});
+      
+      // Step 0: Gate, Step 1: Patient Data, Step 2: Questionnaire
+      const [step, setStep] = useState(0); 
+
+      // Init logic
+      useEffect(() => {
+        // basic setup...
+      }, []);
+
+      const handleStart = () => {
+        setDisclaimerGot(true);
+        setStep(1);
+      };
+
+      const validateField = (field, value, currentErrors) => {
+        const newErrs = { ...currentErrors };
+        let formattedValue = value;
+
+        if (field === 'vorname' || field === 'nachname') {
+          const nameRegex = /^[a-zA-ZäöüÄÖÜß\s\-]{2,}$/;
+          if (!nameRegex.test(value.trim())) {
+            newErrs[field] = 'Mindestens 2 Zeichen, keine Zahlen.';
+          } else {
+            delete newErrs[field];
+          }
+        }
+
+        if (field === 'gebdatum') {
+          let gebStr = value.trim();
+          
+          if (/^\d{4,8}$/.test(gebStr)) {
+            if (gebStr === '000000' || gebStr === '00000000' || gebStr === '0000') {
+               // Let it fail
+            } else if (gebStr.length === 8) {
+              gebStr = `${gebStr.slice(0,2)}.${gebStr.slice(2,4)}.${gebStr.slice(4)}`;
+            } else if (gebStr.length === 6) {
+              gebStr = `${gebStr.slice(0,2)}.${gebStr.slice(2,4)}.${gebStr.slice(4)}`;
+            } else if (gebStr.length === 4) {
+              gebStr = `0${gebStr.slice(0,1)}.0${gebStr.slice(1,2)}.${gebStr.slice(2)}`;
+            } else if (gebStr.length === 5) {
+              let m1 = parseInt(gebStr.slice(1,3), 10);
+              gebStr = (m1 >= 1 && m1 <= 12) 
+                ? `0${gebStr.slice(0,1)}.${gebStr.slice(1,3)}.${gebStr.slice(3)}`
+                : `${gebStr.slice(0,2)}.0${gebStr.slice(2,3)}.${gebStr.slice(3)}`;
+            } else if (gebStr.length === 7) {
+              let m1 = parseInt(gebStr.slice(1,3), 10);
+              gebStr = (m1 >= 1 && m1 <= 12)
+                ? `0${gebStr.slice(0,1)}.${gebStr.slice(1,3)}.${gebStr.slice(3)}`
+                : `${gebStr.slice(0,2)}.0${gebStr.slice(2,3)}.${gebStr.slice(3)}`;
+            }
+            formattedValue = gebStr;
+          }
+
+          const dateRegex = /^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})$/;
+          const match = gebStr.match(dateRegex);
+          
+          if (!match) {
+            newErrs.gebdatum = 'Format muss TT.MM.JJJJ sein.';
+          } else {
+            let day = parseInt(match[1], 10);
+            let month = parseInt(match[2], 10);
+            let year = parseInt(match[3], 10);
+            
+            if (day === 0 || month === 0 || month > 12 || day > 31) {
+               newErrs.gebdatum = 'Ungültiges Datum.';
+            } else {
+              const currentYear2 = new Date().getFullYear() % 100;
+              if (year < 100) year += (year > currentYear2 ? 1900 : 2000);
+              
+              const birthDate = new Date(year, month - 1, day);
+              if (birthDate.getFullYear() !== year || birthDate.getMonth() !== month - 1 || birthDate.getDate() !== day) {
+                newErrs.gebdatum = 'Ungültiges Datum.';
+              } else {
+                const calculatedAge = calcAge(`${day}.${month}.${year}`);
+                if (calculatedAge < 18 || calculatedAge > 130) {
+                  newErrs.gebdatum = `Alter (${calculatedAge}) muss zwischen 18 und 130 liegen.`;
+                } else {
+                  delete newErrs.gebdatum;
+                  formattedValue = `${day.toString().padStart(2, '0')}.${month.toString().padStart(2, '0')}.${year}`;
+                }
+              }
+            }
+          }
+        }
+
+        if (field === 'groesse') {
+          const g = parseFloat(value);
+          if (isNaN(g) || g < 50 || g > 250) newErrs.groesse = 'Wert zwischen 50 und 250 cm.';
+          else delete newErrs.groesse;
+        }
+
+        if (field === 'gewicht') {
+          const w = parseFloat(value);
+          if (isNaN(w) || w < 30 || w > 300) newErrs.gewicht = 'Wert zwischen 30 und 300 kg.';
+          else delete newErrs.gewicht;
+        }
+        
+        if (field === 'gender') {
+           if (!value) newErrs.gender = 'Bitte Geschlecht wählen.';
+           else delete newErrs.gender;
+        }
+
+        return { newErrs, formattedValue };
+      };
+
+      const handleBlur = (field) => {
+        const { newErrs, formattedValue } = validateField(field, patient[field], errors);
+        setErrors(newErrs);
+        if (formattedValue !== patient[field]) {
+           setPatient(prev => ({ ...prev, [field]: formattedValue }));
+        }
+      };
+
+      const handlePatientSubmit = (e) => {
+        e.preventDefault();
+
+        let currentErrors = {};
+        let finalPatient = { ...patient };
+
+        ['gender', 'vorname', 'nachname', 'gebdatum', 'groesse', 'gewicht'].forEach(field => {
+           const { newErrs, formattedValue } = validateField(field, patient[field], currentErrors);
+           currentErrors = newErrs;
+           finalPatient[field] = formattedValue;
+        });
+
+        if (Object.keys(currentErrors).length > 0) {
+          setErrors(currentErrors);
+          return;
+        }
+
+        // Normalize
+        setErrors({});
+        setPatient({
+          ...finalPatient,
+          vorname: finalPatient.vorname.trim(),
+          nachname: finalPatient.nachname.trim()
+        });
+
+        setStep(2);
+      };
+
+      // --- RENDER ---
+      
+      // Gate view
+      if (step === 0) {
+        return (
+          <div className="container flex app-main-view" style={{ alignItems: 'center', justifyContent: 'center', height: '100vh', paddingBottom: 0 }}>
+            <div className="card text-center fade-in disclaimer-gate" style={{ maxWidth: 500 }}>
+              <h1 className="mb-2" style={{ color: 'var(--primary)', fontSize: '1.4rem' }}>Osteoporose Risiko-Check</h1>
+              <p className="mb-3" style={{ color: '#666', fontSize: '0.95rem' }}>
+                Diese Anwendung basiert auf der DVO-Leitlinie (2023). <br/><br/>
+                <strong style={{color: 'var(--risk-top)'}}>WICHTIGER HINWEIS:</strong> Dies ist nur eine <strong>Demo- und Testversion</strong>, die <u>nicht</u> zur klinischen Anwendung am Patienten, sondern ausschließlich zu Schulungs- und Demonstrationszwecken gedacht ist! Sie ersetzt keinesfalls eine ärztliche Diagnose.
+                <br/><br/>
+                <b>Datenschutz:</b> Alle eingegebenen Daten werden ausschließlich lokal auf diesem Gerät verarbeitet. Es findet keine Datenübertragung statt.
+              </p>
+              <button className="w-full" onClick={handleStart}>Ich habe verstanden & Start</button>
+            </div>
+          </div>
+        );
+      }
+
+      // Patient Data View
+      if (step === 1) {
+        return (
+          <div className="app-main-view">
+            <header className="app-header">
+              <h1>Patientendatenerfassung</h1>
+            </header>
+            <div className="container fade-in text-center" style={{ maxWidth: 500, margin: '0 auto' }}>
+              <div className="card text-left">
+                <form onSubmit={handlePatientSubmit}>
+                  
+                  <label className="mb-1">Geschlecht</label>
+                  <div className="gender-select" style={{marginBottom: errors.gender ? '0.5rem' : '1.5rem'}}>
+                    <div className={`gender-card ${patient.gender === 'f' ? 'active' : ''}`} onClick={() => {setPatient({...patient, gender: 'f'}); setErrors({...errors, gender: null});}}>
+                      <span>♀</span>
+                      <strong>Frau</strong>
+                    </div>
+                    <div className={`gender-card ${patient.gender === 'm' ? 'active' : ''}`} onClick={() => {setPatient({...patient, gender: 'm'}); setErrors({...errors, gender: null});}}>
+                      <span>♂</span>
+                      <strong>Mann</strong>
+                    </div>
+                  </div>
+                  {errors.gender && <div style={{color: '#d32f2f', fontSize: '0.85rem', marginBottom: '1.5rem', marginTop: '-0.5rem'}}>{errors.gender}</div>}
+
+                  <div className="form-group">
+                    <label>Vorname</label>
+                    <input type="text" value={patient.vorname} onChange={e => {setPatient({...patient, vorname: e.target.value}); setErrors({...errors, vorname: null});}} onBlur={() => handleBlur('vorname')} placeholder="Max" style={{borderColor: errors.vorname ? '#d32f2f' : undefined}} required />
+                    {errors.vorname && <div style={{color: '#d32f2f', fontSize: '0.85rem', marginTop: '4px'}}>{errors.vorname}</div>}
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Nachname</label>
+                    <input type="text" value={patient.nachname} onChange={e => {setPatient({...patient, nachname: e.target.value}); setErrors({...errors, nachname: null});}} onBlur={() => handleBlur('nachname')} placeholder="Mustermann" style={{borderColor: errors.nachname ? '#d32f2f' : undefined}} required />
+                    {errors.nachname && <div style={{color: '#d32f2f', fontSize: '0.85rem', marginTop: '4px'}}>{errors.nachname}</div>}
+                  </div>
+
+                  <div className="form-group">
+                    <label>Geburtsdatum (TT.MM.JJJJ)</label>
+                    <input type="text" value={patient.gebdatum} onChange={e => {setPatient({...patient, gebdatum: e.target.value}); setErrors({...errors, gebdatum: null});}} onBlur={() => handleBlur('gebdatum')} placeholder="01.01.1960" style={{borderColor: errors.gebdatum ? '#d32f2f' : undefined}} required />
+                    {errors.gebdatum && <div style={{color: '#d32f2f', fontSize: '0.85rem', marginTop: '4px'}}>{errors.gebdatum}</div>}
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="form-group" style={{flex: 1}}>
+                      <label>Größe (cm)</label>
+                      <input type="number" value={patient.groesse} onChange={e => {setPatient({...patient, groesse: e.target.value}); setErrors({...errors, groesse: null});}} onBlur={() => handleBlur('groesse')} placeholder="170" style={{borderColor: errors.groesse ? '#d32f2f' : undefined}} required />
+                      {errors.groesse && <div style={{color: '#d32f2f', fontSize: '0.85rem', marginTop: '4px'}}>{errors.groesse}</div>}
+                    </div>
+                    <div className="form-group" style={{flex: 1}}>
+                      <label>Gewicht (kg)</label>
+                      <input type="number" value={patient.gewicht} onChange={e => {setPatient({...patient, gewicht: e.target.value}); setErrors({...errors, gewicht: null});}} onBlur={() => handleBlur('gewicht')} placeholder="70" style={{borderColor: errors.gewicht ? '#d32f2f' : undefined}} required />
+                      {errors.gewicht && <div style={{color: '#d32f2f', fontSize: '0.85rem', marginTop: '4px'}}>{errors.gewicht}</div>}
+                    </div>
+                  </div>
+
+                  <button type="submit" className="w-full mt-2">Weiter zum Fragebogen</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // Calculated Progress
+      const allQs = SECTIONS.flatMap(s => s.q.filter(q => !q.onlyFor || q.onlyFor === patient?.gender));
+      const measurableAllQs = allQs.filter(q => q.t !== 'info');
+      const ansCount = measurableAllQs.filter(q => answers[q.id] !== undefined && answers[q.id] !== null).length;
+      const progPercent = measurableAllQs.length > 0 ? Math.round((ansCount / measurableAllQs.length) * 100) : 0;
+
+      // Main Questionnaire View
+      return (
+        <React.Fragment>
+          <div className="app-main-view">
+          <header className="app-header">
+            <h1>Fragebogen</h1>
+          </header>
+          
+          <div className="container fade-in text-left">
+             <div className="mb-3" style={{color: 'var(--primary)', fontWeight: 600, fontSize:'1.1rem'}}>
+               Patient: {patient.vorname} {patient.nachname} (Geb: {patient.gebdatum})
+             </div>
+
+             {SECTIONS.map(s => (
+               <Section key={s.id} section={s} answers={answers} setAnswers={setAnswers} patient={patient} />
+             ))}
+             
+             <div style={{height: 40}}></div>
+          </div>
+
+          <div className="bottom-bar">
+            <div className="bottom-content">
+              <div className="prog-wrap">
+                <div className="prog-text">Fortschritt: {ansCount}/{allQs.length} Fragen beantwortet</div>
+                <div className="prog-bar-bg"><div className="prog-bar-fill" style={{width: `${progPercent}%`}}></div></div>
+              </div>
+              <button onClick={() => setIsAdminOpen(true)}>Auswertung</button>
+            </div>
+          </div>
+          
+          </div>
+          
+          <div className="admin-btn no-print" title="Arzt/Admin-Bereich" onClick={() => setIsAdminOpen(true)}>🛡️</div>
+          <AdminPanel isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} patient={patient} answers={answers} />
+        </React.Fragment>
+      );
+    }
+
+    const container = document.getElementById('root');
+    const root = ReactDOM.createRoot(container);
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
