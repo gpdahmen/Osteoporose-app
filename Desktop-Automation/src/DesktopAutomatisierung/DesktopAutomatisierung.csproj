@@ -7,8 +7,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>DesktopAutomatisierung</RootNamespace>
     <AssemblyName>DesktopAutomatisierung</AssemblyName>
-    <ApplicationIcon>app.ico</ApplicationIcon>
-    <Description>Desktop-Automatisierung: Aufzeichnung, Editierung und Steuerung wiederkehrender Praxis-Workflows für Windows-Desktopanwendungen</Description>
+<Description>Desktop-Automatisierung: Aufzeichnung, Editierung und Steuerung wiederkehrender Praxis-Workflows für Windows-Desktopanwendungen</Description>
     <Company>Dr. med. Georg P. Dahmen</Company>
     <Product>Desktop-Automatisierung</Product>
     <Version>1.0.0</Version>
