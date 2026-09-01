@@ -3287,6 +3287,33 @@ function PainBodySection({painMaps,setPainMaps,open,onToggle}){
                 <div style={{fontWeight:700,fontSize:9,marginBottom:2,color:"#5a3e2a"}}>{v.label}</div>
                 <canvas
                   ref={el=>{
+                    if(el&&painMaps[v.id]){
+                      const ctx=el.getContext("2d");
+                      const bg=new Image(); bg.onload=()=>{
+                        ctx.drawImage(bg,0,0,v.w,v.h);
+                        if(painMaps[v.id]){const p=new Image();p.onload=()=>ctx.drawImage(p,0,0,v.w,v.h);p.src=painMaps[v.id];}
+                      };
+                      bg.src=BODY_IMGS[v.id]||"";
+                    } else if(el){
+                      const ctx=el.getContext("2d");
+                      ctx.fillStyle="#fdf6ee"; ctx.fillRect(0,0,v.w,v.h);
+                      ctx.strokeStyle="#d0c0a8"; ctx.lineWidth=1; ctx.strokeRect(1,1,v.w-2,v.h-2);
+                      const img=new Image();
+                      img.onload=()=>ctx.drawImage(img,0,0,v.w,v.h);
+                      img.src=BODY_IMGS[v.id]||"";
+                    }
+                  }}
+                  width={v.w} height={v.h}
+                  style={{width:"100%",maxWidth:v.w===200?120:90,border:"1px solid #d8c8b0",borderRadius:4,display:"block",margin:"0 auto"}}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 /* ─── ANAMNESE SECTION ───────────────────────────────────────────────────── */
 function AnamneseSection({gender,data,onChange,open,onToggle}){
   const DEF={diagnosen:[],weitere:[],allergien:[],familienanamnese:[],fractures:[],ops:[],menarche:"",menoPause:"",menoYear:"",menoGrund:"",menoSonstige:"",kinder:[]};
