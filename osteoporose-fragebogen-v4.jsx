@@ -800,21 +800,54 @@ function calcAgeFromBirthdate(dob){
   if(!dob||dob.trim().length<4)return null;
   let day,mon,year;
   const s=dob.trim();
-  // TT.MM.JJJJ or T.M.JJJJ or T.M.JJ or TT.MM.JJ
+  // TT.MM.JJJJ or T.M.JJJJ or T.M.JJ or TT.MM.JJ (with separators)
   const de=/^(\d{1,2})\D(\d{1,2})\D(\d{2,4})$/.exec(s);
   // YYYY-MM-DD
   const iso=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  // Pure digits without separators: 4-8 digits (tmjj … ttmmjjjj)
+  const digits=/^(\d{4,8})$/.exec(s);
+
+  function fix2y(y){return y<=29?2000+y:1900+y;}
+  function tryDate(dd,mm,yy){
+    if(dd<1||dd>31||mm<1||mm>12)return null;
+    const yr=yy<100?fix2y(yy):yy;
+    const dt=new Date(yr,mm-1,dd);
+    if(isNaN(dt.getTime())||dt.getMonth()!==mm-1||dt.getDate()!==dd)return null;
+    return dt;
+  }
+
   if(de){
     day=parseInt(de[1]);mon=parseInt(de[2])-1;
     let y=parseInt(de[3]);
-    if(de[3].length===2){
-      // 2-digit year: 00-29 → 2000-2029, 30-99 → 1930-1999
-      y=y<=29?2000+y:1900+y;
-    }
+    if(de[3].length===2){y=fix2y(y);}
     year=y;
   } else if(iso){
     year=parseInt(iso[1]);mon=parseInt(iso[2])-1;day=parseInt(iso[3]);
+  } else if(digits){
+    // Try possible splits for pure digit input (TMJJ, TMMJJ, TTMJJ, TMJJJJ, TTMMJJ, TMMJJJJ, TTMJJJJ, TTMMJJJJ)
+    const n=s.length;
+    const splits=[];
+    if(n===4) splits.push([1,1,2]);                    // tmjj
+    if(n===5) splits.push([1,2,2],[2,1,2]);             // tmmjj, ttmjj
+    if(n===6) splits.push([2,2,2],[1,1,4]);             // ttmmjj (preferred), tmjjjj
+    if(n===7) splits.push([1,2,4],[2,1,4]);             // tmmjjjj, ttmjjjj
+    if(n===8) splits.push([2,2,4]);                     // ttmmjjjj
+    let found=null;
+    for(const [dl,ml,yl] of splits){
+      const dd=parseInt(s.substring(0,dl));
+      const mm=parseInt(s.substring(dl,dl+ml));
+      const yy=parseInt(s.substring(dl+ml));
+      const dt=tryDate(dd,mm,yy);
+      if(dt){found=dt;break;}
+    }
+    if(!found)return null;
+    const now=new Date();
+    let age=now.getFullYear()-found.getFullYear();
+    const m2=now.getMonth()-found.getMonth();
+    if(m2<0||(m2===0&&now.getDate()<found.getDate()))age--;
+    return age>=0&&age<=130?age:null;
   } else return null;
+
   const d=new Date(year,mon,day);
   if(isNaN(d.getTime())||d.getMonth()!==mon)return null;
   const now=new Date();
@@ -2189,6 +2222,7 @@ function computeRisk(answers,gender){
   const cF=top2.reduce((a,f)=>a*f.faktor,1);
   const age=parseInt(answers.alter)||null;
   const tHip=answers.dxa_hip||null;
+  const hasAgeDxa=!!(age&&(tHip||tHip===0));
   const t3=age?getTh(gender,3,age,tHip):null;
   const t5=age?getTh(gender,5,age,tHip):null;
   const t10=age?getTh(gender,10,age,tHip):null;
@@ -2202,7 +2236,7 @@ function computeRisk(answers,gender){
   else if(r3)cat="mod";
   else if(r3===false)cat="low";
   const indicators=getIndicators(answers,gender);
-  return{factors,top2,cF,t3,t5,t10,r3,r5,r10,genInd,cat,indicators};
+  return{factors,top2,cF,t3,t5,t10,r3,r5,r10,hasAgeDxa,genInd,cat,indicators};
 }
 function catLabel(c){return{top:"Sehr hohes Risiko / Generelle Indikation",high:"Deutlich erhöhtes Risiko",mod:"Mäßig erhöhtes Risiko",low:"Kein erhöhtes Risiko erkennbar"}[c]||"—";}
 function catShort(c){return{top:"Sehr hoch",high:"Hoch",mod:"Erhöht",low:"Gering"}[c]||"—";}
@@ -2948,7 +2982,7 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
   // Anamnese-Zusammenfassung
   let anamHtml="";
   if(anamnese){
-    const dxList=(anamnese.diagnosen||[]).filter(d=>d&&d.trim());
+    const dxList=(anamnese.diagnosen||[]).filter(d=>d&&(typeof d==="string"?d.trim():(d.name||"")));
     const fracList=(anamnese.fractures||[]).filter(f=>f&&(f.typ||f.seite));
     if(dxList.length||fracList.length||(anamnese.weitere||[]).filter(s=>s).length){
       anamHtml=`
@@ -2956,16 +2990,16 @@ function buildPatientEingabeHtml(patient, gender, answers, anamnese, lh, SECTION
         <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;
           font-size:13px;font-weight:700">📋 Anamnese / Krankengeschichte</div>
         <div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12.5px">`;
-      if(dxList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Diagnosen:</strong> ${dxList.join(" · ")}</div>`;
+      if(dxList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Diagnosen:</strong> ${dxList.map(d=>typeof d==="string"?d:[d.name,d.seitJahr?"seit "+d.seitJahr:""].filter(Boolean).join(" ")).join(" · ")}</div>`;
       if(fracList.length) anamHtml+=`<div style="margin-bottom:6px"><strong>Frühere Frakturen:</strong> ${fracList.map(f=>[f.typ,f.seite,f.jahr].filter(Boolean).join(" ")).join(", ")}</div>`;
       const weitereSet=(anamnese.weitere||[]).filter(s=>s);
-      if(weitereSet.length) anamHtml+=`<div><strong>Weitere Angaben:</strong> ${weitereSet.join(", ")}</div>`;
+      if(weitereSet.length) anamHtml+=`<div><strong>Weitere Angaben:</strong> ${weitereSet.map(w=>typeof w==="string"?w:[w.name||w.substanz||"",w.seitJahr?"seit "+w.seitJahr:""].filter(Boolean).join(" ")).join(", ")}</div>`;
       anamHtml+=`</div></div>`;
     }
   }
 
   const patName=[patient.vorname,patient.nachname].filter(Boolean).join(" ")||"–";
-  const genderLabel=gender==="w"?"weiblich":gender==="m"?"männlich":"–";
+  const genderLabel=gender==="f"?"weiblich":gender==="m"?"männlich":"–";
 
   return `<!DOCTYPE html>
 <html lang="de"><head>
@@ -3360,6 +3394,608 @@ function buildTextExport(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamne
   return lines.join("\n");
 }
 
+/* ═══════════════════════════════════ FULL REPORT HTML (Arzt-PDF) ═══ */
+function buildFullReportHtml(patient,gender,answers,risk,diff,lh,diagDb,sekDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds,painMaps,SECTIONS_ARG){
+  const db=diagDb||DIAG_DB_DEFAULTS;
+  const d=new Date().toLocaleDateString("de-DE");
+  const patName=[patient.nachname||patient.name,patient.vorname].filter(Boolean).join(", ")||"–";
+  const genderLabel=gender==="f"?"weiblich":"männlich";
+  const bmi=calcBMI(parseFloat(answers.groesse),parseFloat(answers.gewicht));
+
+  // ── Risk category info ──
+  const catColors={top:{bg:"#fdf4ff",border:"#d8b4fe",eyeC:"#7e22ce",hC:"#7e22ce",dC:"#581c87"},
+    high:{bg:"#fff1f2",border:"#fca5a5",eyeC:"#b91c1c",hC:"#b91c1c",dC:"#991b1b"},
+    mod:{bg:"#fffbeb",border:"#fcd34d",eyeC:"#b45309",hC:"#b45309",dC:"#92400e"},
+    low:{bg:"#f0fdf4",border:"#86efac",eyeC:"#15803d",hC:"#15803d",dC:"#166534"}};
+  const catTexts={
+    top:{eye:"Sehr hohes Risiko / Generelle Indikation",h:"10%-Schwelle und/oder generelle Indikation erreicht",
+      d:gender==="f"
+        ?"Osteoanabole Therapie sollte unverzüglich erwogen werden (A). Romosozumab (Evenity®, 12 Monate) oder Teriparatid (Forsteo®/Terrosa®/Movymia®, max. 24 Monate). Anschließend Sequenztherapie essenziell."
+        :"Osteoanabole Therapie sollte unverzüglich erwogen werden (A). Teriparatid (Forsteo®/Terrosa®/Movymia®, max. 24 Monate). Romosozumab für Männer in DE nicht zugelassen. Sequenztherapie anschließen."},
+    high:{eye:"Deutlich erhöhtes Risiko",h:"5%-Schwelle erreicht – spezifische Therapie indiziert",
+      d:gender==="f"
+        ?"Antiresorptive Therapie empfohlen (A): Bisphosphonate, Denosumab, SERM. Bei 10%-Schwelle osteoanabole Substanz erwägen."
+        :"Antiresorptive Therapie empfohlen (A): Alendronat, Risedronat, Zoledronat, Denosumab. Bei 10%-Schwelle Teriparatid erwägen."},
+    mod:{eye:"Mäßig erhöhtes Risiko",h:"3%-Schwelle erreicht – Abklärung empfehlenswert",
+      d:"Spezifische Therapie kann erwogen werden (B). DXA empfohlen. Basistherapie: Kalzium 1000 mg/Tag, Vitamin D 800–1000 IE/Tag, Sturzprophylaxe."},
+    low:{eye:"Kein erhöhtes Risiko erkennbar",h:"Aktuell kein erhöhtes Frakturrisiko",
+      d:"Allgemeine Prophylaxe: Kalzium 1000 mg/Tag, Vitamin D 800–1000 IE/Tag, körperliche Aktivität, Sturzprophylaxe. Verlaufskontrolle in 3–5 Jahren."}
+  };
+
+  // ── Thresh pill HTML ──
+  function threshHtml(label,threshold,reached){
+    let bg,border,lblC,valC;
+    if(threshold===null){bg="#f8fafc";border="#cbd5e1";lblC="#64748b";valC="#475569";}
+    else if(reached){bg="#fef2f2";border="#fca5a5";lblC="#b91c1c";valC="#991b1b";}
+    else{bg="#f0fdf4";border="#86efac";lblC="#15803d";valC="#166534";}
+    const sym=threshold===null?"—":reached?"✓":"✗";
+    const sub=threshold!==null?"Benötigt: ×"+threshold:"Alter/DXA fehlt";
+    return `<div style="flex:1;min-width:100px;padding:11px 12px;border-radius:7px;text-align:center;border:1.5px solid ${border};background:${bg};-webkit-print-color-adjust:exact;print-color-adjust:exact">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${lblC};margin-bottom:3px">${label}</div>
+      <div style="font-size:20px;font-weight:700;color:${valC}">${sym}</div>
+      <div style="font-size:10px;color:${lblC};margin-top:2px">${sub}</div>
+    </div>`;
+  }
+
+  // ── DVO Table HTML (static, all 3 percentage tables) ──
+  function dvoTableHtml(perc){
+    const g=gender||"f";
+    const ages=[50,55,60,65,70,75,80,85,90];
+    const tscoreCols=["Ohne BMD","T 0,0","T −0,5","T −1,0","T −1,5","T −2,0","T −2,5","T −3,0","T −3,5","T −4,0"];
+    const patAge=parseInt(answers.alter)||null;
+    const patRowAge=patAge?ageRow(patAge):null;
+    const hipVal=answers.dxa_hip!==undefined&&answers.dxa_hip!==""?parseFloat(answers.dxa_hip):null;
+    const patColIdx=(hipVal!==null&&!isNaN(hipVal))?tCol(hipVal):null;
+    const percLabel={3:"3%-Tabelle",5:"5%-Tabelle",10:"10%-Tabelle"};
+    const percColor={3:"#22c55e",5:"#f97316",10:"#ef4444"};
+
+    let rows="";
+    for(const age of ages){
+      const isPatRow=patRowAge===age;
+      const rowStyle=isPatRow?'outline:2px solid #c8a070;outline-offset:-1px':'';
+      let cells=`<td style="font-weight:700;color:#5a3e2a;background:${isPatRow?'#c8a070':'#faf6f0'};${isPatRow?'color:#2c1f0e':''}padding:6px 8px;white-space:nowrap">${age}${isPatRow?' 👤':''}</td>`;
+      for(let ci=0;ci<tscoreCols.length;ci++){
+        const v=(THRESH[g][perc][age]||[])[ci];
+        const v10=(THRESH[g][10][age]||[])[ci];
+        const v5=(THRESH[g][5][age]||[])[ci];
+        const v3=(THRESH[g][3][age]||[])[ci];
+        const ex10=v10===null||(v10!==undefined&&v10<=1.0);
+        const ex5=v5===null||(v5!==undefined&&v5<=1.0);
+        const ex3=v3===null||(v3!==undefined&&v3<=1.0);
+        let bgC=ex10?"#D42020":ex5?"#F4A030":ex3?"#FFD966":"white";
+        let fgC=ex10?"#fff":ex5?"#4a1a00":ex3?"#5a3a00":"#5a4a38";
+        const isPatCell=isPatRow&&patColIdx===ci;
+        if(isPatCell){
+          const {cF}=risk;
+          cells+=`<td style="background:${bgC};color:${fgC};font-weight:700;padding:4px 6px;outline:3px solid #1a1a1a;outline-offset:-2px;-webkit-print-color-adjust:exact;print-color-adjust:exact"><div style="font-size:11px">${v!==null&&v!==undefined?v:'–'}</div><div style="font-size:12px;font-weight:900;margin-top:2px;border-top:1px solid rgba(0,0,0,0.25);padding-top:2px">${cF.toFixed(2)}</div></td>`;
+        }else{
+          cells+=`<td style="background:${bgC};color:${fgC};font-weight:${ex10||ex5||ex3?'700':'400'};padding:5px 6px;text-align:center;font-size:11px;-webkit-print-color-adjust:exact;print-color-adjust:exact">${v!==null&&v!==undefined?v:'–'}</td>`;
+        }
+      }
+      rows+=`<tr style="${rowStyle}">${cells}</tr>`;
+    }
+    return `<div style="margin-top:14px;border:1.5px solid #c8b89a;border-radius:8px;overflow:hidden;break-inside:avoid">
+      <div style="background:#2c1f0e;color:#e8ddd0;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+        <div>
+          <div style="font-size:13px;font-weight:700">DVO 2023 – Tabelle 3.2: ${percLabel[perc]} (${g==='f'?'Frau ♀':'Mann ♂'})</div>
+        </div>
+        <span style="background:${percColor[perc]};color:white;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">${perc}%</span>
+      </div>
+      <div style="overflow-x:auto;padding:6px">
+        <table style="width:100%;border-collapse:collapse;font-size:11px;font-family:'Source Sans 3',sans-serif">
+          <thead><tr style="background:#3d2a15;color:#e8ddd0;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+            <th style="padding:6px 8px;text-align:left;font-size:10px">Alter</th>
+            ${tscoreCols.map((col,i)=>`<th style="padding:6px 4px;text-align:center;font-size:9px;${patColIdx===i?'background:#c8a070;color:#2c1f0e;font-weight:800':''}">${col}</th>`).join('')}
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:12px;padding:6px 10px;font-size:9px;color:#7a6a58;flex-wrap:wrap;border-top:1px solid #e8dfd4">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#FFD966;border:1px solid #c8a030;border-radius:2px;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> 3%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#F4A030;border:1px solid #c07010;border-radius:2px;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> 5%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#D42020;border:1px solid #a00000;border-radius:2px;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> 10%</span>
+        ${patRowAge?'<span><span style="display:inline-block;width:10px;height:10px;background:#c8a070;border:2px solid #8a6030;border-radius:2px;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> 👤 Patient</span>':''}
+      </div>
+    </div>`;
+  }
+
+  // ── Anamnese HTML ──
+  let anamHtml="";
+  const an=anamnese||{};
+  const hasAnam=(an.diagnosen||[]).length>0||(an.weitere||[]).length>0||(an.allergien||[]).length>0||(an.familienanamnese||[]).length>0||(an.fractures||[]).length>0||(an.ops||[]).length>0||an.menarche||an.menoPause||(an.kinder||[]).length>0;
+  if(hasAnam){
+    anamHtml+=`<div style="margin-bottom:18px;break-inside:avoid">
+      <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;font-size:13px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">📋 Persönliche Krankengeschichte / Anamnese</div>
+      <div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12px;line-height:1.7">`;
+    if((an.diagnosen||[]).length>0){
+      anamHtml+=`<div style="margin-bottom:8px"><strong>Bekannte Diagnosen / Vorerkrankungen:</strong><ul style="margin:4px 0 0 18px;padding:0">`;
+      an.diagnosen.forEach(function(dx,i){
+        let s=(dx.name||"–");
+        if(dx.seitJahr)s+=" (seit "+dx.seitJahr+")";
+        let flags=[];
+        if(dx.vitdRisiko)flags.push("VitD↓-Risiko");
+        if(dx.phosphatRisiko)flags.push("PO₄↑-Risiko");
+        if(flags.length)s+=' <span style="color:#b45309;font-size:11px">['+flags.join(", ")+']</span>';
+        if(dx.medikation)s+=' <span style="color:#6a4a9a;font-size:11px">– Medikation: '+dx.medikation+'</span>';
+        anamHtml+="<li>"+s+"</li>";
+      });
+      anamHtml+=`</ul></div>`;
+    }
+    if((an.weitere||[]).length>0){
+      anamHtml+=`<div style="margin-bottom:8px"><strong>Weitere Erkrankungen:</strong><ul style="margin:4px 0 0 18px;padding:0">`;
+      an.weitere.forEach(function(we){
+        let s=(we.name||"–");
+        if(we.seitJahr)s+=" (seit "+we.seitJahr+")";
+        if(we.status&&we.status!=="aktiv")s+=" ["+we.status+"]";
+        if(we.anmerkung)s+=" – "+we.anmerkung;
+        anamHtml+="<li>"+s+"</li>";
+      });
+      anamHtml+=`</ul></div>`;
+    }
+    if((an.allergien||[]).length>0){
+      anamHtml+=`<div style="margin-bottom:8px"><strong>Allergien / Unverträglichkeiten / Kontraindikationen:</strong><ul style="margin:4px 0 0 18px;padding:0">`;
+      an.allergien.forEach(function(al){
+        let s=(al.substanz||"–");
+        if(al.reaktion)s+=" → "+al.reaktion;
+        if(al.schwere)s+=' <span style="color:#b91c1c;font-size:11px">['+al.schwere+']</span>';
+        anamHtml+="<li>"+s+"</li>";
+      });
+      anamHtml+=`</ul></div>`;
+    }
+    if((an.familienanamnese||[]).length>0){
+      anamHtml+=`<div style="margin-bottom:8px"><strong>Familienanamnese:</strong><ul style="margin:4px 0 0 18px;padding:0">`;
+      an.familienanamnese.forEach(function(fa){
+        let s=(fa.verwandtschaft||"Verwandter")+": "+(fa.diagnose||"–");
+        if(fa.erkranktMit)s+=" (mit ca. "+fa.erkranktMit+" J.)";
+        if(fa.osteoRelevant)s+=' <span style="color:#7e22ce;font-weight:700;font-size:11px">[OSTEOPOROSE-RELEVANT]</span>';
+        anamHtml+="<li>"+s+"</li>";
+      });
+      anamHtml+=`</ul></div>`;
+    }
+    if((an.fractures||[]).length>0){
+      anamHtml+=`<div style="margin-bottom:8px"><strong>Frühere Knochenbrüche:</strong><ul style="margin:4px 0 0 18px;padding:0">`;
+      an.fractures.forEach(function(fr){
+        var parts=[fr.ort||"–"];
+        if(fr.seite)parts.push(fr.seite);
+        if(fr.jahr)parts.push("ca. "+fr.jahr);
+        if(fr.ursache)parts.push("("+fr.ursache+")");
+        anamHtml+="<li>"+parts.join(" · ")+"</li>";
+      });
+      anamHtml+=`</ul></div>`;
+    }
+    if((an.ops||[]).length>0){
+      anamHtml+=`<div style="margin-bottom:8px"><strong>Frühere Operationen:</strong><ul style="margin:4px 0 0 18px;padding:0">`;
+      an.ops.forEach(function(op){
+        var parts=[op.art||"–"];
+        if(op.jahr)parts.push(""+op.jahr);
+        if(op.klinik)parts.push(op.klinik);
+        anamHtml+="<li>"+parts.join(" · ")+"</li>";
+      });
+      anamHtml+=`</ul></div>`;
+    }
+    if(gender==="f"){
+      let gynaHtml="";
+      if(an.menarche)gynaHtml+=`<div>Menarche: ${an.menarche} Jahre</div>`;
+      if(an.menoPause==="ja")gynaHtml+=`<div>Regelblutung: Vorhanden (regelmäßig)</div>`;
+      else if(an.menoPause==="unregelmaessig")gynaHtml+=`<div>Regelblutung: Vorhanden (unregelmäßig)</div>`;
+      else if(an.menoPause==="nein"){
+        gynaHtml+=`<div>Menopause: Ja (keine Regelblutung)</div>`;
+        if(an.menoYear)gynaHtml+=`<div>Letzte Blutung: ${an.menoYear}</div>`;
+        var gMap={natuerlich:"Natürliche Wechseljahre",op:"Ovarektomie (OP)",medikamentoes:"Medikamentöse Unterdrückung",strahlen:"Strahlentherapie",pof:"Vorzeitige Ovarialinsuffizienz (<40. LJ)",sonstige:an.menoSonstige||"Sonstiges"};
+        if(an.menoGrund)gynaHtml+=`<div>Ursache: ${gMap[an.menoGrund]||an.menoGrund}</div>`;
+      }
+      if((an.kinder||[]).length>0){
+        gynaHtml+=`<div>Kinder: ${an.kinder.length}</div>`;
+        an.kinder.forEach(function(k,i){
+          var s=(i+1)+". Geburtsjahr "+(k.geburtsjahr||"–");
+          if(k.gestillt==="ja")s+=", gestillt "+(k.stilldauer||"?")+" Monate";
+          else if(k.gestillt==="nein")s+=", nicht gestillt";
+          gynaHtml+=`<div style="padding-left:14px;font-size:11px">${s}</div>`;
+        });
+      }
+      if(gynaHtml)anamHtml+=`<div style="margin-bottom:8px"><strong>Gynäkologische Anamnese:</strong>${gynaHtml}</div>`;
+    }
+    anamHtml+=`</div></div>`;
+  }
+
+  // ── Pain drawings HTML ──
+  let painHtml="";
+  const pm=painMaps||{};
+  const drawnViews=PAIN_VIEWS.filter(v=>pm[v.id]);
+  if(drawnViews.length>0){
+    painHtml+=`<div style="margin-bottom:18px;break-inside:avoid">
+      <div style="background:#3a2a0e;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;font-size:13px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">🎨 Schmerzeinzeichnungen</div>
+      <div style="border:1px solid #ddd;border-top:none;padding:10px 14px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">`;
+    for(const v of drawnViews){
+      painHtml+=`<div style="text-align:center">
+        <div style="font-weight:700;font-size:10px;margin-bottom:3px;color:#5a3e2a">${v.label}</div>
+        <img src="${pm[v.id]}" style="max-width:100%;border:1px solid #d8c8b0;border-radius:4px" alt="${v.label}"/>
+      </div>`;
+    }
+    painHtml+=`</div>
+        <div style="margin-top:8px;font-size:10px;color:#8a7a68;display:flex;gap:14px;flex-wrap:wrap">
+          <span><span style="display:inline-block;width:12px;height:12px;background:#e63946;border-radius:50%;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> Starker Schmerz</span>
+          <span><span style="display:inline-block;width:12px;height:12px;background:#f4a261;border-radius:50%;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> Mäßiger Schmerz</span>
+          <span><span style="display:inline-block;width:12px;height:12px;background:#52b788;border-radius:50%;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> Gelegentlich</span>
+          <span><span style="display:inline-block;width:12px;height:12px;background:#9b5de5;border-radius:50%;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span> Taubheit / Kribbeln</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── Questionnaire answers HTML ──
+  function renderAnswer(q){
+    const v=answers[q.id];
+    if(q.t==="yn"||q.t==="yn_inv"){
+      if(v==="ja"||v===true)return '<span style="color:#1a5a1a;font-weight:700">✓ Ja</span>';
+      if(v==="nein"||v===false)return '<span style="color:#5a1a1a">✗ Nein</span>';
+      return '<span style="color:#888">–</span>';
+    }
+    if(q.t==="radio"||q.t==="select") return v?`<span style="font-weight:600">${v}</span>`:'<span style="color:#888">–</span>';
+    if(q.t==="number"||q.t==="text"||q.t==="dxa") return v?`<span style="font-weight:600">${v}</span>`:'<span style="color:#888">–</span>';
+    if(q.t==="multi"){const sel=Array.isArray(v)?v:[];return sel.length?sel.join(", "):'<span style="color:#888">–</span>';}
+    return v?`<span style="font-weight:600">${v}</span>`:'<span style="color:#888">–</span>';
+  }
+  let sectionsHtml="";
+  const SECS=SECTIONS_ARG||SECTIONS;
+  for(const sec of SECS){
+    const gok=!sec.gender||sec.gender===gender;
+    if(!gok)continue;
+    const qs=(sec.qs||[]).filter(q=>!q.gender||q.gender===gender);
+    const answeredQs=qs.filter(q=>{const v=answers[q.id];return v!==undefined&&v!==null&&v!=="";});
+    if(!answeredQs.length)continue;
+    const isSymcheck=sec.symcheck;
+    sectionsHtml+=`<div style="margin-bottom:14px;break-inside:avoid">
+      <div style="background:${isSymcheck?'#4a1a3a':'#3a2a0e'};color:#f0e8d0;padding:7px 14px;border-radius:5px 5px 0 0;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+        <span>${sec.icon||""}</span><span>${sec.title}${isSymcheck?' (Symptomcheck)':''}</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:11.5px">`;
+    for(const q of answeredQs){
+      const shortLabel=q.label.split("\\n")[0].slice(0,120);
+      sectionsHtml+=`<tr style="border-bottom:1px solid #efe6d8">
+        <td style="padding:5px 10px;width:65%;color:#2a1a0a;line-height:1.4">${shortLabel}</td>
+        <td style="padding:5px 10px;text-align:right">${renderAnswer(q)}</td>
+      </tr>`;
+    }
+    sectionsHtml+=`</table></div>`;
+  }
+
+  // ── Secondary osteoporosis findings ──
+  const sekHits=computeSecondary(answers);
+  let sekHtml="";
+  if(sekHits.length>0){
+    sekHtml+=`<div style="margin-bottom:18px;break-inside:avoid">
+      <div style="background:#4a1a3a;color:#f0e8d0;padding:8px 14px;border-radius:5px 5px 0 0;font-size:13px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">🔬 Abklärungshinweise – Sekundäre Osteoporoseformen</div>
+      <div style="border:1px solid #ddd;border-top:none;padding:10px 14px;font-size:12px">
+        <div style="color:#7a6a58;font-size:11px;margin-bottom:10px">Folgende Befundkonstellationen sollten weiter abgeklärt werden:</div>`;
+    for(const {sym,count,hits,profile} of sekHits){
+      const sekEntry=(sekDb||SEK_DIAG_DB_DEFAULTS)[sym]||{};
+      const diagText=sekEntry.diagnose||profile.label;
+      const icdCode=sekEntry.icd5||"";
+      sekHtml+=`<div style="margin-bottom:12px;padding:8px 10px;background:#fdf4ff;border:1px solid #e8d4f0;border-radius:6px">
+        <div style="font-weight:700;color:#7e22ce;font-size:12.5px">${diagText}${icdCode?' <span style="font-family:monospace;font-size:10px;background:#f3e8ff;padding:1px 6px;border-radius:3px">{'+icdCode+'}</span>':''}</div>
+        <div style="font-size:11px;color:#581c87;margin:4px 0">${profile.hinweis}</div>
+        <div style="font-size:10.5px;color:#5a4a38;margin-top:4px"><strong>Auslösende Angaben (${count}):</strong></div>
+        <ul style="margin:2px 0 0 18px;padding:0;font-size:10.5px;color:#4a3a28">`;
+      for(const h of hits){sekHtml+=`<li>${h.label}</li>`;}
+      sekHtml+=`</ul>`;
+      if(profile.untersuchungen&&profile.untersuchungen.length>0){
+        sekHtml+=`<div style="font-size:10.5px;color:#5a4a38;margin-top:4px"><strong>Vorgeschlagene Diagnostik:</strong></div>
+        <ul style="margin:2px 0 0 18px;padding:0;font-size:10.5px;color:#4a3a28">`;
+        for(const u of profile.untersuchungen){
+          sekHtml+=`<li>${u.name}${u.icd?' <span style="font-family:monospace;font-size:9px;color:#6a4a9a">['+u.icd+']</span>':''}</li>`;
+        }
+        sekHtml+=`</ul>`;
+      }
+      sekHtml+=`</div>`;
+    }
+    sekHtml+=`<div style="font-size:10px;color:#9a8a78;font-style:italic;margin-top:6px">⚠ Abklärungsempfehlungen sind Orientierungshilfen. Diagnosestellung obliegt dem Arzt.</div>
+      </div></div>`;
+  }
+
+  // ── Medications HTML ──
+  let medsHtml="";
+  const alleMeds=answers["alle_medikamente_rx"]||[];
+  if(alleMeds.length>0){
+    medsHtml+=`<div style="margin-bottom:14px;break-inside:avoid">
+      <div style="background:#3a2a0e;color:#f0e8d0;padding:7px 14px;border-radius:5px 5px 0 0;font-size:12px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">💊 Aktuelle Medikation (Patientenangabe)</div>
+      <div style="border:1px solid #ddd;border-top:none;padding:8px 14px;font-size:12px">
+        ${alleMeds.map((m,i)=>`<span style="display:inline-block;background:#d4ede4;border:1px solid #7ab0a0;border-radius:14px;padding:3px 10px;margin:2px 3px;font-size:11px">💊 ${m}</span>`).join('')}
+      </div></div>`;
+  }
+
+  // ── Therapy history HTML ──
+  let therapieHtml="";
+  const freiTh=freitextTherapieMeds||[];
+  const th=therapieHistory||[];
+  const tdb=osteoTherapieDb||[];
+  if(freiTh.length>0||th.length>0){
+    therapieHtml+=`<div style="margin-bottom:14px;break-inside:avoid">
+      <div style="background:#3a2a0e;color:#f0e8d0;padding:7px 14px;border-radius:5px 5px 0 0;font-size:12px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">💉 Bisherige Osteoporose-Therapie</div>
+      <div style="border:1px solid #ddd;border-top:none;padding:8px 14px;font-size:12px">`;
+    if(freiTh.length>0){
+      therapieHtml+=`<div style="margin-bottom:6px"><strong>Schnellerfassung:</strong> ${freiTh.join(", ")}</div>`;
+    }
+    if(th.length>0){
+      th.forEach(function(en,i){
+        const med=tdb.find(function(m){return m.id===en.medId;})||null;
+        let s=(i+1)+". "+(med?med.wirkstoff:(en.medId||"Unbekannt"));
+        if(med&&med.handelsnamen)s+=" ("+med.handelsnamen.split(",")[0]+")";
+        if(en.vonJahr)s+="  von "+en.vonJahr;
+        if(en.nochAktuell)s+=" – noch aktuell";
+        else if(en.bisJahr)s+=" bis "+en.bisJahr;
+        if(en.dosierung)s+=" · Dosierung: "+en.dosierung;
+        therapieHtml+=`<div style="margin-bottom:3px">${s}</div>`;
+      });
+    }
+    therapieHtml+=`</div></div>`;
+  }
+
+  // ── Risk factors table ──
+  let factorsHtml="";
+  if(risk.factors.length>0){
+    factorsHtml+=`<div style="margin-bottom:14px;break-inside:avoid">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#8b6e4e;margin-bottom:6px">Alle erfassten Risikofaktoren</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:#2c1f0e;color:#e8ddd0;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+          <th style="padding:5px 8px;text-align:left">Risikofaktor</th>
+          <th style="padding:5px 8px;text-align:left">ICD-10</th>
+          <th style="padding:5px 8px;text-align:center">Faktor</th>
+          <th style="padding:5px 8px;text-align:left">Gruppe</th>
+        </tr></thead><tbody>`;
+    for(const f of risk.factors){
+      factorsHtml+=`<tr style="border-bottom:1px solid #efe6d8">
+        <td style="padding:5px 8px">${f.label}</td>
+        <td style="padding:5px 8px;font-family:monospace;font-size:10px;color:#6a4a9a">${f.icd||"–"}</td>
+        <td style="padding:5px 8px;text-align:center;font-weight:700;color:#b45309">×${f.faktor}</td>
+        <td style="padding:5px 8px;font-size:10px;color:#8b7a68">${f.grp==="sturz"?"Sturzrisiko":f.grp==="gc_ra"?"GK/RA":"Allgemein"}</td>
+      </tr>`;
+    }
+    factorsHtml+=`</tbody></table></div>`;
+  }
+
+  // ── Indicators HTML ──
+  const activeInds=risk.indicators||[];
+  let indHtml="";
+  if(activeInds.length>0){
+    indHtml+=`<div style="margin-bottom:14px;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:8px;padding:10px 14px;break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+      <div style="font-weight:700;font-size:12px;color:#92400e;margin-bottom:4px">🔔 Risikoindikatoren (DVO 2023)</div>
+      <div style="font-size:11px;color:#78350f;margin-bottom:6px">Diese Befunde begründen eine Indikation zur Basisdiagnostik (DXA + Labor), fließen aber nicht in den Risikorechner ein.</div>`;
+    for(const ind of activeInds){
+      indHtml+=`<div style="display:flex;gap:6px;margin-bottom:3px;font-size:11px">
+        <span style="color:#f59e0b;flex-shrink:0">⚠</span>
+        <span style="color:#2a1a0a">${ind.label}${ind.asterisk?' <sup style="color:#b45309;font-size:8px">*</sup>':''}</span>
+        ${ind.icd?'<span style="font-family:monospace;font-size:9px;color:#6a4a9a;background:#f3e8ff;padding:1px 5px;border-radius:3px;white-space:nowrap;flex-shrink:0">'+ind.icd+'</span>':''}
+      </div>`;
+    }
+    if(activeInds.some(i=>i.asterisk))indHtml+=`<div style="font-size:9px;color:#9a6a3a;margin-top:4px;font-style:italic">* Basisdiagnostik auch vor dem Alter von 50 Jahren erwägen</div>`;
+    indHtml+=`</div>`;
+  }
+
+  // ── General therapy indications ──
+  let genIndHtml="";
+  if(risk.genInd.length>0){
+    genIndHtml+=`<div style="margin-bottom:14px;background:#fff1f2;border:1.5px solid #fca5a5;border-radius:8px;padding:10px 14px;break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+      <div style="font-weight:700;font-size:12px;color:#b91c1c;margin-bottom:4px">⚠ Generelle Therapieindikationen (Tabelle 3.1, DVO 2023)</div>`;
+    for(const g of risk.genInd){genIndHtml+=`<div style="font-size:11.5px;color:#991b1b;margin-bottom:2px">• ${g}</div>`;}
+    genIndHtml+=`</div>`;
+  }
+
+  // ── Diagnoses HTML ──
+  let diagHtml="";
+  const isPostMeno=gender==="f"&&answers?.menopause_aktuell==="nein";
+  diagHtml+=`<div style="margin-bottom:14px;break-inside:avoid">
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#8b6e4e;margin-bottom:6px">Diagnosen</div>
+    <div style="font-size:12px;line-height:1.7">`;
+  if(isPostMeno)diagHtml+=`<div>Postmenopausale Osteoporose <span style="font-family:monospace;font-size:10px;color:#6a4a9a">{M81.00G}</span></div>`;
+  else if(gender==="m"&&risk.factors.some(f=>["hueft_akut","hueft_alt","wirbelbruch_akut","wirbelbruch_anz","humerus","becken","unterarm"].includes(f.id)))
+    diagHtml+=`<div>Osteoporose beim Mann <span style="font-family:monospace;font-size:10px;color:#6a4a9a">{M81.50G}</span></div>`;
+  for(const f of risk.factors){
+    const diag=db[f.id]||{};
+    const diagTexts=getAllDiagnoses(diag,f.label);
+    const allIcds=getAllIcdCodes(diag,gender,answers);
+    if(diagTexts.length===1){
+      const icdStr=allIcds.join(", ");
+      diagHtml+=`<div>${diagTexts[0]}${icdStr?' <span style="font-family:monospace;font-size:10px;color:#6a4a9a">{'+icdStr+'}</span>':''}</div>`;
+    }else{
+      diagTexts.forEach((text,i)=>{
+        const icd=allIcds[i]||"";
+        diagHtml+=`<div>${text}${icd?' <span style="font-family:monospace;font-size:10px;color:#6a4a9a">{'+icd+'}</span>':''}</div>`;
+      });
+    }
+  }
+  for(const ind of activeInds){
+    const diag=db[ind.id]||DIAG_DB_DEFAULTS[ind.id]||{};
+    const diagText=diag.diagnose||ind.label;
+    const icdStr=ind.icd||"";
+    diagHtml+=`<div>${diagText}${icdStr?' <span style="font-family:monospace;font-size:10px;color:#6a4a9a">{'+icdStr+'}</span>':''}</div>`;
+  }
+  diagHtml+=`</div></div>`;
+
+  // ── Diff/comparison ──
+  let diffHtml="";
+  if(diff&&diff.diffs.length>0){
+    diffHtml+=`<div style="margin-bottom:14px;border:1.5px solid #93c5fd;border-radius:8px;padding:10px 14px;background:#eff6ff;break-inside:avoid">
+      <div style="font-weight:700;font-size:12px;color:#1e40af;margin-bottom:6px">📈 Verlaufsvergleich mit ${diff.prevDate}</div>
+      <div style="font-size:11px;margin-bottom:6px">Vorherige Kategorie: <strong>${catLabel(diff.prevCat)}</strong> → Aktuelle: <strong>${catLabel(risk.cat)}</strong></div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:#dbeafe;-webkit-print-color-adjust:exact;print-color-adjust:exact"><th style="padding:4px 8px;text-align:left">Parameter</th><th style="padding:4px 8px;text-align:left">Vorher</th><th style="padding:4px 8px;text-align:left">Jetzt</th></tr></thead><tbody>`;
+    for(const dd of diff.diffs){
+      diffHtml+=`<tr style="border-bottom:1px solid #bfdbfe"><td style="padding:4px 8px;color:#0369a1;font-weight:500">${dd.field}</td><td style="padding:4px 8px">${dd.old}</td><td style="padding:4px 8px;font-weight:600">${dd.new}</td></tr>`;
+    }
+    diffHtml+=`</tbody></table></div>`;
+  }
+
+  // ── Risk category box ──
+  let catHtml="";
+  if(risk.cat&&catTexts[risk.cat]){
+    const ci=catColors[risk.cat];
+    const ct=catTexts[risk.cat];
+    catHtml=`<div style="border-radius:8px;padding:14px 16px;margin-bottom:14px;background:${ci.bg};border:1.5px solid ${ci.border};-webkit-print-color-adjust:exact;print-color-adjust:exact">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${ci.eyeC};margin-bottom:3px">${ct.eye}</div>
+      <div style="font-size:14px;font-weight:700;color:${ci.hC};margin-bottom:6px">${ct.h}</div>
+      <div style="font-size:12px;color:${ci.dC};line-height:1.6">${ct.d}</div>
+    </div>`;
+  }
+
+  // ── Calculation box ──
+  let calcHtml=`<div style="background:#faf6f0;border:1.5px solid #c8b89a;border-radius:7px;padding:12px 14px;margin-bottom:14px">
+    <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#8b6e4e;margin-bottom:6px">Risikoberechnung nach DVO-Algorithmus</div>`;
+  if(risk.top2.length){
+    for(let i=0;i<risk.top2.length;i++){
+      calcHtml+=`<div style="display:flex;justify-content:space-between;font-size:12px;color:#4a3520;padding:3px 0;border-bottom:1px solid #ece5d8"><span>${i+1}. ${risk.top2[i].label}</span><span style="font-weight:700">×${risk.top2[i].faktor}</span></div>`;
+    }
+    calcHtml+=`<div style="display:flex;justify-content:space-between;font-size:12.5px;color:#2c1f0e;font-weight:700;padding:6px 0 0"><span>Kombinierter Risikofaktor</span><span>×${risk.cF.toFixed(2)}</span></div>`;
+  }else{
+    calcHtml+=`<div style="font-size:12px;color:#8b7a68;text-align:center;padding:6px 0">Keine Risikofaktoren erfasst</div>`;
+  }
+  calcHtml+=`</div>`;
+
+  // ── Determine which DVO table to show (based on T-score) ──
+  const hipVal=answers.dxa_hip!==undefined&&answers.dxa_hip!==""?parseFloat(answers.dxa_hip):null;
+  const hasDxa=hipVal!==null&&!isNaN(hipVal);
+  let primaryPerc=3;
+  if(hasDxa){
+    if(hipVal< -2.5)primaryPerc=10;
+    else if(hipVal< -1.5)primaryPerc=5;
+    else primaryPerc=3;
+  }
+
+  // ── Assemble full document ──
+  return `<!DOCTYPE html>
+<html lang="de"><head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Befundbericht – ${patName}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a1a1a;background:white;padding:16px}
+  @media print{
+    body{padding:0}
+    .print-bar{display:none!important}
+    @page{size:A4;margin:10mm 12mm}
+  }
+  h1{font-size:17px;color:#2a1808;margin-bottom:4px}
+  .print-bar{background:#2c1f0e;color:#f0e8d0;padding:12px 16px;margin:-16px -16px 18px;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .print-bar h2{font-size:14px;font-weight:700;flex:1;margin:0}
+  .print-btn{padding:9px 18px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit}
+  .print-btn.primary{background:#4a9a4a;color:white}
+</style>
+<script>
+window.doPrint=function(){window.print();};
+<\/script>
+</head><body>
+<div class="print-bar">
+  <h2>&#x1F9BE; Befundbericht – Anamnese- und Osteoporose-Dokumentationshilfe</h2>
+  <button class="print-btn primary" onclick="window.doPrint()">&#x1F5A8; Drucken / Als PDF</button>
+</div>
+
+<!-- Briefkopf -->
+<div style="border:1.5px solid #c8b89a;border-radius:7px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+  <div style="width:38px;height:38px;background:#2c1f0e;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#e8ddd0;flex-shrink:0;-webkit-print-color-adjust:exact;print-color-adjust:exact">⚕</div>
+  <div>
+    <div style="font-size:16px;font-weight:700;color:#2c1f0e">${lh.name||""}</div>
+    ${lh.title?`<div style="font-size:12px;color:#8b6e4e">${lh.title}</div>`:''}
+    <div style="font-size:11px;color:#7a6a58">${lh.strasse||""}, ${lh.plz_ort||""}</div>
+    ${lh.telefon?`<div style="font-size:10.5px;color:#9a8a78">Tel.: ${lh.telefon}${lh.fax?' | Fax: '+lh.fax:''}${lh.email?' | '+lh.email:''}</div>`:''}
+  </div>
+</div>
+
+<h1>Befundbericht – Anamnese- und Osteoporose-Dokumentationshilfe und Risikocheck</h1>
+<div style="font-size:10.5px;color:#888;margin-bottom:14px">DVO-Leitlinie 2023 | S3-Leitlinie AWMF 183-001 | Ausgabedatum: ${d}</div>
+
+<!-- Patientendaten -->
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 16px;margin-bottom:18px;background:#faf6f0;border:1.5px solid #d4a84b;border-radius:7px;padding:10px 14px;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+  <div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Name</span><span style="font-size:13px;font-weight:600">${patName}</span></div>
+  <div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Geburtsdatum</span><span style="font-size:13px;font-weight:600">${patient.geburtsdatum||"–"}</span></div>
+  <div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Geschlecht</span><span style="font-size:13px;font-weight:600">${genderLabel}</span></div>
+  <div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Alter</span><span style="font-size:13px;font-weight:600">${answers.alter||"–"} Jahre</span></div>
+  ${answers.groesse?`<div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Größe</span><span style="font-size:13px;font-weight:600">${answers.groesse} cm</span></div>`:''}
+  ${answers.gewicht?`<div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Gewicht</span><span style="font-size:13px;font-weight:600">${answers.gewicht} kg</span></div>`:''}
+  ${bmi?`<div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">BMI</span><span style="font-size:13px;font-weight:600">${bmi.toFixed(1)} kg/m²</span></div>`:''}
+  <div><span style="font-size:10px;font-weight:700;color:#7a5a38;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:1px">Untersuchungsdatum</span><span style="font-size:13px;font-weight:600">${patient.fillDate||d}</span></div>
+</div>
+
+<!-- Anamnese -->
+${anamHtml}
+
+<!-- Schmerzeinzeichnungen -->
+${painHtml}
+
+<!-- Aktuelle Medikation -->
+${medsHtml}
+
+<!-- Bisherige Osteoporose-Therapie -->
+${therapieHtml}
+
+<!-- DXA-Werte -->
+${answers.dxa_hip?`<div style="margin-bottom:14px;break-inside:avoid">
+  <div style="background:#3a2a0e;color:#f0e8d0;padding:7px 14px;border-radius:5px 5px 0 0;font-size:12px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">📐 DXA-Knochendichtemessung</div>
+  <div style="border:1px solid #ddd;border-top:none;padding:8px 14px;font-size:12px;display:flex;gap:20px;flex-wrap:wrap">
+    <span><strong>T-Score Gesamthüfte:</strong> ${answers.dxa_hip}</span>
+    ${answers.dxa_lws?`<span><strong>T-Score LWS:</strong> ${answers.dxa_lws}</span>`:''}
+    ${answers.dxa_neck?`<span><strong>T-Score Schenkelhals:</strong> ${answers.dxa_neck}</span>`:''}
+    ${answers.dxa_tbs?`<span><strong>TBS:</strong> ${answers.dxa_tbs}</span>`:''}
+  </div>
+</div>`:''}
+
+<!-- ════ AUSWERTUNG ════ -->
+<div style="border:2px solid #2c1f0e;border-radius:10px;padding:18px;margin-top:18px;page-break-before:always">
+  <div style="font-size:17px;font-weight:700;color:#2c1f0e;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #e8dfd4">📊 Auswertung – Risikoberechnung</div>
+
+  <!-- Therapieschwellen (farbig) -->
+  <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px">
+    ${threshHtml("3%-Schwelle (3 J.)",risk.t3,risk.r3)}
+    ${threshHtml("5%-Schwelle (3 J.)",risk.t5,risk.r5)}
+    ${threshHtml("10%-Schwelle (3 J.)",risk.t10,risk.r10)}
+  </div>
+
+  <!-- Risikokategorie -->
+  ${catHtml}
+
+  <!-- Generelle Indikationen -->
+  ${genIndHtml}
+
+  <!-- Berechnung -->
+  ${calcHtml}
+
+  <!-- Risikoindikatoren -->
+  ${indHtml}
+
+  <!-- Risikofaktoren-Tabelle -->
+  ${factorsHtml}
+
+  <!-- Verlaufsvergleich -->
+  ${diffHtml}
+
+  <!-- DVO-Schwellentabelle -->
+  ${dvoTableHtml(primaryPerc)}
+  ${primaryPerc!==3?dvoTableHtml(3):''}
+  ${primaryPerc!==5?dvoTableHtml(5):''}
+  ${primaryPerc!==10?dvoTableHtml(10):''}
+
+  <!-- Diagnosen -->
+  ${diagHtml}
+</div>
+
+<!-- Symptomcheck / Sekundäre Osteoporose -->
+${sekHtml}
+
+<!-- Fragebogen-Antworten -->
+<div style="page-break-before:always">
+  <div style="font-size:15px;font-weight:700;color:#2c1f0e;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #e8dfd4">📝 Fragebogen – Alle Angaben</div>
+  ${sectionsHtml}
+</div>
+
+<div style="margin-top:20px;padding-top:10px;border-top:2px solid #2c1f0e;font-size:10px;color:#888;text-align:center;line-height:1.6">
+  <strong>Hinweis:</strong> Dieser Ausdruck ersetzt keine ärztliche Diagnose. Die Therapieentscheidung trifft der behandelnde Arzt.<br/>
+  Osteoporose-Fragebogen · Befundbericht (Vollversion) · DVO-Leitlinie 2023 · Nur für den internen Praxisgebrauch
+</div>
+</body></html>`;
+}
+
 /* ═══════════════════════════════════════════════ COMPONENTS ═══ */
 
 /* ── AutoTextarea: Zeilenzahl aus Inhalt berechnet, kein Leerraum ── */
@@ -3637,10 +4273,10 @@ function Section({section,open,onToggle,answers,onAnswer,onRx,hasRisk,onCameraOp
   );
 }
 
-function ThreshPill({label,threshold,reached}){
+function ThreshPill({label,threshold,reached,hasAgeDxa}){
   const cls=threshold===null?"uk":reached?"yes":"no";
   const sym=threshold===null?"—":reached?"✓":"✗";
-  const sub=threshold!==null?`Benötigt: ×${threshold}`:"Alter/DXA fehlt";
+  const sub=threshold!==null?`Benötigt: ×${threshold}`:hasAgeDxa?"Kein Schwellenwert für diese Kombination":"Alter/DXA fehlt";
   return(
     <div className={`tp ${cls}`}>
       <div className="tp-lbl">{label}</div>
@@ -3687,7 +4323,7 @@ function DiffCard({diff,currRisk}){
 
 function ResultCard({gender,answers,patient,diff}){
   const risk=computeRisk(answers,gender);
-  const{factors,top2,cF,t3,t5,t10,r3,r5,r10,genInd,cat,indicators}=risk;
+  const{factors,top2,cF,t3,t5,t10,r3,r5,r10,hasAgeDxa,genInd,cat,indicators}=risk;
   // Zulassungsgerechte Therapieempfehlungen nach deutschen Fachinformationen (Stand 2024)
   // Romosozumab (Evenity®): in Deutschland nur für postmenopausale Frauen zugelassen
   // Raloxifen, Bazedoxifen: nur für Frauen zugelassen
@@ -3731,10 +4367,29 @@ function ResultCard({gender,answers,patient,diff}){
   return(
     <div className="result">
       <div className="result-title">📊 Auswertung – Anamnese- und Osteoporose-Dokumentationshilfe</div>
+      {(patient&&(patient.nachname||patient.vorname||patient.name||patient.geburtsdatum||patient.fillDate))&&(
+        <div style={{background:"#faf4ed",border:"1.5px solid #c8a97a",borderRadius:7,padding:"10px 16px",marginBottom:14,display:"flex",flexWrap:"wrap",gap:"6px 28px",fontSize:13,color:"#4a3520"}}>
+          {(patient.nachname||patient.vorname||patient.name)&&(
+            <span><strong>Patient:</strong> {[patient.nachname||patient.name,patient.vorname].filter(Boolean).join(", ")}</span>
+          )}
+          {patient.geburtsdatum&&(
+            <span><strong>Geb.:</strong> {patient.geburtsdatum}</span>
+          )}
+          {answers.alter&&(
+            <span><strong>Alter:</strong> {answers.alter} Jahre</span>
+          )}
+          {gender&&(
+            <span><strong>Geschlecht:</strong> {gender==="f"?"weiblich":"männlich"}</span>
+          )}
+          {patient.fillDate&&(
+            <span><strong>Untersuchungsdatum:</strong> {patient.fillDate}</span>
+          )}
+        </div>
+      )}
       <div className="thresh-row">
-        <ThreshPill label="3%-Schwelle (3 J.)" threshold={t3} reached={r3}/>
-        <ThreshPill label="5%-Schwelle (3 J.)" threshold={t5} reached={r5}/>
-        <ThreshPill label="10%-Schwelle (3 J.)" threshold={t10} reached={r10}/>
+        <ThreshPill label="3%-Schwelle (3 J.)" threshold={t3} reached={r3} hasAgeDxa={hasAgeDxa}/>
+        <ThreshPill label="5%-Schwelle (3 J.)" threshold={t5} reached={r5} hasAgeDxa={hasAgeDxa}/>
+        <ThreshPill label="10%-Schwelle (3 J.)" threshold={t10} reached={r10} hasAgeDxa={hasAgeDxa}/>
       </div>
       {info&&(
         <div className={`rb ${info.cls}`}>
@@ -5026,11 +5681,15 @@ function CameraScanner({onMedsFound, onClose}){
   const[statusCls,setStatusCls]=useState("scanning");
   const[result,setResult]=useState(null); // [{name, checked}]
   const[scanning,setScanning]=useState(true);
+  const[apiKey,setApiKey]=useState(()=>{try{return localStorage.getItem("osteo_claude_apikey")||"";}catch(e){return "";}});
+  const[showApiKeyInput,setShowApiKeyInput]=useState(false);
+  const[hasBarcodeDetector]=useState(()=>typeof window.BarcodeDetector!=="undefined");
   const videoRef=React.useRef(null);
   const canvasRef=React.useRef(null);
   const streamRef=React.useRef(null);
   const scanTimerRef=React.useRef(null);
   const jsQRRef=React.useRef(null);
+  const barcodeDetectorRef=React.useRef(null);
 
   // Load jsQR dynamically
   React.useEffect(()=>{
@@ -5041,6 +5700,14 @@ function CameraScanner({onMedsFound, onClose}){
       document.head.appendChild(s);
     } else {
       jsQRRef.current=window.jsQR;
+    }
+  },[]);
+
+  // Initialize BarcodeDetector
+  React.useEffect(()=>{
+    if(hasBarcodeDetector){
+      try{barcodeDetectorRef.current=new window.BarcodeDetector({formats:["ean_13","ean_8","code_128","data_matrix"]});}
+      catch(e){barcodeDetectorRef.current=null;}
     }
   },[]);
 
@@ -5088,21 +5755,61 @@ function CameraScanner({onMedsFound, onClose}){
     scanTimerRef.current=setInterval(()=>scanFrame(),300);
   };
 
-  const scanFrame=()=>{
+  // Convert EAN-13 to PZN (PZN is encoded in EAN with prefix 04 followed by 7-digit PZN)
+  const eanToPzn=(ean)=>{
+    const s=String(ean).replace(/\s/g,'');
+    // German pharma EAN: starts with 4, digits 2-8 are the PZN
+    if(s.length===13&&(s.startsWith('4')||s.startsWith('04'))){
+      const pzn=s.startsWith('04')?s.substring(2,9):s.substring(1,8);
+      return pzn.replace(/^0+/,'')||'0';
+    }
+    // 8-digit PZN directly
+    if(s.length>=7&&s.length<=8&&/^\d+$/.test(s)) return s.replace(/^0+/,'')||'0';
+    return null;
+  };
+
+  const scanFrame=async()=>{
     const video=videoRef.current;const canvas=canvasRef.current;
     if(!video||!canvas||video.readyState<2) return;
     const ctx=canvas.getContext('2d');
     canvas.width=video.videoWidth;canvas.height=video.videoHeight;
     ctx.drawImage(video,0,0);
-    const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
-    // Try jsQR for QR codes
+
+    // QR-Code scanning with jsQR
     if(mode==="qr"&&jsQRRef.current){
+      const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
       const code=jsQRRef.current(imgData.data,imgData.width,imgData.height);
       if(code){stopScanLoop();setScanning(false);parseQrCode(code.data);return;}
     }
-    // For barcodes: basic EAN detection hint
-    if(mode==="barcode"){
-      // ZXing not available inline – prompt user to snap photo for API
+
+    // Barcode scanning with BarcodeDetector API
+    if(mode==="barcode"&&barcodeDetectorRef.current){
+      try{
+        const barcodes=await barcodeDetectorRef.current.detect(video);
+        if(barcodes.length>0){
+          const bc=barcodes[0];
+          const raw=bc.rawValue;
+          stopScanLoop();setScanning(false);
+          const pzn=eanToPzn(raw);
+          if(pzn){
+            setStatus(`Barcode erkannt: PZN ${pzn} (EAN: ${raw})`);setStatusCls("success");
+            // Try AI lookup if API key is available, otherwise show PZN as result
+            if(apiKey){
+              await analyzeWithAI(`PZN: ${pzn}, EAN: ${raw}. Nenne den Medikamentennamen, Wirkstoff und Stärke für diese PZN. JSON-Array: [{"name":"Medikament Stärke Form"}]`);
+            } else {
+              setResult([{name:`PZN ${pzn} (EAN: ${raw}) – API-Key für Medikamentennamen hinterlegen`,checked:true}]);
+            }
+          } else {
+            setStatus(`Barcode erkannt: ${raw}`);setStatusCls("success");
+            setResult([{name:`Barcode: ${raw}`,checked:true}]);
+          }
+          return;
+        }
+      }catch(e){/* BarcodeDetector error – ignore */}
+    }
+
+    // Barcode fallback if no BarcodeDetector
+    if(mode==="barcode"&&!barcodeDetectorRef.current){
       setStatus("Barcode positionieren und 📸 Foto aufnehmen klicken");setStatusCls("scanning");
     }
   };
@@ -5151,6 +5858,7 @@ function CameraScanner({onMedsFound, onClose}){
   const takePhotoAndAnalyze=async()=>{
     const video=videoRef.current;const canvas=canvasRef.current;
     if(!video||!canvas) return;
+    if(!apiKey){setShowApiKeyInput(true);setStatus("Bitte API-Key eingeben für KI-Analyse");setStatusCls("error");return;}
     setScanning(false);setStatus("Foto wird analysiert…");setStatusCls("scanning");
     canvas.width=video.videoWidth;canvas.height=video.videoHeight;
     canvas.getContext('2d').drawImage(video,0,0);
@@ -5161,7 +5869,13 @@ function CameraScanner({onMedsFound, onClose}){
     await analyzeWithAI(null, base64, prompt);
   };
 
+  const saveApiKey=(k)=>{
+    setApiKey(k);
+    try{if(k)localStorage.setItem("osteo_claude_apikey",k);else localStorage.removeItem("osteo_claude_apikey");}catch(e){}
+  };
+
   const analyzeWithAI=async(textInput, imageBase64=null, prompt=null)=>{
+    if(!apiKey){setShowApiKeyInput(true);setStatus("Bitte Claude API-Key eingeben");setStatusCls("error");return;}
     try{
       const msgContent=[];
       if(imageBase64) msgContent.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:imageBase64}});
@@ -5170,13 +5884,27 @@ function CameraScanner({onMedsFound, onClose}){
 
       const resp=await fetch("https://api.anthropic.com/v1/messages",{
         method:"POST",
-        headers:{"Content-Type":"application/json"},
+        headers:{
+          "Content-Type":"application/json",
+          "x-api-key":apiKey,
+          "anthropic-version":"2023-06-01",
+          "anthropic-dangerous-direct-browser-access":"true"
+        },
         body:JSON.stringify({
           model:"claude-sonnet-4-20250514",
           max_tokens:1000,
           messages:[{role:"user",content:msgContent}]
         })
       });
+      if(!resp.ok){
+        const err=await resp.json().catch(()=>({}));
+        if(resp.status===401||resp.status===403){
+          setStatus("API-Key ungültig – bitte prüfen");setStatusCls("error");setShowApiKeyInput(true);
+        } else {
+          setStatus("API-Fehler: "+(err.error?.message||resp.statusText));setStatusCls("error");
+        }
+        setScanning(true);return;
+      }
       const data=await resp.json();
       const text=data.content?.map(b=>b.text||'').join('');
       const jsonMatch=text.match(/\[[\s\S]*\]/);
@@ -5220,6 +5948,24 @@ function CameraScanner({onMedsFound, onClose}){
             🤖 KI-Foto<br/><span style={{fontSize:10,fontWeight:400}}>Name/Plan erkennen</span>
           </button>
         </div>
+        {/* API Key Input */}
+        {showApiKeyInput&&(
+          <div style={{padding:"8px 12px",background:"#fff3cd",borderRadius:6,margin:"8px 12px",fontSize:12}}>
+            <div style={{marginBottom:4,fontWeight:600}}>Claude API-Key für KI-Erkennung:</div>
+            <div style={{display:"flex",gap:6}}>
+              <input type="password" value={apiKey}
+                onChange={e=>saveApiKey(e.target.value)}
+                placeholder="sk-ant-..."
+                style={{flex:1,padding:"5px 8px",border:"1px solid #ccc",borderRadius:4,fontSize:12,fontFamily:"monospace"}}/>
+              <button onClick={()=>setShowApiKeyInput(false)}
+                style={{padding:"5px 10px",background:"#2a6f2a",color:"#fff",border:"none",borderRadius:4,cursor:"pointer",fontSize:11}}>OK</button>
+            </div>
+            <div style={{fontSize:10,color:"#666",marginTop:4}}>
+              Wird lokal im Browser gespeichert. Benötigt für Foto- und Barcode-Erkennung per KI.
+              {!hasBarcodeDetector&&" (Barcode-Erkennung nur per KI-Foto – Ihr Browser unterstützt BarcodeDetector nicht.)"}
+            </div>
+          </div>
+        )}
         <div className="cam-video-wrap">
           <video ref={videoRef} className="cam-video" playsInline muted autoPlay/>
           <canvas ref={canvasRef} className="cam-canvas"/>
@@ -5228,14 +5974,19 @@ function CameraScanner({onMedsFound, onClose}){
           </div>
           <div className="cam-frame-hint">
             {mode==="qr"&&"QR-Code des Medikationsplans positionieren"}
-            {mode==="barcode"&&"Barcode auf Schachtel positionieren"}
+            {mode==="barcode"&&(hasBarcodeDetector?"Barcode auf Schachtel positionieren – wird automatisch erkannt":"Barcode auf Schachtel positionieren und Foto aufnehmen")}
             {mode==="foto"&&"Schachtel / Liste / Plan fotografieren"}
           </div>
         </div>
         <div className="cam-controls">
-          {(mode==="foto"||mode==="barcode")&&(
+          {(mode==="foto"||(mode==="barcode"&&!hasBarcodeDetector))&&(
             <button className="cam-snap-btn" onClick={takePhotoAndAnalyze} disabled={!scanning&&!result}>
               📸 Foto aufnehmen &amp; analysieren
+            </button>
+          )}
+          {mode==="barcode"&&hasBarcodeDetector&&scanning&&(
+            <button className="cam-snap-btn" onClick={takePhotoAndAnalyze}>
+              📸 Manuell Foto aufnehmen
             </button>
           )}
           {mode==="qr"&&scanning&&(
@@ -5246,6 +5997,12 @@ function CameraScanner({onMedsFound, onClose}){
           {!scanning&&mode==="qr"&&!result&&(
             <button className="cam-snap-btn" onClick={()=>{setScanning(true);startScanLoop();}}>
               ▶ Neu scannen
+            </button>
+          )}
+          {!apiKey&&(mode==="foto"||(mode==="barcode"&&!hasBarcodeDetector))&&(
+            <button className="cam-snap-btn" onClick={()=>setShowApiKeyInput(true)}
+              style={{background:"#e67e22",marginTop:6}}>
+              🔑 API-Key eingeben
             </button>
           )}
         </div>
@@ -5269,7 +6026,7 @@ function CameraScanner({onMedsFound, onClose}){
         )}
       </div>
       <div style={{color:"#666",fontSize:11,textAlign:"center",marginTop:12,padding:"0 20px",fontFamily:"'Source Sans 3',sans-serif"}}>
-        QR-Code: Einheitlicher Medikationsplan (KBV) · Barcode: EAN-13 / PZN · KI-Foto: Claude Vision API
+        QR-Code: Einheitlicher Medikationsplan (KBV) · Barcode: EAN-13 / PZN {hasBarcodeDetector?"(automatisch)":"(per Foto)"} · KI-Foto: Claude Vision API
       </div>
     </div>
   );
@@ -5279,15 +6036,10 @@ function GebDatInput({value,onChange}){
   const[pendingOver100,setPendingOver100]=useState(false);
   const[lastConfirmed,setLastConfirmed]=useState(null);
 
-  function formatDigits(d){
-    if(d.length>2&&d.length<=4) return d.slice(0,2)+"."+d.slice(2);
-    if(d.length>4)               return d.slice(0,2)+"."+d.slice(2,4)+"."+d.slice(4);
-    return d;
-  }
-
-  const digits=(value||"").replace(/[^0-9]/g,"");
-  const complete = digits.length===6 || digits.length===8;
-  const age = complete ? calcAgeFromBirthdate(value) : null;
+  // Check if value matches a complete date pattern (1-2 digit day/month, 2 or 4 digit year)
+  const dateMatch=/^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})$/.exec(value||"");
+  const complete=!!dateMatch;
+  const age=complete?calcAgeFromBirthdate(value):null;
 
   let borderColor="var(--CM)";
   let errMsg=null;
@@ -5311,13 +6063,30 @@ function GebDatInput({value,onChange}){
     }
   }
 
+  // Warn if year has 1 or 3 digits (must be 2 or 4)
+  const partialYear=/^(\d{1,2})\.(\d{1,2})\.(\d{1}|\d{3})$/.exec(value||"");
+  if(!complete && partialYear){
+    errMsg="Jahreszahl muss 2- oder 4-stellig sein (JJ oder JJJJ).";
+    borderColor="#c0392b";
+  }
+
   const isOver100Unconfirmed = complete && age!==null && age>100 && age<=130 && value!==lastConfirmed;
 
   function handleChange(e){
-    const raw=e.target.value.replace(/[^0-9]/g,"").slice(0,8);
-    const formatted=formatDigits(raw);
+    let v=e.target.value.replace(/[^0-9.]/g,"");
+    // Collapse multiple consecutive dots
+    v=v.replace(/\.{2,}/g,".");
+    // Limit to max 2 dots
+    const parts=v.split(".");
+    if(parts.length>3) v=parts[0]+"."+parts[1]+"."+parts.slice(2).join("");
+    // Limit segment lengths: day max 2, month max 2, year max 4
+    const segs=v.split(".");
+    if(segs[0]&&segs[0].length>2) segs[0]=segs[0].slice(0,2);
+    if(segs[1]&&segs[1].length>2) segs[1]=segs[1].slice(0,2);
+    if(segs[2]&&segs[2].length>4) segs[2]=segs[2].slice(0,4);
+    v=segs.join(".");
     if(pendingOver100) setPendingOver100(false);
-    onChange(formatted);
+    onChange(v);
   }
 
   return(
@@ -5327,13 +6096,13 @@ function GebDatInput({value,onChange}){
         onChange={handleChange}
         placeholder="TT.MM.JJJJ"
         type="text"
-        inputMode="numeric"
+        inputMode="text"
         style={{border:"1.5px solid "+borderColor,borderRadius:5,padding:"8px 11px",
           fontSize:13.5,color:"var(--D)",outline:"none",
           fontFamily:"'Source Sans 3',sans-serif",width:"100%",boxSizing:"border-box"}}
       />
       <div style={{fontSize:11,color:"#9a8a7a",marginTop:2}}>
-        Formate: TT.MM.JJJJ oder TT.MM.JJ
+        Formate: T.M.JJ · TT.MM.JJ · T.M.JJJJ · TT.MM.JJJJ
       </div>
       {errMsg&&(
         <div style={{fontSize:11,color:"#c0392b",marginTop:3,fontWeight:600}}>
@@ -6160,11 +6929,49 @@ function AdminPanel({diagDb,sekDiagDb,sekProfileDb,sekUntersDb,sekQsDb,sekScorin
                 const iSt={padding:"5px 9px",border:"1px solid #d8c8b0",borderRadius:6,fontSize:13,fontFamily:"inherit",background:"white",outline:"none",height:34,boxSizing:"border-box"};
                 return(
                   <div style={{padding:"6px 0"}}>
-                    {!gender&&(
-                      <div style={{padding:"20px",textAlign:"center",color:"#9b8a7a",fontSize:14}}>
-                        Bitte zuerst im Fragebogen das Geschlecht auswählen.
-                      </div>
-                    )}
+                    {!gender&&(()=>{
+                      const recentSessions=[...(sessions||[])].sort((a,b)=>b.id.localeCompare(a.id)).slice(0,20);
+                      if(recentSessions.length===0) return(
+                        <div style={{padding:"20px",textAlign:"center",color:"#9b8a7a",fontSize:14}}>
+                          Noch keine gespeicherten Befunde vorhanden.<br/>Bitte zuerst im Fragebogen das Geschlecht auswählen und einen Befund speichern.
+                        </div>
+                      );
+                      return(
+                        <div style={{padding:"14px"}}>
+                          <div style={{textAlign:"center",color:"#7a5a38",fontSize:14,fontWeight:600,marginBottom:12}}>
+                            Bitte einen Patienten auswählen:
+                          </div>
+                          <div style={{overflowX:"auto"}}>
+                            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12.5,fontFamily:"inherit"}}>
+                              <thead>
+                                <tr style={{background:"#f0e8d8",color:"#5a3a10"}}>
+                                  <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700,borderRight:"1px solid #d8c8a8"}}>Name</th>
+                                  <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700,borderRight:"1px solid #d8c8a8"}}>Geburtsdatum</th>
+                                  <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700,borderRight:"1px solid #d8c8a8"}}>Datum</th>
+                                  <th style={{padding:"8px 12px",textAlign:"left",fontWeight:700}}>Geschlecht</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {recentSessions.map((s,i)=>(
+                                  <tr key={s.id}
+                                    style={{background:i%2===0?"white":"#faf6f0",borderBottom:"1px solid #ece5d8",cursor:"pointer",transition:"background .15s"}}
+                                    onMouseEnter={e=>e.currentTarget.style.background="#f0e8d8"}
+                                    onMouseLeave={e=>e.currentTarget.style.background=i%2===0?"white":"#faf6f0"}
+                                    onClick={()=>onLoadSession(s)}>
+                                    <td style={{padding:"9px 12px",fontWeight:700,color:"#5a3a10",borderRight:"1px solid #ece5d8"}}>
+                                      {s.patient?(s.patient.nachname||s.patient.name||"")+(s.patient.vorname?", "+s.patient.vorname:""):"—"}
+                                    </td>
+                                    <td style={{padding:"9px 12px",color:"#5a4a3a",borderRight:"1px solid #ece5d8"}}>{(s.patient&&s.patient.geburtsdatum)||"—"}</td>
+                                    <td style={{padding:"9px 12px",color:"#5a4a3a",borderRight:"1px solid #ece5d8"}}>{s.fillDate||"—"}</td>
+                                    <td style={{padding:"9px 12px"}}>{s.gender==="f"?"♀ Frau":s.gender==="m"?"♂ Mann":"—"}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {gender&&(<>
                       {/* Export-Buttons */}
                       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14,padding:"10px 4px"}}>
@@ -8038,7 +8845,14 @@ function App(){
       const draft=await storageGet(STORE_DRAFT);
       if(draft){
         if(draft.gender)setGender(draft.gender);
-        if(draft.answers)setAnswers(draft.answers);
+        if(draft.answers){
+          const a={...draft.answers};
+          if(!a.alter&&draft.patient?.geburtsdatum){
+            const age=calcAgeFromBirthdate(draft.patient.geburtsdatum);
+            if(age!==null)a.alter=String(age);
+          }
+          setAnswers(a);
+        }
         if(draft.patient)setPatient(p=>({...p,...draft.patient,fillDate:today}));
         if(draft.patientId)setPatientId(draft.patientId);
       }
@@ -8071,6 +8885,14 @@ function App(){
   },[gender,answers,patient]);
 
   useEffect(()=>{if(gender){setSaveStatus("unsaved");triggerSave();}},[gender,answers,patient,triggerSave]);
+
+  // Always sync age from geburtsdatum
+  useEffect(()=>{
+    if(patient.geburtsdatum){
+      const age=calcAgeFromBirthdate(patient.geburtsdatum);
+      if(age!==null&&answers.alter!==String(age))setAnswers(a=>({...a,alter:String(age)}));
+    }
+  },[patient.geburtsdatum]);
 
   const setA=(id,val)=>setAnswers(p=>({...p,[id]:val}));
   const setP=(k,v)=>setPatient(p=>({...p,[k]:v}));
@@ -8208,14 +9030,20 @@ function App(){
     setViewer({type:"txt",content:text});
   };
 
-  /* ── PDF: print dialog → user selects "Als PDF speichern" ── */
+  /* ── PDF: generates full report HTML and shows in viewer ── */
   const handlePrint=async()=>{
     if(!gender){alert("Bitte zuerst Geschlecht auswählen.");return;}
     await saveSession();
-    const allOpen={};visibleSecs.forEach(s=>allOpen[s.id]=true);
-    setOpenSec(allOpen);setShowResult(true);
-    // Short delay for DOM, then print dialog (browser handles "Save as PDF")
-    setTimeout(()=>window.print(),500);
+    const r=computeRisk(answers,gender);
+    const dd=prevSession?computeDiff(answers,prevSession,gender):null;
+    let html;
+    try{
+      html=buildFullReportHtml(patient,gender,answers,r,dd,lh,diagDb,sekDiagDb,anamnese,therapieHistory,osteoTherapieDb,freitextTherapieMeds,painMaps,SECTIONS);
+    }catch(e){
+      alert("PDF konnte nicht erstellt werden: "+e.message);
+      return;
+    }
+    setViewer({type:"pdf",content:html});
   };
 
   const handleCalc=async()=>{
@@ -8235,7 +9063,12 @@ function App(){
   };
 
   const handleLoadSession=async(s)=>{
-    setGender(s.gender);setAnswers(s.answers);
+    const a={...s.answers};
+    if(!a.alter&&s.patient?.geburtsdatum){
+      const age=calcAgeFromBirthdate(s.patient.geburtsdatum);
+      if(age!==null)a.alter=String(age);
+    }
+    setGender(s.gender);setAnswers(a);
     setPatient({...s.patient,fillDate:today});
     if(s.patientId)setPatientId(s.patientId);
     setShowHist(false);setShowResult(false);
@@ -8672,27 +9505,18 @@ function App(){
                 <span className="viewer-bar-title">
                   {viewer.type==="html"?"📄 Patienteneingabe – Vorschau":"🖨 Befundbericht – Druckansicht"}
                 </span>
-                {/* Neuer Tab öffnen – dort ist die Print-Bar direkt eingebaut */}
-                {/(Android|iPhone|iPad|iPod)/i.test(navigator.userAgent)?(
-                  <a className="viewer-btn primary"
-                    href={URL.createObjectURL(new Blob([viewer.content],{type:"text/html;charset=utf-8"}))}
-                    download="Osteoporose-Fragebogen.html"
-                    style={{textDecoration:"none",display:"inline-flex",alignItems:"center",gap:7}}>
-                    ⬇️ HTML herunterladen
-                  </a>
-                ):(
-                  <button className="viewer-btn primary" onClick={()=>{
-                    const blob=new Blob([viewer.content],{type:"text/html;charset=utf-8"});
-                    const url=URL.createObjectURL(blob);
-                    const opened=window.open(url,"_blank");
-                    if(!opened){
-                      const iframe=document.getElementById("viewer-iframe");
-                      if(iframe&&iframe.contentWindow)iframe.contentWindow.print();
-                      else window.print();
-                    }
-                    setTimeout(()=>URL.revokeObjectURL(url),120000);
-                  }}>🖨 In neuem Tab öffnen / Drucken</button>
-                )}
+                <button className="viewer-btn" onClick={()=>{
+                  const fname=makeFilename("html");
+                  const blob=new Blob([viewer.content],{type:"text/html;charset=utf-8"});
+                  const url=URL.createObjectURL(blob);
+                  const a=document.createElement("a");a.href=url;a.download=fname;
+                  document.body.appendChild(a);a.click();
+                  document.body.removeChild(a);URL.revokeObjectURL(url);
+                }}>⬇️ HTML herunterladen</button>
+                <button className="viewer-btn primary" onClick={()=>{
+                  const iframe=document.getElementById("viewer-iframe");
+                  if(iframe&&iframe.contentWindow){iframe.contentWindow.print();}
+                }}>🖨 Drucken / Als PDF</button>
               </>
             )}
             <button className="viewer-close" onClick={()=>setViewer(null)}>×</button>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Osteoporose-Fragebogen – DVO-Leitlinie 2023</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --M: #3a2a1a;
+  --P: #b8956a;
+  --L: #8b6a3a;
+  --CL: #faf4ed;
+  --bg: #f5f0e8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--M);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.hero {
+  text-align: center;
+  padding: 60px 20px 30px;
+  max-width: 800px;
+}
+.hero h1 {
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--M);
+}
+.hero p {
+  font-size: 16px;
+  color: #6b5a48;
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.cards {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 20px;
+  max-width: 1000px;
+}
+.card {
+  background: white;
+  border: 1.5px solid #d4c4a8;
+  border-radius: 12px;
+  padding: 28px 24px;
+  width: 280px;
+  text-decoration: none;
+  color: var(--M);
+  transition: all .2s;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.card:hover {
+  border-color: var(--L);
+  box-shadow: 0 6px 20px rgba(139,106,58,.15);
+  transform: translateY(-2px);
+}
+.card-icon {
+  font-size: 36px;
+}
+.card h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+.card p {
+  font-size: 14px;
+  color: #6b5a48;
+  line-height: 1.5;
+}
+.card .tag {
+  display: inline-block;
+  background: var(--CL);
+  border: 1px solid #d4c4a8;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--L);
+  align-self: flex-start;
+}
+.footer {
+  margin-top: auto;
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 13px;
+  color: #8b7a68;
+  line-height: 1.8;
+}
+.footer a {
+  color: var(--L);
+  text-decoration: none;
+}
+.footer a:hover {
+  text-decoration: underline;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e8f5e9;
+  border: 1px solid #a5d6a7;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  color: #1b5e20;
+  margin-top: 16px;
+}
+.readme-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  padding: 10px 20px;
+  border: 1.5px solid #d4c4a8;
+  border-radius: 8px;
+  background: white;
+  color: var(--M);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all .2s;
+}
+.readme-link:hover {
+  border-color: var(--L);
+  background: var(--CL);
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🦴 Osteoporose-Fragebogen</h1>
+  <p>
+    DSGVO-konforme Webanwendung zur strukturierten Osteoporose-Dokumentation
+    und Risikoberechnung nach der <strong>DVO-Leitlinie 2023</strong>.
+  </p>
+  <div class="badge">🔒 Alle Daten bleiben lokal im Browser – kein Server, kein Login</div>
+</div>
+
+<div class="cards">
+
+  <a class="card" href="osteoporose-app-vollversion.html">
+    <div class="card-icon">🏥</div>
+    <h2>Vollversion</h2>
+    <p>
+      Alle Funktionen: Patientenfragebogen, Arzt-Zugang mit Auswertung,
+      Sekundäre Osteoporose, Therapie-Datenbank, Laborwerte, Briefkopf.
+    </p>
+    <span class="tag">Empfohlen</span>
+  </a>
+
+  <a class="card" href="osteoporose-fragebogen-standard.html">
+    <div class="card-icon">📋</div>
+    <h2>Standard</h2>
+    <p>
+      Standard-Fragebogen mit Arzt-Zugang und Risikoberechnung.
+      Kompakter als die Vollversion, alle wesentlichen Funktionen.
+    </p>
+    <span class="tag">Standard</span>
+  </a>
+
+  <a class="card" href="osteoporose-fragebogen-kurz.html">
+    <div class="card-icon">⚡</div>
+    <h2>Kurzversion</h2>
+    <p>
+      Kompakter Schnell-Fragebogen für die schnelle Erfassung
+      der wichtigsten Risikofaktoren und DXA-Werte.
+    </p>
+    <span class="tag">Kompakt</span>
+  </a>
+
+</div>
+
+<div class="footer">
+  <a class="readme-link" href="https://github.com/gpdahmen/Osteoporose-app#readme">
+    📖 Dokumentation (README) auf GitHub
+  </a>
+  <br><br>
+  Entwickelt von <strong>Dr. med. Georg P. Dahmen</strong> · Orthopädie Langenhorn, Hamburg<br>
+  DVO-Leitlinie Osteoporose 2023 · Rein lokale Datenverarbeitung · Kein Server erforderlich<br>
+  <br>
+  <a href="https://github.com/gpdahmen/Osteoporose-app">GitHub Repository</a>
+</div>
+
+</body>
+</html>

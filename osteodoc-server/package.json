@@ -1,0 +1,41 @@
+{
+  "name": "osteodoc-server",
+  "version": "1.0.0",
+  "description": "OsteoDoc – Serverbasierte Webanwendung zur Osteoporose-Bewertung nach DVO-Leitlinie 2023",
+  "main": "server/app.js",
+  "scripts": {
+    "start": "node server/app.js",
+    "dev": "node --watch server/app.js",
+    "build": "cd client && npx webpack --mode production",
+    "db:init": "node server/db/init.js",
+    "setup": "npm install && npm run build && npm run db:init"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.0",
+    "winston": "^3.14.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.0",
+    "@babel/preset-env": "^7.25.0",
+    "@babel/preset-react": "^7.24.0",
+    "babel-loader": "^9.2.0",
+    "css-loader": "^7.1.0",
+    "html-webpack-plugin": "^5.6.0",
+    "mini-css-extract-plugin": "^2.9.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "private": true
+}
